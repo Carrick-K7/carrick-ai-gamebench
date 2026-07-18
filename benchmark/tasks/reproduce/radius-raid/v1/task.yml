@@ -1,0 +1,41 @@
+schema_version: 1
+id: reproduce.radius-raid.v1
+version: 1.0.0
+title: { en: "Reproduce Radius Raid", zh: "复刻 Radius Raid" }
+track: reproduce
+level: 3
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: model-api-only
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+  scenarios: [menu, projectile-hit, enemy-types, powerup, player-hit, movement, cadence, visual-combat, cleanup]
+reference:
+  project: Radius Raid
+  repository: https://github.com/jackrugile/radius-raid
+  commit: 016cb866b6078672e37a1691bd9fe555364dbf58
+  license: MIT
+  capture_pack: reference/index.html
+  source_release: after-retirement
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: start-controls, category: mechanics, points: 10, case: start-controls }
+  - { id: shooting, category: mechanics, points: 10, case: shooting }
+  - { id: enemy-variety, category: mechanics, points: 12, case: enemy-variety }
+  - { id: powerup, category: mechanics, points: 8, case: powerup }
+  - { id: damage-score, category: mechanics, points: 5, case: damage-score }
+  - { id: movement-feel, category: feel, points: 10, case: movement-feel }
+  - { id: fire-cadence, category: feel, points: 10, case: fire-cadence }
+  - { id: visual-menu, category: visual, points: 10, case: visual-menu }
+  - { id: visual-combat, category: visual, points: 10, case: visual-combat }
+  - { id: pause, category: stability, points: 5, case: pause }
+  - { id: restart-cleanup, category: stability, points: 5, case: restart-cleanup }

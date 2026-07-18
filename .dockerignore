@@ -1,0 +1,10 @@
+.git
+node_modules
+**/node_modules
+dist
+**/dist
+runs
+results/private
+*.log
+.env
+.env.*

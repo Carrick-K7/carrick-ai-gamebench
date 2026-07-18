@@ -1,0 +1,31 @@
+schema_version: 1
+id: build.minesweeper.v1
+version: 1.0.0
+title: { en: "Minesweeper", zh: "扫雷" }
+track: build
+level: 1
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+  scenarios: [corner-count, flood-region, flag-cell, near-win]
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: adjacent-counts, category: mechanics, points: 15, case: adjacent-counts }
+  - { id: flood-expansion, category: mechanics, points: 20, case: flood-expansion }
+  - { id: flag-behavior, category: mechanics, points: 10, case: flag-behavior }
+  - { id: terminal-state, category: mechanics, points: 15, case: terminal-state }
+  - { id: clean-reset, category: state, points: 10, case: clean-reset }
+  - { id: deterministic-seed, category: state, points: 10, case: deterministic-seed }
+  - { id: pointer-input, category: input, points: 10, case: pointer-input }
+  - { id: finished-immutable, category: stability, points: 5, case: finished-immutable }

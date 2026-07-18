@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["status", "tick", "score", "state", "events"],
+  "properties": {
+    "status": { "enum": ["menu", "running", "won", "lost"] },
+    "tick": { "type": "number", "minimum": 0 },
+    "score": { "type": "number", "minimum": 0 },
+    "state": {
+      "type": "object",
+      "required": ["boardSize", "cells", "valid", "violations", "moves", "feedback", "puzzleSignature"],
+      "properties": {
+        "boardSize": { "enum": [4, 6] },
+        "cells": { "type": "array" },
+        "valid": { "type": "boolean" },
+        "violations": { "type": "array", "items": { "type": "string" } },
+        "moves": { "type": "integer", "minimum": 0 },
+        "feedback": { "type": "boolean" },
+        "puzzleSignature": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "events": { "type": "array" }
+  },
+  "additionalProperties": false
+}

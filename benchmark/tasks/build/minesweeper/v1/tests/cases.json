@@ -1,0 +1,95 @@
+{
+  "schema_version": 1,
+  "cases": [
+    { "id": "build", "kind": "build", "description": "The game builds and serves." },
+    {
+      "id": "adjacent-counts",
+      "kind": "browser",
+      "description": "Corner and edge neighbor counts are correct.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "corner-count" },
+        { "op": "act", "action": "reveal", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.cells.0.0.adjacent", "equals": 1 },
+        { "op": "expect", "path": "state.cells.0.0.revealed", "equals": true }
+      ]
+    },
+    {
+      "id": "flood-expansion",
+      "kind": "browser",
+      "description": "A zero cell expands a connected safe region.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "flood-region" },
+        { "op": "act", "action": "reveal", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.revealedSafe", "greater_than": 20 }
+      ]
+    },
+    {
+      "id": "flag-behavior",
+      "kind": "browser",
+      "description": "Flags toggle and prevent reveal.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "flag-cell" },
+        { "op": "act", "action": "toggle-flag", "payload": { "row": 1, "col": 1 } },
+        { "op": "act", "action": "reveal", "payload": { "row": 1, "col": 1 } },
+        { "op": "expect", "path": "state.cells.1.1.flagged", "equals": true },
+        { "op": "expect", "path": "state.cells.1.1.revealed", "equals": false }
+      ]
+    },
+    {
+      "id": "terminal-state",
+      "kind": "browser",
+      "description": "Revealing the last safe cell wins.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "near-win" },
+        { "op": "act", "action": "reveal", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "status", "equals": "won" },
+        { "op": "expect", "path": "state.inputLocked", "equals": true }
+      ]
+    },
+    {
+      "id": "clean-reset",
+      "kind": "browser",
+      "description": "Restart clears flags and revealed state.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "flag-cell" },
+        { "op": "act", "action": "toggle-flag", "payload": { "row": 1, "col": 1 } },
+        { "op": "act", "action": "restart" },
+        { "op": "expect", "path": "state.flags", "equals": 0 },
+        { "op": "expect", "path": "state.revealedSafe", "equals": 0 }
+      ]
+    },
+    {
+      "id": "deterministic-seed",
+      "kind": "browser",
+      "description": "The published seeded board is stable.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "deterministic" },
+        { "op": "expect", "path": "state.mineCount", "equals": 10 },
+        { "op": "expect", "path": "state.mineSignature", "equals": "0,7;1,3;2,8;3,1;4,6;5,4;6,9;7,2;8,5;9,0" }
+      ]
+    },
+    {
+      "id": "pointer-input",
+      "kind": "browser",
+      "description": "A real left click reveals a DOM cell.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "corner-count" },
+        { "op": "click", "selector": "[data-cell=\"0-0\"]" },
+        { "op": "expect", "path": "state.cells.0.0.revealed", "equals": true }
+      ]
+    },
+    {
+      "id": "finished-immutable",
+      "kind": "browser",
+      "description": "A finished board rejects later input.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "flag-cell" },
+        { "op": "act", "action": "reveal", "payload": { "row": 1, "col": 1 } },
+        { "op": "expect", "path": "status", "equals": "lost" },
+        { "op": "act", "action": "reveal", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.inputLocked", "equals": true },
+        { "op": "expect", "path": "status", "equals": "lost" }
+      ]
+    }
+  ]
+}

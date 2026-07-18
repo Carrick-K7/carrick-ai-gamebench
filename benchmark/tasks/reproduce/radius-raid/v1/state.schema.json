@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["status", "tick", "score", "state", "events"],
+  "properties": {
+    "status": { "enum": ["menu", "running", "paused", "won", "lost"] },
+    "tick": { "type": "number", "minimum": 0 },
+    "score": { "type": "number", "minimum": 0 },
+    "state": {
+      "type": "object",
+      "required": ["hero", "life", "shield", "enemyCount", "enemyTypes", "bulletCount", "bulletsFired", "particleCount"],
+      "properties": {
+        "hero": {
+          "type": "object",
+          "required": ["x", "y", "vx", "vy"],
+          "properties": {
+            "x": { "type": "number" },
+            "y": { "type": "number" },
+            "vx": { "type": "number" },
+            "vy": { "type": "number" }
+          }
+        },
+        "life": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "shield": { "type": "boolean" },
+        "enemyCount": { "type": "integer", "minimum": 0 },
+        "enemyTypes": { "type": "array", "items": { "type": "string" } },
+        "bulletCount": { "type": "integer", "minimum": 0 },
+        "bulletsFired": { "type": "integer", "minimum": 0 },
+        "particleCount": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": true
+    },
+    "events": { "type": "array" }
+  },
+  "additionalProperties": false
+}

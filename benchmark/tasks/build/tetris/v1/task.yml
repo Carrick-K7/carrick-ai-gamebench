@@ -1,0 +1,31 @@
+schema_version: 1
+id: build.tetris.v1
+version: 1.0.0
+title: { en: "Tetris", zh: "俄罗斯方块" }
+track: build
+level: 2
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+  scenarios: [all-pieces, wall-rotation, single-line, hard-drop, deterministic]
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: seven-pieces, category: mechanics, points: 10, case: seven-pieces }
+  - { id: collision-rotation, category: mechanics, points: 15, case: collision-rotation }
+  - { id: line-clear, category: mechanics, points: 20, case: line-clear }
+  - { id: hard-drop, category: mechanics, points: 15, case: hard-drop }
+  - { id: pause-reset, category: state, points: 10, case: pause-reset }
+  - { id: score-level, category: state, points: 10, case: score-level }
+  - { id: keyboard-input, category: input, points: 10, case: keyboard-input }
+  - { id: rapid-input, category: stability, points: 5, case: rapid-input }

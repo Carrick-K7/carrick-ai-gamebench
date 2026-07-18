@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "1.0.0-alpha.1",
+  "protocols": {
+    "task_manifest": 1,
+    "bridge": 1
+  },
+  "tracks": [
+    "build",
+    "reproduce"
+  ],
+  "task_count": 8,
+  "tasks": [
+    {
+      "id": "build.2048.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:e8a91f31a773d33f97fdd1bd4dd5a8a99f834131e132049e8071549e607fe63d"
+    },
+    {
+      "id": "build.minesweeper.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:bcc763036244da3c22a0062cb4505121330b9c23aafc8c6326bcde3621e74134"
+    },
+    {
+      "id": "build.parking-2d.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:3fdcf375f51eb35a8ee6c70f5185387ea23653e1bd2972800387c5315bb1177d"
+    },
+    {
+      "id": "build.side-scroller-shooter.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:39521b695ae3b49a5326a132677b8eb96a7a698a16fc5fc56367e3fe247df804"
+    },
+    {
+      "id": "build.tetris.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:21994bc384a4ba6382213e5036f88af5798b39c8767963e1960be9dc935745ab"
+    },
+    {
+      "id": "build.tower-defense.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:ae3c8eefb065dee919f134d8b310d747a34ec6f379757e2322ad0474255449e5"
+    },
+    {
+      "id": "reproduce.ohsteem.v1",
+      "version": "1.0.0",
+      "track": "reproduce",
+      "hash": "sha256:7f11f19b1f29b00d0d35553141cce24a92fc4c64f320b4b8a514f67a6baca373"
+    },
+    {
+      "id": "reproduce.radius-raid.v1",
+      "version": "1.0.0",
+      "track": "reproduce",
+      "hash": "sha256:5c09986bbd8d12870cc439bca4e61b721b71139ded50b216e5f74a37bd1a600b"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+node_modules/
+dist/
+dist-test/
+.cache/
+.DS_Store
+*.tsbuildinfo
+playwright-report/
+test-results/
+runs/
+results/private/
+benchmark/references/private/
+*.log
+.env
+.env.*
+!.env.example

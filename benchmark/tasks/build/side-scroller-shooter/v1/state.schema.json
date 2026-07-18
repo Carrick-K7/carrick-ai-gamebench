@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["status", "tick", "score", "state", "events"],
+  "properties": {
+    "status": { "enum": ["menu", "running", "paused", "won", "lost"] },
+    "tick": { "type": "number", "minimum": 0 },
+    "score": { "type": "number", "minimum": 0 },
+    "state": {
+      "type": "object",
+      "required": ["health", "invulnerable", "wave", "enemyCount", "projectileCount", "objectCount", "enemyTypes"],
+      "properties": {
+        "health": { "type": "number", "minimum": 0 },
+        "invulnerable": { "type": "boolean" },
+        "wave": { "type": "integer", "minimum": 1 },
+        "enemyCount": { "type": "integer", "minimum": 0 },
+        "projectileCount": { "type": "integer", "minimum": 0 },
+        "objectCount": { "type": "integer", "minimum": 0 },
+        "enemyTypes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": true
+    },
+    "events": { "type": "array" }
+  },
+  "additionalProperties": false
+}
