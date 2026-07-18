@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "benchmark": "carrick-ai-gamebench",
-  "benchmark_version": "1.0.0-alpha.1",
+  "benchmark_version": "0.1.0",
   "protocols": {
     "task_manifest": 1,
     "bridge": 1
