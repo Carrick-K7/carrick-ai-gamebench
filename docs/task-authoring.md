@@ -51,14 +51,9 @@ benchmark release. See [versioning](versioning.md).
 Browser cases support:
 
 - `reset`, `act`, and `advance` through the bridge;
-- real `key`, `click`, and `select` interaction;
+- real `key` and `click` interaction;
 - snapshot `expect` with exact, one-of, numeric, or approximate comparison;
-- `expect-visible`;
 - deterministic `screenshot`.
-
-Source cases support file existence and regular-expression contains/
-not-contains assertions. Use source checks only for explicit structural
-contracts. Avoid generic complexity or style metrics.
 
 ## Quality gate for a new task
 

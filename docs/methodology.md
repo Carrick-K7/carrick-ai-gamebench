@@ -67,8 +67,7 @@ viewport, and device scale factor 1. It:
 2. builds the submission;
 3. starts the preview server;
 4. verifies bridge version 1 and validates the first snapshot;
-5. executes real keyboard/pointer/select operations and controlled bridge
-   actions;
+5. executes real keyboard/pointer operations and controlled bridge actions;
 6. validates snapshots against the task JSON Schema;
 7. captures traces, failure screenshots, and declared visual checkpoints.
 

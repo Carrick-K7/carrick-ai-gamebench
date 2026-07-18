@@ -1,14 +1,12 @@
 {
   "name": "@carrick/gamebench-reviewer",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 4317",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --pretty false",
-    "test": "node --test",
     "clean": "rm -rf dist"
   },
   "devDependencies": {

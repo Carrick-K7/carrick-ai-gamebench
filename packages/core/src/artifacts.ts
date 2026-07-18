@@ -58,6 +58,7 @@ export async function verifyEvidenceManifest(
   root: string,
 ): Promise<{ valid: boolean; errors: string[] }> {
   const errors: string[] = [];
+  const listedFiles = new Set<string>();
   const manifestPath = path.join(root, "MANIFEST.sha256");
   const lines = (await readFile(manifestPath, "utf8"))
     .split("\n")
@@ -69,19 +70,55 @@ export async function verifyEvidenceManifest(
       errors.push(`malformed manifest line: ${line}`);
       continue;
     }
-    const absolute = path.resolve(root, match[2]);
+    const relative = match[2];
+    if (listedFiles.has(relative)) {
+      errors.push(`duplicate manifest entry: ${relative}`);
+      continue;
+    }
+    listedFiles.add(relative);
+    const absolute = path.resolve(root, relative);
     if (!absolute.startsWith(`${path.resolve(root)}${path.sep}`)) {
-      errors.push(`manifest path escapes run directory: ${match[2]}`);
+      errors.push(`manifest path escapes run directory: ${relative}`);
       continue;
     }
     try {
       const actual = await sha256File(absolute);
       if (actual !== match[1]) {
-        errors.push(`digest mismatch: ${match[2]}`);
+        errors.push(`digest mismatch: ${relative}`);
       }
     } catch {
-      errors.push(`missing artifact: ${match[2]}`);
+      errors.push(`missing artifact: ${relative}`);
     }
   }
+
+  for (const relative of await collectFiles(root)) {
+    const normalized = relative.split(path.sep).join("/");
+    if (!listedFiles.has(normalized)) {
+      errors.push(`unlisted artifact: ${normalized}`);
+    }
+  }
+
+  if (
+    listedFiles.has("source.sha256") ||
+    listedFiles.has("source.tar.zst")
+  ) {
+    try {
+      const checksum = (
+        await readFile(path.join(root, "source.sha256"), "utf8")
+      ).trim();
+      const match = /^([a-f0-9]{64})  source\.tar\.zst$/.exec(checksum);
+      if (!match?.[1]) {
+        errors.push("malformed source.sha256");
+      } else {
+        const actual = await sha256File(path.join(root, "source.tar.zst"));
+        if (actual !== match[1]) {
+          errors.push("source archive digest mismatch");
+        }
+      }
+    } catch {
+      errors.push("source archive checksum pair is incomplete");
+    }
+  }
+
   return { valid: errors.length === 0, errors };
 }

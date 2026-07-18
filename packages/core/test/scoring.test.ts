@@ -28,7 +28,6 @@ const buildTask: TaskManifest = {
   bridge: {
     version: "1",
     state_schema: "state.schema.json",
-    scenarios: ["default"],
   },
   tests: [
     { id: "build", category: "build", points: 5, case: "build" },

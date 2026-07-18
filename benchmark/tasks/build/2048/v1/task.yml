@@ -18,7 +18,6 @@ test_suite: tests/cases.json
 bridge:
   version: "1"
   state_schema: state.schema.json
-  scenarios: [merge-2220, no-op-left, near-win, deterministic]
 tests:
   - { id: build, category: build, points: 5, case: build }
   - { id: merge-once, category: mechanics, points: 20, case: merge-once }

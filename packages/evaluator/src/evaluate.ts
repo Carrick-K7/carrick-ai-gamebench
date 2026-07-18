@@ -325,23 +325,10 @@ async function executeBrowserCase(
         } else {
           throw new Error("click requires selector or x/y coordinates");
         }
-      } else if (step.op === "select") {
-        await page.locator(step.selector).selectOption(step.value);
       } else if (step.op === "expect") {
         const snapshot = await bridgeSnapshot(page);
         assertValidSnapshot(snapshot, validateSnapshot);
         assertExpectation(getPath(snapshot, step.path), step);
-      } else if (step.op === "expect-visible") {
-        const locator = page.locator(step.selector);
-        await locator.waitFor({ state: "visible" });
-        if (step.text !== undefined) {
-          const text = await locator.textContent();
-          if (!text?.includes(step.text)) {
-            throw new Error(
-              `${step.selector}: expected visible text ${JSON.stringify(step.text)}, received ${JSON.stringify(text)}`,
-            );
-          }
-        }
       } else if (step.op === "screenshot") {
         const actualPath = path.join(artifactsDir, step.name);
         const expectedPath = path.join(task.root, "references", step.name);
@@ -404,41 +391,6 @@ async function executeBrowserCase(
           ? `${message}; browser errors: ${consoleErrors.join(" | ")}`
           : message,
       artifacts,
-    };
-  }
-}
-
-async function executeSourceCase(
-  testCase: Extract<TestCase, { kind: "source" }>,
-  submissionDir: string,
-): Promise<CaseResult> {
-  const started = Date.now();
-  try {
-    for (const assertion of testCase.assertions) {
-      const filePath = path.resolve(submissionDir, assertion.path);
-      if (!filePath.startsWith(`${path.resolve(submissionDir)}${path.sep}`)) {
-        throw new Error(`source assertion escapes submission: ${assertion.path}`);
-      }
-      await access(filePath);
-      if (assertion.assert !== "file-exists") {
-        const content = await readFile(filePath, "utf8");
-        const regex = new RegExp(assertion.pattern, "m");
-        const matches = regex.test(content);
-        if (assertion.assert === "contains" && !matches) {
-          throw new Error(`${assertion.path} does not match /${assertion.pattern}/`);
-        }
-        if (assertion.assert === "not-contains" && matches) {
-          throw new Error(`${assertion.path} unexpectedly matches /${assertion.pattern}/`);
-        }
-      }
-    }
-    return { passed: true, duration_ms: Date.now() - started, artifacts: [] };
-  } catch (error) {
-    return {
-      passed: false,
-      duration_ms: Date.now() - started,
-      message: error instanceof Error ? error.message : String(error),
-      artifacts: [],
     };
   }
 }
@@ -583,11 +535,6 @@ export async function evaluateSubmission(
               options,
               validateSnapshot,
             ),
-          );
-        } else if (testCase.kind === "source") {
-          caseResults.set(
-            testCase.id,
-            await executeSourceCase(testCase, options.submissionDir),
           );
         }
       }

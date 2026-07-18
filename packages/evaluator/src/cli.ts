@@ -14,6 +14,7 @@ import {
   listTasks,
   loadTask,
   ReleaseLockSchema,
+  RunManifestSchema,
   ScoreResultSchema,
   verifyEvidenceManifest,
   writeEvidenceManifest,
@@ -261,10 +262,17 @@ async function commandEvaluate(
     repositoryRoot,
     typeof values.run === "string" ? values.run : fail("--run is required"),
   );
-  const run = JSON.parse(
-    await readFile(path.join(runDir, "run.json"), "utf8"),
-  ) as RunManifest;
+  const parsedRun = RunManifestSchema.safeParse(
+    JSON.parse(await readFile(path.join(runDir, "run.json"), "utf8")),
+  );
+  if (!parsedRun.success) {
+    fail(`Invalid run.json: ${parsedRun.error.message}`);
+  }
+  const run: RunManifest = parsedRun.data;
   const task = await loadTask(run.task_id, repositoryRoot);
+  if (run.task_hash !== task.hash) {
+    fail(`Run task hash does not match the current ${run.task_id} task`);
+  }
   const result = await evaluateSubmission(task, {
     submissionDir: path.join(runDir, "workspace"),
     runDir,
@@ -310,7 +318,7 @@ async function commandAggregate(
     typeof values.input === "string" ? values.input : fail("--input is required"),
   );
   const tasks = await listTasks(repositoryRoot);
-  const byId = new Map(tasks.map((task) => [task.manifest.id, task.manifest]));
+  const byId = new Map(tasks.map((task) => [task.manifest.id, task]));
   const attempts = [];
   for (const scorePath of await findFiles(input, "score.json")) {
     const scoreResult = ScoreResultSchema.safeParse(
@@ -319,9 +327,9 @@ async function commandAggregate(
     if (!scoreResult.success) {
       continue;
     }
-    const task = byId.get(scoreResult.data.task_id);
-    if (task) {
-      attempts.push({ task, score: scoreResult.data });
+    const loadedTask = byId.get(scoreResult.data.task_id);
+    if (loadedTask && scoreResult.data.task_hash === loadedTask.hash) {
+      attempts.push({ task: loadedTask.manifest, score: scoreResult.data });
     }
   }
   const aggregate = aggregateAttempts(

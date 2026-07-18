@@ -18,7 +18,7 @@ import {
 interface ReviewCandidate {
   task_id: string;
   task_version: string;
-  prompt_language: string;
+  prompt_language: "en" | "zh";
   artifact_hash: string;
   preview_url: string;
   reference_url?: string;
@@ -88,12 +88,16 @@ async function collectCandidates(
       continue;
     }
     const run: RunManifest = runResult.data;
-    if (scoreResult.data.task_id !== run.task_id) {
-      continue;
-    }
     const digest = (await readFile(digestPath, "utf8")).split(/\s+/)[0];
     const task = tasksById.get(run.task_id);
-    if (!digest || !/^[a-f0-9]{64}$/.test(digest) || !task) {
+    if (
+      !digest ||
+      !/^[a-f0-9]{64}$/.test(digest) ||
+      !task ||
+      scoreResult.data.task_id !== run.task_id ||
+      scoreResult.data.task_hash !== run.task_hash ||
+      run.task_hash !== task.hash
+    ) {
       continue;
     }
     const candidateId = createHash("sha256")

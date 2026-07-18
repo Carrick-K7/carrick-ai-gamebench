@@ -17,11 +17,7 @@ export const JsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
 
 export const TrackSchema = z.enum(["build", "reproduce"]);
 export const LanguageSchema = z.enum(["en", "zh"]);
-export const NetworkPolicySchema = z.enum([
-  "full",
-  "model-api-only",
-  "offline",
-]);
+export const NetworkPolicySchema = z.enum(["full", "model-api-only"]);
 
 export const TestCategorySchema = z.enum([
   "build",
@@ -45,10 +41,6 @@ export const ReferenceSchema = z.strictObject({
   repository: z.url(),
   commit: z.string().regex(/^[a-f0-9]{40}$/),
   license: z.string().min(1),
-  build_digest: z
-    .string()
-    .regex(/^sha256:[a-f0-9]{64}$/)
-    .optional(),
   capture_pack: z.string().min(1),
   source_release: z.literal("after-retirement"),
 });
@@ -105,7 +97,6 @@ export const TaskManifestSchema = z.strictObject({
   bridge: z.strictObject({
     version: z.literal("1"),
     state_schema: z.string().min(1),
-    scenarios: z.array(z.string().min(1)).min(1),
   }),
   reference: ReferenceSchema.optional(),
   tests: z.array(TestDefinitionSchema).min(1),
@@ -142,11 +133,6 @@ export const BrowserStepSchema = z.discriminatedUnion("op", [
     button: z.enum(["left", "right", "middle"]).default("left"),
   }),
   z.strictObject({
-    op: z.literal("select"),
-    selector: z.string().min(1),
-    value: z.string().min(1),
-  }),
-  z.strictObject({
     op: z.literal("expect"),
     path: z.string().min(1),
     equals: JsonValueSchema.optional(),
@@ -161,33 +147,11 @@ export const BrowserStepSchema = z.discriminatedUnion("op", [
       .optional(),
   }),
   z.strictObject({
-    op: z.literal("expect-visible"),
-    selector: z.string().min(1),
-    text: z.string().optional(),
-  }),
-  z.strictObject({
     op: z.literal("screenshot"),
     name: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*\.png$/),
     selector: z.string().min(1).optional(),
     max_diff_pixels: z.number().int().nonnegative().optional(),
     threshold: z.number().min(0).max(1).optional(),
-  }),
-]);
-
-export const SourceAssertionSchema = z.discriminatedUnion("assert", [
-  z.strictObject({
-    assert: z.literal("file-exists"),
-    path: z.string().min(1),
-  }),
-  z.strictObject({
-    assert: z.literal("contains"),
-    path: z.string().min(1),
-    pattern: z.string().min(1),
-  }),
-  z.strictObject({
-    assert: z.literal("not-contains"),
-    path: z.string().min(1),
-    pattern: z.string().min(1),
   }),
 ]);
 
@@ -204,17 +168,9 @@ export const BuildCaseSchema = z.strictObject({
   description: z.string().min(1),
 });
 
-export const SourceCaseSchema = z.strictObject({
-  id: z.string().min(1),
-  kind: z.literal("source"),
-  description: z.string().min(1),
-  assertions: z.array(SourceAssertionSchema).min(1),
-});
-
 export const TestCaseSchema = z.discriminatedUnion("kind", [
   BrowserCaseSchema,
   BuildCaseSchema,
-  SourceCaseSchema,
 ]);
 
 export const TestSuiteSchema = z.strictObject({

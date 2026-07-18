@@ -1,8 +1,5 @@
 import { z } from "zod";
-import {
-  TrackSchema,
-  type Track,
-} from "./schema.js";
+import { TrackSchema } from "./schema.js";
 import type { LoadedTask } from "./tasks.js";
 
 const BenchmarkVersionSchema = z
@@ -39,7 +36,7 @@ export function createReleaseLock(
     .map((task) => ({
       id: task.manifest.id,
       version: task.manifest.version,
-      track: task.manifest.track as Track,
+      track: task.manifest.track,
       hash: task.hash,
     }))
     .sort((left, right) => left.id.localeCompare(right.id));
