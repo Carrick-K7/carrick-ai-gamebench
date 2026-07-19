@@ -3,6 +3,26 @@
 All notable benchmark changes are recorded here. Releases also have a
 machine-readable lock under `benchmark/releases/`.
 
+## 0.2.0
+
+- Added immutable series, run, verification, publication, artifact, review, and
+  result-index contracts with canonical SHA-256 identities.
+- Replaced self-declared `official` and `verified` run flags with
+  `official-candidate` execution and independent operator verification.
+- Added the publisher package, clean-source export, secret scanning,
+  deterministic public artifacts, content-addressed filesystem storage, and
+  publication validation.
+- Added the static public GameBench site with Official and Experimental result
+  separation, game pages, playable embeds, methodology, source, and releases.
+- Kept legacy run and release-lock readers for the 0.1.x history.
+
+## 0.1.2
+
+- Copied each task's public state schema into fresh submission workspaces.
+- Isolated submission installs from the repository pnpm workspace.
+- Allocated evaluator preview ports dynamically to avoid unrelated services.
+- Preloaded and verified standalone starter dependencies in the evaluator image.
+
 ## 0.1.1
 
 - Simplified the public protocol by removing unused source assertions, bridge

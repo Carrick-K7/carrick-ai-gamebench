@@ -1,0 +1,130 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { gameData, releaseData, resultData, score } from "../lib/data";
+
+const [games, releases, results] = await Promise.all([
+  gameData(),
+  releaseData(),
+  resultData(),
+]);
+const official = results.index.entries.filter(
+  (entry) => entry.tier === "official" && entry.status === "active",
+);
+const experimental = results.index.entries.filter(
+  (entry) => entry.tier === "experimental" && entry.status === "active",
+);
+const latest = releases[0];
+---
+
+<Layout title="GameBench">
+  <div class="container">
+    <span class="eyebrow">Game-driven coding agent benchmark</span>
+    <h1>Can an agent build a game worth playing?</h1>
+    <p class="lead">
+      GameBench evaluates coding agents through deterministic game mechanics,
+      real browser interaction, and separate human playtesting. The output is
+      inspectable: play the game, read the source, and audit every score.
+    </p>
+    <div class="actions">
+      <a class="button" href="/leaderboard">View official results</a>
+      <a class="button secondary" href="/games">Explore the games</a>
+    </div>
+
+    <section class="section">
+      <div class="grid cols-4">
+        <div class="card metric">
+          <strong>{games.length}</strong>
+          <span>versioned game tasks</span>
+        </div>
+        <div class="card metric">
+          <strong>{games.filter((game) => game.manifest.track === "build").length}</strong>
+          <span>Build tasks</span>
+        </div>
+        <div class="card metric">
+          <strong>{games.filter((game) => game.manifest.track === "reproduce").length}</strong>
+          <span>Reproduce tasks</span>
+        </div>
+        <div class="card metric">
+          <strong>{latest?.benchmark_version ?? "—"}</strong>
+          <span>latest benchmark release</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Official leaderboard</span>
+          <h2>Comparable by construction.</h2>
+        </div>
+        <p>
+          Official results cover every task and fixed seed, use one exact
+          benchmark release, and are independently rebuilt before publication.
+        </p>
+      </div>
+      <div class="table-wrap">
+        {official.length === 0 ? (
+          <div class="empty">
+            <strong>No official series yet.</strong>
+            <span class="muted">Verified full-matrix results will appear here.</span>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr><th>Model</th><th>Agent</th><th>Release</th><th>Core</th><th>Build</th><th>Reproduce</th></tr>
+            </thead>
+            <tbody>
+              {official.slice(0, 5).map((entry) => (
+                <tr>
+                  <td><a href={`/results/${entry.publication_id.slice(7)}`}>{entry.agent.model}</a></td>
+                  <td>{entry.agent.id} · {entry.agent.harness}</td>
+                  <td class="mono">{entry.benchmark_version}</td>
+                  <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
+                  <td>{score(entry.aggregate.leaderboards.build)}</td>
+                  <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Evaluation model</span>
+          <h2>One benchmark, two forms of truth.</h2>
+        </div>
+      </div>
+      <div class="grid cols-3">
+        <article class="card">
+          <span class="pill">01 · Machine</span>
+          <h3>Deterministic mechanics</h3>
+          <p>Fixed seeds, controlled time, state schemas, and native keyboard and pointer actions produce repeatable atomic scores.</p>
+        </article>
+        <article class="card">
+          <span class="pill">02 · Human</span>
+          <h3>Blind playtesting</h3>
+          <p>Human review captures controls, visual polish, game feel, and playability without contaminating the machine score.</p>
+        </article>
+        <article class="card">
+          <span class="pill">03 · Audit</span>
+          <h3>Source-level evidence</h3>
+          <p>Every public result names exact versions and content hashes, with clean source and playable artifacts available for inspection.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Experimental</span>
+          <h2>See the work before it ranks.</h2>
+        </div>
+        <p>{experimental.length} active pilot or partial result{experimental.length === 1 ? "" : "s"} are currently public.</p>
+      </div>
+      <a class="button secondary" href="/experimental">Open experimental results</a>
+    </section>
+  </div>
+</Layout>

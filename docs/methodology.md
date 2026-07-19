@@ -58,6 +58,11 @@ language, time, tokens, and cost are recorded independently. This follows the
 agent-configuration and repeated-run distinction used by
 [Artificial Analysis](https://artificialanalysis.ai/methodology/coding-agents-benchmarking).
 
+An Official publication contains exactly one included run for every
+release-task and fixed-seed cell. Failed and retried executions remain in the
+series but are never overwritten; the series explicitly records which run is
+included in aggregation.
+
 ## Browser protocol
 
 The evaluator fixes Chromium, fonts through the evaluator image, a 1280×720
@@ -65,7 +70,7 @@ viewport, and device scale factor 1. It:
 
 1. installs from a frozen pnpm lockfile;
 2. builds the submission;
-3. starts the preview server;
+3. starts the preview server on a dynamically allocated loopback port;
 4. verifies bridge version 1 and validates the first snapshot;
 5. executes real keyboard/pointer operations and controlled bridge actions;
 6. validates snapshots against the task JSON Schema;
@@ -85,6 +90,21 @@ Human votes are not added to the machine score. A future hosted Arena can reuse
 the same records for Bradley–Terry/Elo aggregation and confidence intervals,
 following the pairwise, playable-output approach of
 [Code Arena](https://arena.ai/blog/code-arena/).
+
+The public v0.2 site does not collect votes. It publishes only aggregate review
+summaries with opaque artifact hashes, sample counts, outcomes, and issue tags.
+
+## Publication tiers
+
+- Experimental accepts partial coverage and may be unverified. It is useful
+  evidence but never appears in the Official leaderboard.
+- Official requires full release coverage, a clean benchmark checkout,
+  per-run evidence validation, clean-source reconstruction, a rebuild and
+  score reproduction in a digest-pinned evaluator image, and operator network
+  attestation.
+
+Machine score, human review, execution time, token usage, and cost remain
+separate fields. Missing token or cost data is shown as unreported, not zero.
 
 ## Public-test and contamination limits
 

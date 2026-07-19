@@ -15,6 +15,10 @@ tests/cases.json
 Reproduce tasks also require `THIRD_PARTY.yml`, a `reference/` capture page,
 and licensed files under `references/`.
 
+The runner copies the declared `bridge.state_schema` into every fresh
+submission workspace at the same relative path. Agent harnesses can also read
+its absolute location from `CAGB_STATE_SCHEMA_PATH`.
+
 Place the complete package at:
 
 ```text

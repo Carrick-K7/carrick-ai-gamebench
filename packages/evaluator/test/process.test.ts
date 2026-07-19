@@ -1,9 +1,13 @@
 import assert from "node:assert/strict";
 import { mkdtemp, readFile } from "node:fs/promises";
+import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { runCommand } from "../src/process.js";
+import {
+  findAvailablePort,
+  runCommand,
+} from "../src/process.js";
 
 test("runCommand captures stdout and stderr separately", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "cagb-process-"));
@@ -22,4 +26,16 @@ test("runCommand captures stdout and stderr separately", async () => {
   assert.equal(result.exitCode, 0);
   assert.match(await readFile(stdout, "utf8"), /out/);
   assert.match(await readFile(stderr, "utf8"), /err/);
+});
+
+test("findAvailablePort returns a bindable loopback port", async () => {
+  const port = await findAvailablePort();
+  const server = createServer();
+  await new Promise<void>((resolve, reject) => {
+    server.once("error", reject);
+    server.listen(port, "127.0.0.1", resolve);
+  });
+  await new Promise<void>((resolve, reject) => {
+    server.close((error) => error ? reject(error) : resolve());
+  });
 });

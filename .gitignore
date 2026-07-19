@@ -2,11 +2,13 @@ node_modules/
 dist/
 dist-test/
 .cache/
+.astro/
 .DS_Store
 *.tsbuildinfo
 playwright-report/
 test-results/
 runs/
+.gamebench/
 results/private/
 benchmark/references/private/
 *.log

@@ -16,15 +16,26 @@ import {
   ReleaseLockSchema,
   RunManifestSchema,
   ScoreResultSchema,
+  SeriesManifestSchema,
   verifyEvidenceManifest,
   writeEvidenceManifest,
   writeJson,
+  type JsonObject,
   type RunManifest,
 } from "@carrick/gamebench-core";
+import {
+  FilesystemArtifactStore,
+  publishSeries,
+  verifyResultsRepository,
+} from "@carrick/gamebench-publisher";
 import { evaluateSubmission } from "./evaluate.js";
 import { commandExists } from "./process.js";
 import { serveReviewer } from "./reviewer-server.js";
 import { runTask, type RunOptions } from "./runner.js";
+import {
+  prepareReproducibleRun,
+  verifyAndReproduceRun,
+} from "./verification.js";
 
 const USAGE = `
 Carrick AI GameBench (cagb)
@@ -36,18 +47,23 @@ Usage:
   cagb release-lock [--write]
   cagb run --task <id> --agent-command <command> --agent-id <id> [options]
   cagb evaluate --run <run-dir>
-  cagb aggregate --input <runs-dir> [--output result.json]
-  cagb verify --run <run-dir>
+  cagb aggregate (--series <series-dir> | --input <runs-dir>) [--output result.json]
+  cagb verify-run --run <run-dir> --verifier-id <id> --image-digest <sha256:...>
+  cagb publish --series <series-dir> --tier <experimental|official>
+  cagb verify-publication [--results results] [--objects .gamebench]
+  cagb verify --run <run-dir>  Legacy evidence-only verification
   cagb review --runs <runs-dir> [--port 4317]
 
 Run options:
   --agent-version <version>   Default: unknown
   --model <model>             Default: unknown
+  --model-params <json>       Score-relevant model parameters
   --harness <name>            Default: shell
   --lang <en|zh>              Default: en
   --repeat <n>                Local default: 1
   --official                  Force three fresh attempts
   --output <directory>        Default: runs
+  --series <ulid>             Continue an existing compatible series
   --trajectory <path>         Agent trajectory path inside its workspace
 `;
 
@@ -74,11 +90,13 @@ function parseRunOptions(args: string[]): ReturnType<typeof parseArgs>["values"]
       "agent-id": { type: "string" },
       "agent-version": { type: "string", default: "unknown" },
       model: { type: "string", default: "unknown" },
+      "model-params": { type: "string", default: "{}" },
       harness: { type: "string", default: "shell" },
       lang: { type: "string", default: "en" },
       repeat: { type: "string", default: "1" },
       official: { type: "boolean", default: false },
       output: { type: "string", default: "runs" },
+      series: { type: "string" },
       trajectory: { type: "string" },
     },
   }).values;
@@ -218,17 +236,35 @@ function commonRunOptions(
   if (!Number.isInteger(repeat) || repeat < 1) {
     fail("--repeat must be a positive integer");
   }
+  let modelParameters: JsonObject;
+  try {
+    const parsed = JSON.parse(String(values["model-params"])) as unknown;
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      fail("--model-params must be a JSON object");
+    }
+    modelParameters = parsed as JsonObject;
+  } catch (error) {
+    fail(
+      `--model-params must be valid JSON: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+    );
+  }
   return {
     repositoryRoot,
     agentCommand: command,
     agentId,
     agentVersion: String(values["agent-version"]),
     model: String(values.model),
+    modelParameters,
     harness: String(values.harness),
     language,
     outputRoot: path.resolve(repositoryRoot, String(values.output)),
     official: Boolean(values.official),
     repeat,
+    ...(typeof values.series === "string"
+      ? { seriesId: values.series }
+      : {}),
     ...(typeof values.trajectory === "string"
       ? { trajectoryPath: values.trajectory }
       : {}),
@@ -310,17 +346,35 @@ async function commandAggregate(
     strict: true,
     options: {
       input: { type: "string" },
+      series: { type: "string" },
       output: { type: "string" },
     },
   }).values;
-  const input = path.resolve(
-    repositoryRoot,
-    typeof values.input === "string" ? values.input : fail("--input is required"),
-  );
+  if (
+    (typeof values.input === "string") ===
+    (typeof values.series === "string")
+  ) {
+    fail("aggregate requires exactly one of --input or --series");
+  }
   const tasks = await listTasks(repositoryRoot);
   const byId = new Map(tasks.map((task) => [task.manifest.id, task]));
   const attempts = [];
-  for (const scorePath of await findFiles(input, "score.json")) {
+  let scorePaths: string[];
+  if (typeof values.series === "string") {
+    const seriesDir = path.resolve(repositoryRoot, values.series);
+    const series = SeriesManifestSchema.parse(
+      JSON.parse(await readFile(path.join(seriesDir, "series.json"), "utf8")),
+    );
+    scorePaths = series.runs
+      .filter((run) => run.included)
+      .map((run) => path.join(seriesDir, run.run_id, "score.json"));
+  } else {
+    scorePaths = await findFiles(
+      path.resolve(repositoryRoot, String(values.input)),
+      "score.json",
+    );
+  }
+  for (const scorePath of scorePaths) {
     const scoreResult = ScoreResultSchema.safeParse(
       JSON.parse(await readFile(scorePath, "utf8")),
     );
@@ -360,6 +414,145 @@ async function commandVerify(
     fail(result.errors.join("\n"));
   }
   console.log(`Evidence manifest verified: ${runDir}`);
+}
+
+function parseSha256(value: unknown, option: string): `sha256:${string}` {
+  if (typeof value !== "string" || !/^sha256:[a-f0-9]{64}$/.test(value)) {
+    fail(`${option} must be a sha256:<64 lowercase hex characters> digest`);
+  }
+  return value as `sha256:${string}`;
+}
+
+async function commandVerifyRun(
+  repositoryRoot: string,
+  args: string[],
+): Promise<void> {
+  const values = parseArgs({
+    args,
+    strict: true,
+    options: {
+      run: { type: "string" },
+      "verifier-id": { type: "string" },
+      "verifier-organization": { type: "string" },
+      "image-digest": { type: "string" },
+      "network-attestation": { type: "string", default: "unverified" },
+    },
+  }).values;
+  const networkAttestation = values["network-attestation"];
+  if (
+    networkAttestation !== "not-required" &&
+    networkAttestation !== "operator-attested-model-api-only" &&
+    networkAttestation !== "unverified"
+  ) {
+    fail(
+      "--network-attestation must be not-required, operator-attested-model-api-only, or unverified",
+    );
+  }
+  const verification = await verifyAndReproduceRun({
+    repositoryRoot,
+    runDir: path.resolve(
+      repositoryRoot,
+      typeof values.run === "string" ? values.run : fail("--run is required"),
+    ),
+    verifierId:
+      typeof values["verifier-id"] === "string"
+        ? values["verifier-id"]
+        : fail("--verifier-id is required"),
+    ...(typeof values["verifier-organization"] === "string"
+      ? { verifierOrganization: values["verifier-organization"] }
+      : {}),
+    evaluatorImageDigest: parseSha256(
+      values["image-digest"] ?? process.env.CAGB_EVALUATOR_IMAGE_DIGEST,
+      "--image-digest",
+    ),
+    networkAttestation,
+  });
+  console.log(
+    `${verification.status.toUpperCase()}  ${verification.recomputed_score_hash}`,
+  );
+}
+
+async function commandPublish(
+  repositoryRoot: string,
+  args: string[],
+): Promise<void> {
+  const values = parseArgs({
+    args,
+    strict: true,
+    options: {
+      series: { type: "string" },
+      tier: { type: "string" },
+      objects: { type: "string", default: ".gamebench" },
+      results: { type: "string", default: "results" },
+      "base-url": { type: "string", default: "/" },
+      supersedes: { type: "string" },
+    },
+  }).values;
+  if (values.tier !== "experimental" && values.tier !== "official") {
+    fail("--tier must be experimental or official");
+  }
+  const store = new FilesystemArtifactStore(
+    path.resolve(repositoryRoot, String(values.objects)),
+    String(values["base-url"]),
+  );
+  const seriesDir = path.resolve(
+    repositoryRoot,
+    typeof values.series === "string"
+      ? values.series
+      : fail("--series is required"),
+  );
+  const series = SeriesManifestSchema.parse(
+    JSON.parse(await readFile(path.join(seriesDir, "series.json"), "utf8")),
+  );
+  for (const run of series.runs) {
+    const runDir = path.join(seriesDir, run.run_id);
+    try {
+      await access(path.join(runDir, "score.json"));
+    } catch {
+      continue;
+    }
+    await prepareReproducibleRun({ repositoryRoot, runDir });
+  }
+  const publication = await publishSeries({
+    repositoryRoot,
+    seriesDir,
+    resultsRoot: path.resolve(repositoryRoot, String(values.results)),
+    tier: values.tier,
+    store,
+    ...(typeof values.supersedes === "string"
+      ? { supersedes: parseSha256(values.supersedes, "--supersedes") }
+      : {}),
+  });
+  console.log(`${publication.tier.toUpperCase()}  ${publication.publication_id}`);
+}
+
+async function commandVerifyPublication(
+  repositoryRoot: string,
+  args: string[],
+): Promise<void> {
+  const values = parseArgs({
+    args,
+    strict: true,
+    options: {
+      results: { type: "string", default: "results" },
+      objects: { type: "string" },
+      "base-url": { type: "string", default: "/" },
+    },
+  }).values;
+  const store = typeof values.objects === "string"
+    ? new FilesystemArtifactStore(
+        path.resolve(repositoryRoot, values.objects),
+        String(values["base-url"]),
+      )
+    : undefined;
+  const verified = await verifyResultsRepository(
+    path.resolve(repositoryRoot, String(values.results)),
+    store,
+    repositoryRoot,
+  );
+  console.log(
+    `Verified ${verified.publications} publications and ${verified.artifacts} artifact references.`,
+  );
 }
 
 async function commandReview(
@@ -410,6 +603,12 @@ async function main(): Promise<void> {
     await commandEvaluate(repositoryRoot, args);
   } else if (command === "aggregate") {
     await commandAggregate(repositoryRoot, args);
+  } else if (command === "verify-run") {
+    await commandVerifyRun(repositoryRoot, args);
+  } else if (command === "publish") {
+    await commandPublish(repositoryRoot, args);
+  } else if (command === "verify-publication") {
+    await commandVerifyPublication(repositoryRoot, args);
   } else if (command === "verify") {
     await commandVerify(repositoryRoot, args);
   } else if (command === "review") {

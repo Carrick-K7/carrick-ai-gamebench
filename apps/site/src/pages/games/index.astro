@@ -1,0 +1,38 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { gameData, resultData, playableForTask } from "../../lib/data";
+
+const [games, results] = await Promise.all([gameData(), resultData()]);
+---
+
+<Layout title="Games" description="The versioned game tasks in GameBench.">
+  <div class="container">
+    <span class="eyebrow">Evaluation set</span>
+    <h1>Games expose what code alone can hide.</h1>
+    <p class="lead">
+      Every task combines deterministic state-level assertions with real browser
+      input. Build tasks create known games from specifications; Reproduce tasks
+      recover the behavior of an existing open-source game from reference material.
+    </p>
+
+    <section class="section">
+      <div class="grid cols-3">
+        {games.map((game, index) => {
+          const playable = playableForTask(game.manifest.id, results.publications);
+          return (
+            <article class="card game-card">
+              <span class="number">{String(index + 1).padStart(2, "0")}</span>
+              <h3><a href={`/games/${game.manifest.id}`}>{game.manifest.title.en}</a></h3>
+              <p>{game.manifest.title.zh}</p>
+              <div class="game-meta">
+                <span class="pill">{game.manifest.track}</span>
+                <span class="pill">level {game.manifest.level}</span>
+                {playable && <span class="pill official">playable</span>}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  </div>
+</Layout>

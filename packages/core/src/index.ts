@@ -1,4 +1,5 @@
 export * from "./artifacts.js";
+export * from "./identity.js";
 export * from "./releases.js";
 export * from "./schema.js";
 export * from "./scoring.js";

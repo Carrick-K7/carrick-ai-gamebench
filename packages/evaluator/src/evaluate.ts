@@ -20,7 +20,11 @@ import {
   type TestCase,
   type TestOutcome,
 } from "@carrick/gamebench-core";
-import { runCommand, waitForUrl } from "./process.js";
+import {
+  findAvailablePort,
+  runCommand,
+  waitForUrl,
+} from "./process.js";
 
 export interface EvaluationOptions {
   submissionDir: string;
@@ -140,6 +144,7 @@ async function preflightBridge(
   browser: Browser,
   task: LoadedTask,
   validateSnapshot: ValidateFunction,
+  baseUrl: string,
 ): Promise<void> {
   const context = await browser.newContext({
     viewport: {
@@ -150,7 +155,7 @@ async function preflightBridge(
   });
   try {
     const page = await context.newPage();
-    await page.goto(`http://127.0.0.1:${task.manifest.runtime.port}`, {
+    await page.goto(baseUrl, {
       waitUntil: "networkidle",
     });
     await page.waitForFunction(
@@ -217,6 +222,7 @@ async function executeBrowserCase(
   testCase: Extract<TestCase, { kind: "browser" }>,
   options: EvaluationOptions,
   validateSnapshot: ValidateFunction,
+  baseUrl: string,
 ): Promise<CaseResult> {
   const started = Date.now();
   const artifactsDir = path.join(options.runDir, "playwright", testCase.id);
@@ -240,7 +246,7 @@ async function executeBrowserCase(
 
   const artifacts: string[] = [];
   try {
-    await page.goto(`http://127.0.0.1:${task.manifest.runtime.port}`, {
+    await page.goto(baseUrl, {
       waitUntil: "networkidle",
     });
     await page.waitForFunction(
@@ -430,7 +436,7 @@ export async function evaluateSubmission(
   if (options.install !== false) {
     const install = await runCommand(
       "pnpm",
-      ["install", "--frozen-lockfile", "--offline"],
+      ["install", "--frozen-lockfile", "--offline", "--ignore-workspace"],
       {
         cwd: options.submissionDir,
         stdoutPath: buildLog,
@@ -459,7 +465,10 @@ export async function evaluateSubmission(
   }
 
   let server: ChildProcess | undefined;
+  let baseUrl: string | undefined;
   if (buildPassed) {
+    const port = await findAvailablePort();
+    baseUrl = `http://127.0.0.1:${port}`;
     const stdout = path.join(options.runDir, "server.log");
     const stderr = path.join(options.runDir, "server.stderr.log");
     const stdoutHandle = await import("node:fs").then(({ createWriteStream }) =>
@@ -475,7 +484,8 @@ export async function evaluateSubmission(
         "--host",
         "127.0.0.1",
         "--port",
-        String(task.manifest.runtime.port),
+        String(port),
+        "--strictPort",
       ],
       {
         cwd: options.submissionDir,
@@ -487,7 +497,7 @@ export async function evaluateSubmission(
     server.stderr?.pipe(stderrHandle);
     try {
       await waitForUrl(
-        `http://127.0.0.1:${task.manifest.runtime.port}`,
+        baseUrl,
         30_000,
       );
     } catch (error) {
@@ -500,10 +510,10 @@ export async function evaluateSubmission(
 
   let browser: Browser | undefined;
   try {
-    if (buildPassed) {
+    if (buildPassed && baseUrl) {
       browser = await chromium.launch({ headless: true });
       try {
-        await preflightBridge(browser, task, validateSnapshot);
+        await preflightBridge(browser, task, validateSnapshot, baseUrl);
       } catch (error) {
         buildPassed = false;
         buildMessage =
@@ -523,7 +533,7 @@ export async function evaluateSubmission(
       }
     }
 
-    if (buildPassed && browser) {
+    if (buildPassed && browser && baseUrl) {
       for (const testCase of task.suite.cases) {
         if (testCase.kind === "browser") {
           caseResults.set(
@@ -534,6 +544,7 @@ export async function evaluateSubmission(
               testCase,
               options,
               validateSnapshot,
+              baseUrl,
             ),
           );
         }

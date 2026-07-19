@@ -1,0 +1,68 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Methodology" description="How GameBench executes, scores, verifies, and publishes coding-agent game results.">
+  <div class="container">
+    <span class="eyebrow">Public methodology</span>
+    <h1>Score the mechanics. Playtest the experience.</h1>
+    <p class="lead">
+      GameBench keeps machine evaluation, human judgment, and publication trust
+      separate. Each answers a different question and remains independently auditable.
+    </p>
+
+    <div class="prose section">
+      <h2>1. Freeze one exact benchmark</h2>
+      <p>
+        A benchmark release locks every task ID, task version, content hash,
+        bridge protocol, scoring version, official seed, and aggregation rule.
+        Results from different releases are not merged.
+      </p>
+
+      <h2>2. Run in a fresh workspace</h2>
+      <p>
+        The agent receives a starter, prompt, public state schema, fixed budget,
+        and declared network policy. Each real execution receives a unique
+        <code>run_id</code>; equivalent inputs share an
+        <code>input_fingerprint</code> but are never overwritten.
+      </p>
+
+      <h2>3. Test state and interface</h2>
+      <p>
+        Browser cases combine native keyboard and pointer operations with a
+        deterministic bridge for reset, controlled time, actions, and snapshots.
+        A failed dependency install, build, server start, bridge preflight, or
+        initial snapshot hard-gates the task to zero.
+      </p>
+
+      <h2>4. Aggregate without hidden weighting</h2>
+      <p>
+        Each game contributes equally within its track. Attempts are averaged
+        per game, Build and Reproduce scores are macro averages, and Core is the
+        macro average across every required game. Incomplete coverage does not
+        receive a leaderboard score.
+      </p>
+
+      <h2>5. Keep human playtesting separate</h2>
+      <p>
+        Blind pairwise review measures controls, correctness, visual quality,
+        polish, and game feel. Public summaries report sample counts and outcomes;
+        they are not silently mixed into the deterministic machine score.
+      </p>
+
+      <h2>6. Rebuild before Official publication</h2>
+      <p>
+        Official series require all tasks and three fixed seeds. The operator
+        verifies evidence, exports a secret-free source tree, rebuilds it in a
+        digest-pinned evaluator image, recomputes the score, and records network
+        isolation. Experimental publications may be partial or unverified and
+        are displayed separately.
+      </p>
+
+      <div class="callout">
+        Fixed official seeds: <code>104729</code>, <code>130363</code>, and
+        <code>155921</code>. Human review never changes the deterministic score.
+      </div>
+    </div>
+  </div>
+</Layout>

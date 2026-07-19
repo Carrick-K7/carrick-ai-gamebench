@@ -1,6 +1,6 @@
 {
   "name": "@carrick/gamebench",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "CLI and browser evaluator for Carrick AI GameBench.",
   "type": "module",
   "license": "Apache-2.0",
@@ -20,12 +20,13 @@
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "typecheck": "pnpm --filter @carrick/gamebench-core build && tsc -p tsconfig.json --noEmit",
-    "test": "pnpm --filter @carrick/gamebench-core build && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
+    "typecheck": "pnpm --filter @carrick/gamebench-core build && pnpm --filter @carrick/gamebench-publisher build && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @carrick/gamebench-core build && pnpm --filter @carrick/gamebench-publisher build && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
     "clean": "rm -rf dist dist-test"
   },
   "dependencies": {
     "@carrick/gamebench-core": "workspace:*",
+    "@carrick/gamebench-publisher": "workspace:*",
     "@playwright/test": "1.61.1",
     "ajv": "8.18.0",
     "pixelmatch": "7.1.0",

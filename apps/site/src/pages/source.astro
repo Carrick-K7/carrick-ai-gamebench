@@ -1,0 +1,53 @@
+---
+import Layout from "../layouts/Layout.astro";
+---
+
+<Layout title="Source">
+  <div class="container">
+    <span class="eyebrow">Open implementation</span>
+    <h1>Inspect the benchmark, not just the chart.</h1>
+    <p class="lead">
+      Tasks, test cases, schemas, scoring code, release locks, and published
+      result manifests are available in the public repository.
+    </p>
+    <div class="actions">
+      <a class="button" href="https://github.com/Carrick-K7/carrick-ai-gamebench">Open GitHub</a>
+      <a class="button secondary" href="/methodology">Read methodology</a>
+    </div>
+
+    <section class="section">
+      <div class="grid cols-3">
+        <article class="card">
+          <span class="pill">Benchmark</span>
+          <h3>Tasks and release locks</h3>
+          <p>Prompts, references, state schemas, deterministic cases, point weights, and immutable catalog hashes.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Evaluator</span>
+          <h3>Runner and browser tests</h3>
+          <p>Shell-neutral Agent execution, controlled browser evaluation, evidence manifests, and score aggregation.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Results</span>
+          <h3>Clean public artifacts</h3>
+          <p>Published source excludes logs, trajectories, environment files, credentials, caches, and provider responses.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section prose">
+      <h2>Licensing</h2>
+      <p>
+        GameBench code is Apache-2.0. Reproduce tasks retain their upstream
+        license, exact commit, copyright notices, and distributed-material
+        hashes. A public artifact never broadens the license of upstream work.
+      </p>
+      <h2>Security boundary</h2>
+      <p>
+        Agent-generated game JavaScript is not trusted application code. Public
+        playables run on an isolated origin with a restrictive CSP and without
+        access to the main site's storage or document.
+      </p>
+    </section>
+  </div>
+</Layout>

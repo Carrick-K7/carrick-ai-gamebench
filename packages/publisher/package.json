@@ -1,0 +1,34 @@
+{
+  "name": "@carrick/gamebench-publisher",
+  "version": "0.2.0",
+  "description": "Validated, content-addressed result publication for Carrick AI GameBench.",
+  "type": "module",
+  "license": "Apache-2.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "pnpm --filter @carrick/gamebench-core build && tsc -p tsconfig.json --noEmit",
+    "test": "pnpm --filter @carrick/gamebench-core build && tsc -p tsconfig.test.json && node --test dist-test/test/*.test.js",
+    "clean": "rm -rf dist dist-test"
+  },
+  "dependencies": {
+    "@carrick/gamebench-core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "22.19.1",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

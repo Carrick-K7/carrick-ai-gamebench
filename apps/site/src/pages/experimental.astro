@@ -1,0 +1,50 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { resultData, score } from "../lib/data";
+
+const { index } = await resultData();
+const entries = index.entries.filter(
+  (entry) => entry.tier === "experimental" && entry.status === "active",
+);
+---
+
+<Layout title="Experimental results">
+  <div class="container">
+    <span class="eyebrow">Pilot and partial runs</span>
+    <h1>Useful evidence, not a leaderboard.</h1>
+    <p class="lead">
+      Experimental results may cover one game, one seed, or an execution that
+      has not been independently reproduced. They are public for transparency
+      and must not be presented as official rankings.
+    </p>
+
+    <section class="section">
+      <div class="table-wrap">
+        {entries.length === 0 ? (
+          <div class="empty">
+            <strong>No experimental publications yet.</strong>
+            <span class="muted">Local runs remain private until clean-source export succeeds.</span>
+          </div>
+        ) : (
+          <table>
+            <thead>
+              <tr><th>Model</th><th>Agent</th><th>Benchmark</th><th>Core</th><th>Coverage</th><th>Published</th></tr>
+            </thead>
+            <tbody>
+              {entries.map((entry) => (
+                <tr>
+                  <td><a href={`/results/${entry.publication_id.slice(7)}`}><strong>{entry.agent.model}</strong></a></td>
+                  <td>{entry.agent.id} · {entry.agent.harness}</td>
+                  <td class="mono">{entry.benchmark_version}</td>
+                  <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
+                  <td class="mono">{entry.aggregate.coverage.core.completed}/{entry.aggregate.coverage.core.required}</td>
+                  <td>{new Date(entry.created_at).toISOString().slice(0, 10)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </section>
+  </div>
+</Layout>

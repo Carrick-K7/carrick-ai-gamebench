@@ -1,0 +1,46 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { releaseData } from "../lib/data";
+
+const releases = await releaseData();
+---
+
+<Layout title="Releases">
+  <div class="container">
+    <span class="eyebrow">Version ledger</span>
+    <h1>Every comparison names its rules.</h1>
+    <p class="lead">
+      Release locks are append-only. They preserve the exact task catalog and
+      protocol contract behind each public result.
+    </p>
+
+    <section class="section grid">
+      {releases.map((release) => (
+        <article class="card">
+          <div class="section-head">
+            <div>
+              <span class="pill">schema v{release.schema_version}</span>
+              <h2>v{release.benchmark_version}</h2>
+            </div>
+            <span class="mono muted">{release.task_count} tasks</span>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Task</th><th>Track</th><th>Version</th><th>Content hash</th></tr></thead>
+              <tbody>
+                {release.tasks.map((task) => (
+                  <tr>
+                    <td><a href={`/games/${task.id}`}>{task.id}</a></td>
+                    <td>{task.track}</td>
+                    <td class="mono">{task.version}</td>
+                    <td class="mono">{task.hash.slice(0, 19)}…</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      ))}
+    </section>
+  </div>
+</Layout>

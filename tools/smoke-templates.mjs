@@ -1,6 +1,5 @@
 import { spawn } from "node:child_process";
-import { cp, mkdtemp, rm } from "node:fs/promises";
-import os from "node:os";
+import { cp, mkdir, mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "..");
@@ -25,7 +24,9 @@ function run(command, args, cwd) {
 }
 
 for (const relative of templates) {
-  const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "cagb-template-"));
+  const runsRoot = path.join(repositoryRoot, "runs");
+  await mkdir(runsRoot, { recursive: true });
+  const temporaryRoot = await mkdtemp(path.join(runsRoot, "template-smoke-"));
   const workspace = path.join(temporaryRoot, "workspace");
   const isolatedStore = path.join(temporaryRoot, "pnpm-store");
   try {
@@ -39,7 +40,13 @@ for (const relative of templates) {
     // when the runner happened to have every optional package cached.
     await run(
       "pnpm",
-      ["install", "--frozen-lockfile", "--store-dir", isolatedStore],
+      [
+        "install",
+        "--frozen-lockfile",
+        "--store-dir",
+        isolatedStore,
+        "--ignore-workspace",
+      ],
       workspace,
     );
     await run("pnpm", ["build"], workspace);

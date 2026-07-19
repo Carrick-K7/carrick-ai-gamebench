@@ -34,10 +34,25 @@ pnpm cagb run \
 ```
 
 Local runs default to one attempt. Add `--official` for three fresh attempts and
-an audit-ready evidence candidate. The generated `run.json` remains
-`verified: false` until an independent operator verifies the declared network
-policy, checks the evidence manifest, and reruns the source in the published
-evaluator image.
+an audit-ready `official-candidate` series. This is not a self-attestation:
+Official status is granted only when the publisher finds complete release
+coverage and independent per-run verification.
+
+Continue multiple tasks in the same series with `--series <ulid>`. The runner
+stores immutable executions under `runs/<benchmark>/<series>/<run>/`.
+
+Publish a scored v2 series as Experimental:
+
+```bash
+pnpm cagb publish \
+  --series runs/0.2.0/<series-id> \
+  --tier experimental \
+  --objects .gamebench \
+  --base-url https://play.gamebench.ai.carrick7.com
+
+pnpm cagb verify-publication
+pnpm --filter @carrick/gamebench-site build
+```
 
 Build the pinned evaluator environment with:
 
@@ -52,6 +67,8 @@ pnpm docker:build
 
 See [methodology](docs/methodology.md), [architecture](docs/architecture.md),
 [task authoring](docs/task-authoring.md), [versioning](docs/versioning.md),
+[results and publication](docs/results-and-publication.md),
+[deployment](docs/deployment.md),
 [contributing](CONTRIBUTING.md), and the [Chinese README](README.zh-CN.md).
 
 ## Adding games
@@ -66,7 +83,7 @@ content hashes in `benchmark/releases/<benchmark-version>.json`. Run
 `pnpm cagb release-lock` to verify the current release or use `--write` only
 after intentionally changing the benchmark version.
 
-## Deliberate v1 boundaries
+## Deliberate boundaries
 
 - Tests are public. Official status comes from reproducible evidence and audit,
   not hidden tests.
@@ -76,6 +93,9 @@ after intentionally changing the benchmark version.
   that allows only the declared model API hosts.
 - Machine scores use deterministic checks only. Human preference remains a
   separate blinded playtest result.
+- The public site is static. Git stores audited result metadata and a
+  content-addressed object root stores larger source, playable, and evidence
+  artifacts. There is no database or public submission API.
 
 ## Licenses
 

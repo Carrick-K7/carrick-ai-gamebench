@@ -1,6 +1,6 @@
 {
   "name": "carrick-ai-gamebench",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "private": true,
   "description": "A benchmark for coding agents building playable web games.",
   "license": "Apache-2.0",
@@ -13,7 +13,7 @@
     "typecheck": "pnpm -r typecheck",
     "test": "pnpm -r test",
     "smoke:templates": "node tools/smoke-templates.mjs",
-    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm cagb validate-task --all && pnpm cagb release-lock && pnpm smoke:templates",
+    "check": "pnpm typecheck && pnpm test && pnpm build && pnpm cagb validate-task --all && pnpm cagb release-lock && pnpm cagb verify-publication && pnpm smoke:templates",
     "cagb": "node packages/evaluator/dist/cli.js",
     "docker:build": "docker build -f docker/evaluator.Dockerfile -t carrick-ai-gamebench:local .",
     "clean": "pnpm -r clean"

@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "0.2.0",
+  "protocols": {
+    "task_manifest": 1,
+    "bridge": 1,
+    "run_manifest": 2,
+    "publication_manifest": 1
+  },
+  "scoring": {
+    "score_result": 1,
+    "aggregate": 1
+  },
+  "official": {
+    "attempts_per_task": 3,
+    "seeds": [
+      104729,
+      130363,
+      155921
+    ]
+  },
+  "tracks": [
+    "build",
+    "reproduce"
+  ],
+  "task_count": 8,
+  "tasks": [
+    {
+      "id": "build.2048.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:d83a6bb137b39facd1fc98ebf6c2422ff7d0de15378efc7784984ebef9d8f121"
+    },
+    {
+      "id": "build.minesweeper.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:8300ef0559572d06f68b32725077110b4cfdbe29698914a7174bcf3ac72e30cd"
+    },
+    {
+      "id": "build.parking-2d.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:ae5a168f23786196b81b14b10941e481bb2c4b5eb742e8f8860f4521940a9b9e"
+    },
+    {
+      "id": "build.side-scroller-shooter.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:0e94d8f798f9ed19fe8f7b38a85709854ca704c53ddd881b7b2ffb81b2de9515"
+    },
+    {
+      "id": "build.tetris.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:85efdf3811e535f387b52abdebf1e7279071215d3ed5f74a8bd43db6b81b64f5"
+    },
+    {
+      "id": "build.tower-defense.v1",
+      "version": "1.0.0",
+      "track": "build",
+      "hash": "sha256:cdcb20316d58732af3db05d091e56c17c7fa8cbb5d04a2cc4825636a0c4276e9"
+    },
+    {
+      "id": "reproduce.ohsteem.v1",
+      "version": "1.0.0",
+      "track": "reproduce",
+      "hash": "sha256:7bc9064a12cb2c022401ff2706d6c1cb5080e4d3e2af32379aff5bb285bb584c"
+    },
+    {
+      "id": "reproduce.radius-raid.v1",
+      "version": "1.0.0",
+      "track": "reproduce",
+      "hash": "sha256:95d718ef08910a705c6ba38af22ce0fb0f1c319587167248866499bd869c2b44"
+    }
+  ]
+}

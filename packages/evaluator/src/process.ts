@@ -1,6 +1,7 @@
 import { spawn, spawnSync } from "node:child_process";
 import { createWriteStream } from "node:fs";
 import { mkdir } from "node:fs/promises";
+import { createServer } from "node:net";
 import path from "node:path";
 
 export interface CommandResult {
@@ -90,6 +91,31 @@ export function commandExists(command: string): boolean {
   return spawnSync(command, ["--version"], {
     stdio: "ignore",
   }).status === 0;
+}
+
+export async function findAvailablePort(
+  host = "127.0.0.1",
+): Promise<number> {
+  return await new Promise<number>((resolve, reject) => {
+    const server = createServer();
+    server.unref();
+    server.once("error", reject);
+    server.listen(0, host, () => {
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        server.close();
+        reject(new Error(`Could not allocate a TCP port on ${host}`));
+        return;
+      }
+      server.close((error) => {
+        if (error) {
+          reject(error);
+        } else {
+          resolve(address.port);
+        }
+      });
+    });
+  });
 }
 
 export async function waitForUrl(

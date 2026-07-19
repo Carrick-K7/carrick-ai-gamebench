@@ -1,0 +1,92 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { gameData, playableForTask, resultData } from "../../lib/data";
+
+export async function getStaticPaths() {
+  const games = await gameData();
+  return games.map((game) => ({
+    params: { id: game.manifest.id },
+    props: { game },
+  }));
+}
+
+const { game } = Astro.props;
+const { publications } = await resultData();
+const candidate = playableForTask(game.manifest.id, publications);
+const categories = [...new Set(game.manifest.tests.map((test: { category: string }) => test.category))];
+---
+
+<Layout title={game.manifest.title.en}>
+  <div class="container">
+    <span class="eyebrow">{game.manifest.track} · level {game.manifest.level}</span>
+    <h1>{game.manifest.title.en}</h1>
+    <p class="lead">{game.manifest.title.zh} · {game.manifest.id}</p>
+
+    <div class="grid cols-4 section">
+      <div class="card metric"><strong>{game.manifest.version}</strong><span>task version</span></div>
+      <div class="card metric"><strong>{game.manifest.tests.length}</strong><span>atomic tests</span></div>
+      <div class="card metric"><strong>{game.manifest.budget_seconds / 60}m</strong><span>agent budget</span></div>
+      <div class="card metric"><strong>100</strong><span>available points</span></div>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Playable artifact</span><h2>Try the evaluated output.</h2></div>
+        <p>Generated JavaScript runs in an isolated origin with network connections disabled.</p>
+      </div>
+      {candidate ? (
+        <>
+          <iframe
+            class="game"
+            src={candidate.playable.url}
+            title={`${game.manifest.title.en} playable result`}
+            sandbox="allow-scripts allow-pointer-lock"
+            referrerpolicy="no-referrer"
+            loading="lazy"
+          ></iframe>
+          <p class="mono muted">
+            Artifact {candidate.playable.artifact_id} ·
+            <a href={`/results/${candidate.publication.publication_id.slice(7)}`}> result details</a>
+          </p>
+        </>
+      ) : (
+        <div class="card empty">
+          <strong>No public playable artifact yet.</strong>
+          <span class="muted">The task is available now; a clean published run will activate this player.</span>
+        </div>
+      )}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Test contract</span><h2>What this game measures.</h2></div>
+        <div>{categories.map((category) => <span class="pill">{category}</span>)}</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Atomic test</th><th>Category</th><th>Points</th><th>Case</th></tr></thead>
+          <tbody>
+            {game.manifest.tests.map((test: { id: string; category: string; points: number; case: string }) => (
+              <tr>
+                <td class="mono">{test.id}</td>
+                <td>{test.category}</td>
+                <td class="score">{test.points}</td>
+                <td class="mono">{test.case}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section prose">
+      <h2>Runtime contract</h2>
+      <p>
+        The game is evaluated at {game.manifest.runtime.viewport[0]} × {game.manifest.runtime.viewport[1]}
+        with Node {game.manifest.runtime.node}, deterministic seed reset, controlled
+        time advancement, native keyboard and pointer events, and schema-validated snapshots.
+      </p>
+      <p class="mono">{game.hash}</p>
+    </section>
+  </div>
+</Layout>

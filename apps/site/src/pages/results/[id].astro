@@ -1,0 +1,93 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { resultData, score } from "../../lib/data";
+
+export async function getStaticPaths() {
+  const { publications } = await resultData();
+  return publications.map((publication) => ({
+    params: { id: publication.publication_id.slice("sha256:".length) },
+    props: { publication },
+  }));
+}
+
+const { publication } = Astro.props;
+const included = publication.runs.filter((run: { included: boolean }) => run.included);
+---
+
+<Layout title={`${publication.configuration.agent.model} result`}>
+  <div class="container">
+    <span class={`pill ${publication.tier}`}>{publication.tier}</span>
+    <h1>{publication.configuration.agent.model}</h1>
+    <p class="lead">
+      {publication.configuration.agent.id} · {publication.configuration.agent.harness}
+      · Benchmark {publication.benchmark.version}
+    </p>
+
+    <div class="grid cols-4 section">
+      <div class="card metric"><strong>{score(publication.aggregate.leaderboards.core)}</strong><span>Core score</span></div>
+      <div class="card metric"><strong>{score(publication.aggregate.leaderboards.build)}</strong><span>Build score</span></div>
+      <div class="card metric"><strong>{score(publication.aggregate.leaderboards.reproduce)}</strong><span>Reproduce score</span></div>
+      <div class="card metric"><strong>{included.length}</strong><span>included runs</span></div>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Task breakdown</span><h2>Every score is inspectable.</h2></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Task</th><th>Track</th><th>Attempts</th><th>Mean</th><th>Deviation</th><th>Play / source</th></tr></thead>
+          <tbody>
+            {publication.aggregate.tasks.map((task: { task_id: string; track: string; attempts: number; mean: number; standard_deviation: number }) => {
+              const run = publication.runs.find((candidate: { task_id: string; included: boolean }) => candidate.task_id === task.task_id && candidate.included);
+              const playable = run?.artifacts.find((artifact: { role: string }) => artifact.role === "playable");
+              const source = run?.artifacts.find((artifact: { role: string }) => artifact.role === "clean-source");
+              return (
+                <tr>
+                  <td><a href={`/games/${task.task_id}`}>{task.task_id}</a></td>
+                  <td>{task.track}</td>
+                  <td>{task.attempts}</td>
+                  <td class="score">{task.mean.toFixed(1)}</td>
+                  <td>{task.standard_deviation.toFixed(1)}</td>
+                  <td>{playable && <a href={playable.url}>Play</a>} {source && <a href={source.url}>Source</a>}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Run evidence</span><h2>Seeds, failures, and verification.</h2></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Run</th><th>Task</th><th>Seed</th><th>Score</th><th>Exit</th><th>Included</th><th>Verification</th></tr></thead>
+          <tbody>
+            {publication.runs.map((run: any) => (
+              <tr>
+                <td class="mono">{run.run_id.slice(0, 10)}…</td>
+                <td>{run.task_id}</td>
+                <td class="mono">{run.seed}</td>
+                <td class="score">{run.score ? run.score.percent.toFixed(1) : "—"}</td>
+                <td>{run.exit_reason}</td>
+                <td>{run.included ? "yes" : "no"}</td>
+                <td>{run.verification ? "operator reproduced" : "unverified"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section prose">
+      <h2>Identity</h2>
+      <p><strong>Publication</strong><br /><code>{publication.publication_id}</code></p>
+      <p><strong>Configuration</strong><br /><code>{publication.configuration.configuration_id}</code></p>
+      <p><strong>Release lock</strong><br /><code>{publication.benchmark.release_hash}</code></p>
+      <p><strong>Source commit</strong><br /><code>{publication.benchmark.git_commit}</code></p>
+    </section>
+  </div>
+</Layout>

@@ -1,5 +1,6 @@
-import { createHash, randomUUID } from "node:crypto";
+import { spawnSync } from "node:child_process";
 import {
+  access,
   copyFile,
   cp,
   mkdir,
@@ -9,10 +10,18 @@ import {
 import os from "node:os";
 import path from "node:path";
 import {
+  SeriesManifestSchema,
+  createUlid,
+  sha256Canonical,
+  sha256File,
   writeEvidenceManifest,
   writeJson,
+  type JsonObject,
+  type JsonValue,
   type LoadedTask,
-  type RunManifest,
+  type RunEnvironmentV2,
+  type RunManifestV2,
+  type SeriesManifest,
 } from "@carrick/gamebench-core";
 import { evaluateSubmission } from "./evaluate.js";
 import { runCommand, type CommandResult } from "./process.js";
@@ -26,22 +35,25 @@ export interface RunOptions {
   agentId: string;
   agentVersion: string;
   model: string;
+  modelParameters: JsonObject;
   harness: string;
   language: "en" | "zh";
   outputRoot: string;
   official: boolean;
   repeat: number;
+  seriesId?: string;
   trajectoryPath?: string;
 }
 
 export interface CompletedRun {
   runDir: string;
   workspace: string;
-  manifest: RunManifest;
+  manifest: RunManifestV2;
 }
 
-function safeSegment(value: string): string {
-  return value.toLowerCase().replace(/[^a-z0-9._-]+/g, "-").replace(/^-|-$/g, "");
+interface SeriesContext {
+  seriesDir: string;
+  manifest: SeriesManifest;
 }
 
 async function benchmarkVersion(repositoryRoot: string): Promise<string> {
@@ -106,30 +118,182 @@ async function copyWorkspace(source: string, destination: string): Promise<void>
   });
 }
 
-async function hashArchive(filePath: string): Promise<string> {
-  const hash = createHash("sha256");
-  hash.update(await readFile(filePath));
-  return hash.digest("hex");
+export async function prepareSubmissionWorkspace(
+  repositoryRoot: string,
+  task: LoadedTask,
+  workspace: string,
+): Promise<string> {
+  await copyWorkspace(resolveStarter(repositoryRoot, task), workspace);
+  const schemaRelative = task.manifest.bridge.state_schema;
+  const schemaDestination = path.resolve(workspace, schemaRelative);
+  const workspaceRoot = path.resolve(workspace);
+  if (!schemaDestination.startsWith(`${workspaceRoot}${path.sep}`)) {
+    throw new Error(`state schema escapes submission workspace: ${schemaRelative}`);
+  }
+  await mkdir(path.dirname(schemaDestination), { recursive: true });
+  await copyFile(path.resolve(task.root, schemaRelative), schemaDestination);
+  return schemaDestination;
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function gitOutput(repositoryRoot: string, args: string[]): string | undefined {
+  const result = spawnSync("git", args, {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  });
+  return result.status === 0 ? result.stdout.trim() : undefined;
+}
+
+function evaluatorImageDigest(): `sha256:${string}` | undefined {
+  const value = process.env.CAGB_EVALUATOR_IMAGE_DIGEST;
+  if (!value) {
+    return undefined;
+  }
+  if (!/^sha256:[a-f0-9]{64}$/.test(value)) {
+    throw new Error("CAGB_EVALUATOR_IMAGE_DIGEST must be a sha256 digest");
+  }
+  return value as `sha256:${string}`;
+}
+
+async function workingTreeState(
+  repositoryRoot: string,
+): Promise<{ dirty: boolean; hash?: `sha256:${string}` }> {
+  const status = gitOutput(repositoryRoot, ["status", "--porcelain"]) ?? "";
+  if (!status) {
+    return { dirty: false };
+  }
+  const diff = gitOutput(repositoryRoot, ["diff", "--binary", "HEAD", "--"]) ?? "";
+  const untrackedOutput =
+    gitOutput(repositoryRoot, ["ls-files", "--others", "--exclude-standard", "-z"]) ?? "";
+  const untracked = [];
+  for (const relative of untrackedOutput.split("\0").filter(Boolean).sort()) {
+    const absolute = path.resolve(repositoryRoot, relative);
+    if (!absolute.startsWith(`${path.resolve(repositoryRoot)}${path.sep}`)) {
+      throw new Error(`untracked path escapes repository: ${relative}`);
+    }
+    untracked.push({
+      path: relative.split(path.sep).join("/"),
+      sha256: `sha256:${await sha256File(absolute)}`,
+    });
+  }
+  return {
+    dirty: true,
+    hash: sha256Canonical({ status, diff, untracked }),
+  };
+}
+
+async function createSeriesContext(options: RunOptions): Promise<SeriesContext> {
+  const version = await benchmarkVersion(options.repositoryRoot);
+  const releasePath = path.join(
+    options.repositoryRoot,
+    "benchmark",
+    "releases",
+    `${version}.json`,
+  );
+  if (!(await pathExists(releasePath))) {
+    throw new Error(
+      `benchmark release lock is missing: benchmark/releases/${version}.json`,
+    );
+  }
+  const releaseHash = `sha256:${await sha256File(releasePath)}` as const;
+  const gitCommit = gitOutput(options.repositoryRoot, ["rev-parse", "HEAD"]);
+  const workingTree = await workingTreeState(options.repositoryRoot);
+  const imageDigest = evaluatorImageDigest();
+  const environment: RunEnvironmentV2 = {
+    platform: os.platform(),
+    architecture: os.arch(),
+    node: process.version,
+    runner_protocol: "2",
+    git_commit: gitCommit && /^[a-f0-9]{40}$/.test(gitCommit)
+      ? gitCommit
+      : "unknown",
+    source_tree_dirty: workingTree.dirty,
+    ...(workingTree.hash ? { working_tree_hash: workingTree.hash } : {}),
+    ...(imageDigest ? { evaluator_image_digest: imageDigest } : {}),
+  };
+  const agent = {
+    id: options.agentId,
+    version: options.agentVersion,
+    model: options.model,
+    harness: options.harness,
+    parameters: options.modelParameters,
+  };
+  const executionProfile = options.official
+    ? "official-candidate" as const
+    : "local" as const;
+  const configurationIdentity = {
+    benchmark_version: version,
+    benchmark_release_hash: releaseHash,
+    agent,
+    prompt_language: options.language,
+    execution_profile: executionProfile,
+    environment,
+  };
+  const configurationId = sha256Canonical(
+    JSON.parse(JSON.stringify(configurationIdentity)) as JsonValue,
+  );
+  const seriesId = options.seriesId ?? createUlid();
+  const seriesDir = path.resolve(options.outputRoot, version, seriesId);
+  const seriesPath = path.join(seriesDir, "series.json");
+
+  if (await pathExists(seriesPath)) {
+    const existing = SeriesManifestSchema.parse(
+      JSON.parse(await readFile(seriesPath, "utf8")),
+    );
+    if (
+      existing.benchmark_version !== version ||
+      existing.benchmark_release_hash !== releaseHash ||
+      existing.configuration_id !== configurationId
+    ) {
+      throw new Error(
+        `series ${seriesId} belongs to a different benchmark or configuration`,
+      );
+    }
+    return { seriesDir, manifest: existing };
+  }
+
+  const manifest = SeriesManifestSchema.parse({
+    schema_version: 1,
+    series_id: seriesId,
+    benchmark_version: version,
+    benchmark_release_hash: releaseHash,
+    git_commit: environment.git_commit,
+    configuration_id: configurationId,
+    configuration: {
+      agent,
+      prompt_language: options.language,
+      execution_profile: executionProfile,
+      environment,
+    },
+    created_at: new Date().toISOString(),
+    runs: [],
+  });
+  await writeJson(seriesPath, manifest);
+  return { seriesDir, manifest };
 }
 
 async function runAttempt(
   options: RunOptions,
+  series: SeriesContext,
   attempt: number,
+  seed: number,
 ): Promise<CompletedRun> {
-  const version = await benchmarkVersion(options.repositoryRoot);
-  const now = new Date();
-  const runId = [
-    now.toISOString().replace(/[:.]/g, "-"),
-    safeSegment(options.agentId),
-    safeSegment(options.task.manifest.id),
-    `a${attempt}`,
-    randomUUID().slice(0, 8),
-  ].join("_");
-  const runDir = path.resolve(options.outputRoot, version, runId);
+  const runId = createUlid();
+  const runDir = path.join(series.seriesDir, runId);
   const workspace = path.join(runDir, "workspace");
   await mkdir(runDir, { recursive: true });
-  await copyWorkspace(
-    resolveStarter(options.repositoryRoot, options.task),
+  const stateSchemaPath = await prepareSubmissionWorkspace(
+    options.repositoryRoot,
+    options.task,
     workspace,
   );
 
@@ -143,9 +307,11 @@ async function runAttempt(
   if (options.task.manifest.reference) {
     referenceDir = path.join(runDir, "reference-material");
     await mkdir(referenceDir, { recursive: true });
-    await cp(path.join(options.task.root, "reference"), path.join(referenceDir, "reference"), {
-      recursive: true,
-    });
+    await cp(
+      path.join(options.task.root, "reference"),
+      path.join(referenceDir, "reference"),
+      { recursive: true },
+    );
     await cp(
       path.join(options.task.root, "references"),
       path.join(referenceDir, "references"),
@@ -153,35 +319,37 @@ async function runAttempt(
     );
   }
 
-  const seed =
-    options.official
-      ? (OFFICIAL_SEEDS[attempt - 1] ?? OFFICIAL_SEEDS[0])
-      : OFFICIAL_SEEDS[(attempt - 1) % OFFICIAL_SEEDS.length] ?? OFFICIAL_SEEDS[0];
   const startedAt = new Date();
-  const baseManifest: RunManifest = {
-    schema_version: 1,
-    benchmark_version: version,
-    run_id: runId,
+  const inputFingerprint = sha256Canonical({
+    configuration_id: series.manifest.configuration_id,
     task_id: options.task.manifest.id,
+    task_version: options.task.manifest.version,
+    task_hash: options.task.hash,
+    seed,
+    prompt_language: options.language,
+    budget_seconds: options.task.manifest.budget_seconds,
+    network_policy: options.task.manifest.network_policy,
+  });
+  const baseManifest: RunManifestV2 = {
+    schema_version: 2,
+    benchmark_version: series.manifest.benchmark_version,
+    benchmark_release_hash: series.manifest.benchmark_release_hash,
+    series_id: series.manifest.series_id,
+    run_id: runId,
+    configuration_id: series.manifest.configuration_id,
+    input_fingerprint: inputFingerprint,
+    task_id: options.task.manifest.id,
+    task_version: options.task.manifest.version,
     task_hash: options.task.hash,
     attempt,
     seed,
-    official: options.official,
-    verified: false,
+    execution_profile: series.manifest.configuration.execution_profile,
     prompt_language: options.language,
     network_policy: options.task.manifest.network_policy,
-    agent: {
-      id: options.agentId,
-      version: options.agentVersion,
-      model: options.model,
-      harness: options.harness,
-    },
-    environment: {
-      platform: os.platform(),
-      architecture: os.arch(),
-      node: process.version,
-    },
+    agent: series.manifest.configuration.agent,
+    environment: series.manifest.configuration.environment,
     started_at: startedAt.toISOString(),
+    usage: { source: "not-reported" },
   };
   await writeJson(path.join(runDir, "run.json"), baseManifest);
 
@@ -196,7 +364,7 @@ async function runAttempt(
     "utf8",
   );
 
-  const installArgs = ["install", "--frozen-lockfile"];
+  const installArgs = ["install", "--frozen-lockfile", "--ignore-workspace"];
   if (options.task.manifest.network_policy !== "full") {
     installArgs.push("--offline");
   }
@@ -227,6 +395,7 @@ async function runAttempt(
         ...process.env,
         CAGB_TASK_ID: options.task.manifest.id,
         CAGB_PROMPT_PATH: promptPath,
+        CAGB_STATE_SCHEMA_PATH: stateSchemaPath,
         CAGB_RUN_DIR: runDir,
         CAGB_SEED: String(seed),
         CAGB_NETWORK_POLICY: options.task.manifest.network_policy,
@@ -242,21 +411,22 @@ async function runAttempt(
   }
 
   if (options.trajectoryPath) {
-    await copyFile(
-      path.resolve(workspace, options.trajectoryPath),
-      path.join(runDir, "agent-trajectory.jsonl"),
-    );
+    const trajectorySource = path.resolve(workspace, options.trajectoryPath);
+    if (!trajectorySource.startsWith(`${path.resolve(workspace)}${path.sep}`)) {
+      throw new Error("trajectory path escapes the submission workspace");
+    }
+    await copyFile(trajectorySource, path.join(runDir, "agent-trajectory.jsonl"));
   }
 
   const archivePath = path.join(runDir, "source.tar.zst");
   await archiveWorkspace(workspace, archivePath, path.join(runDir, "archive.log"));
   await writeFile(
     path.join(runDir, "source.sha256"),
-    `${await hashArchive(archivePath)}  source.tar.zst\n`,
+    `${await sha256File(archivePath)}  source.tar.zst\n`,
     "utf8",
   );
 
-  let exitReason: RunManifest["exit_reason"];
+  let exitReason: RunManifestV2["exit_reason"];
   if (agentResult.timedOut) {
     exitReason = "timeout";
   } else if (agentResult.exitCode !== 0) {
@@ -281,7 +451,7 @@ async function runAttempt(
   }
 
   const finishedAt = new Date();
-  const finalManifest: RunManifest = {
+  const finalManifest: RunManifestV2 = {
     ...baseManifest,
     finished_at: finishedAt.toISOString(),
     exit_reason: exitReason,
@@ -310,14 +480,55 @@ async function runAttempt(
   return { runDir, workspace, manifest: finalManifest };
 }
 
-export async function runTask(options: RunOptions): Promise<CompletedRun[]> {
-  const attempts = Array.from(
-    { length: options.official ? 3 : options.repeat },
-    (_, index) => index + 1,
+async function appendSeriesRun(
+  series: SeriesContext,
+  completed: CompletedRun,
+): Promise<void> {
+  const run = completed.manifest;
+  const duplicate = series.manifest.runs.some(
+    (existing) =>
+      existing.included &&
+      existing.task_id === run.task_id &&
+      existing.seed === run.seed,
   );
+  const hasScore = await pathExists(path.join(completed.runDir, "score.json"));
+  const included = hasScore && !duplicate;
+  series.manifest.runs.push({
+    run_id: run.run_id,
+    task_id: run.task_id,
+    task_hash: run.task_hash,
+    seed: run.seed,
+    attempt: run.attempt,
+    included,
+    ...(!hasScore
+      ? { exclusion_reason: "run did not produce a score" }
+      : duplicate
+        ? { exclusion_reason: "duplicate task and seed; earlier run retained" }
+        : {}),
+  });
+  series.manifest = SeriesManifestSchema.parse(series.manifest);
+  await writeJson(path.join(series.seriesDir, "series.json"), series.manifest);
+}
+
+export async function runTask(options: RunOptions): Promise<CompletedRun[]> {
+  const series = await createSeriesContext(options);
+  const existingAttempts = series.manifest.runs.filter(
+    (run) => run.task_id === options.task.manifest.id,
+  ).length;
+  const count = options.official ? OFFICIAL_SEEDS.length : options.repeat;
   const completed: CompletedRun[] = [];
-  for (const attempt of attempts) {
-    completed.push(await runAttempt(options, attempt));
+  for (let index = 0; index < count; index += 1) {
+    const seed = options.official
+      ? OFFICIAL_SEEDS[index] ?? OFFICIAL_SEEDS[0]
+      : OFFICIAL_SEEDS[index % OFFICIAL_SEEDS.length] ?? OFFICIAL_SEEDS[0];
+    const result = await runAttempt(
+      options,
+      series,
+      existingAttempts + index + 1,
+      seed,
+    );
+    completed.push(result);
+    await appendSeriesRun(series, result);
   }
   return completed;
 }

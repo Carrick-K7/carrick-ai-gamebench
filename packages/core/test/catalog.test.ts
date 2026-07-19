@@ -27,7 +27,7 @@ test("the v1 catalog contains the eight Build and Reproduce tasks", async () => 
 test("a release lock freezes every task hash", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const lock = createReleaseLock(
-    "0.1.1",
+    "0.1.2",
     await listTasks(repositoryRoot),
   );
   assert.equal(lock.task_count, 8);

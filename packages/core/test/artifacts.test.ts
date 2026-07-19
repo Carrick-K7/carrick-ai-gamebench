@@ -37,3 +37,15 @@ test("evidence verification rejects changed and unlisted artifacts", async () =>
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("a verification record remains outside its own evidence checksum", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-verification-"));
+  try {
+    await writeFile(path.join(root, "score.json"), "{}", "utf8");
+    await writeEvidenceManifest(root);
+    await writeFile(path.join(root, "verification.json"), "{}", "utf8");
+    assert.equal((await verifyEvidenceManifest(root)).valid, true);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -32,7 +32,11 @@ async function collectFiles(root: string, current = root): Promise<string[]> {
         }
         return collectFiles(root, absolute);
       }
-      if (entry.isFile() && entry.name !== "MANIFEST.sha256") {
+      if (
+        entry.isFile() &&
+        entry.name !== "MANIFEST.sha256" &&
+        entry.name !== "verification.json"
+      ) {
         return [path.relative(root, absolute)];
       }
       return [];

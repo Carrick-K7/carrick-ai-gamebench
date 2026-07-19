@@ -1,0 +1,39 @@
+name: Published result validation
+
+on:
+  pull_request:
+    paths:
+      - "results/**"
+      - "packages/core/**"
+      - "packages/publisher/**"
+      - "apps/site/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "results/**"
+
+permissions:
+  contents: read
+
+jobs:
+  validate-publications:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+      - run: pnpm cagb verify-publication
+      - uses: actions/upload-artifact@v4
+        with:
+          name: gamebench-static-site
+          path: apps/site/dist
+          if-no-files-found: error

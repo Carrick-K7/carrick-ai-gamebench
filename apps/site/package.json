@@ -1,0 +1,26 @@
+{
+  "name": "@carrick/gamebench-site",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "astro build",
+    "typecheck": "astro check",
+    "test": "node --test",
+    "dev": "astro dev",
+    "preview": "astro preview",
+    "clean": "rm -rf dist .astro"
+  },
+  "dependencies": {
+    "@carrick/gamebench-core": "workspace:*",
+    "astro": "6.3.1"
+  },
+  "devDependencies": {
+    "@astrojs/check": "0.9.5",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.12"
+  }
+}

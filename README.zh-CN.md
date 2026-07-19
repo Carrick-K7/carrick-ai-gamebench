@@ -32,8 +32,24 @@ pnpm cagb run \
 ```
 
 本地默认只运行一次；加入 `--official` 后使用三个全新工作区运行，并生成待审计
-证据包。此时 `run.json` 仍是 `verified: false`；只有独立执行者确认网络策略、
-校验证据摘要，并在发布的 evaluator 镜像中复跑后，才能进入正式榜单。
+的 `official-candidate` 系列。这并不等于自行认证为 Official；只有发布器确认
+完整任务矩阵，且每次运行都经过独立复跑验证后，才能进入正式榜单。
+
+使用 `--series <ulid>` 可将多个任务加入同一批测评。每次物理执行都会保存为
+`runs/<benchmark>/<series>/<run>/` 下不可复用的 Run。
+
+将已有 v2 系列发布到 Experimental 区：
+
+```bash
+pnpm cagb publish \
+  --series runs/0.2.0/<series-id> \
+  --tier experimental \
+  --objects .gamebench \
+  --base-url https://play.gamebench.ai.carrick7.com
+
+pnpm cagb verify-publication
+pnpm --filter @carrick/gamebench-site build
+```
 
 构建固定评测环境：
 
@@ -42,7 +58,8 @@ pnpm docker:build
 ```
 
 详细说明参见 [方法学](docs/methodology.md)、[架构](docs/architecture.md)、
-[任务编写指南](docs/task-authoring.md)和[版本规则](docs/versioning.md)。
+[任务编写指南](docs/task-authoring.md)、[版本规则](docs/versioning.md)、
+[结果发布](docs/results-and-publication.md)和[部署](docs/deployment.md)。
 
 ## 扩展游戏
 
@@ -56,12 +73,14 @@ pnpm docker:build
 内容哈希。`pnpm cagb release-lock` 用于核对当前发布，只有在明确提升
 Benchmark 版本后才应使用 `--write` 生成新清单。
 
-## v1 的明确边界
+## 明确边界
 
 - 所有测试公开。Official 身份依靠证据、审计和复跑，而不是隐藏测试。
 - 通用 shell adapter 在执行者宿主机运行，只记录网络策略，不自行提供网络防火墙。
   Reproduce 正式运行必须由受控 Harness 仅放行声明的模型 API 域名。
 - 机器分仅使用确定性检查；人类偏好通过独立的盲化试玩结果表达。
+- 公开网站完全静态。Git 只保存审核后的结果元数据，大型源码、试玩包和证据
+  使用内容寻址对象目录；第一阶段没有数据库和公开提交 API。
 
 ## 许可证
 

@@ -5,8 +5,9 @@ CAGB versions the complete benchmark and each task independently.
 ## Benchmark releases
 
 The root `package.json` version identifies the evaluator, task catalog, scoring
-rules, browser protocol, and documentation released together. Before publishing
-a release:
+rules, and browser protocol released together. Website presentation and
+non-methodological documentation use their Git commit as `site_build_id` and
+do not alone require a benchmark release. Before publishing a release:
 
 1. choose a new semantic benchmark version;
 2. run `pnpm build`;
@@ -15,9 +16,19 @@ a release:
 5. commit the generated `benchmark/releases/<version>.json`;
 6. create the matching Git tag `v<version>`.
 
-The release lock records every task ID, task semantic version, track, and
-SHA-256 content hash. CI verifies that the current catalog still matches it.
-Released lock files are append-only.
+The v2 release lock records every task ID, task semantic version, track, and
+SHA-256 content hash, plus run/publication protocols, score/aggregate schemas,
+official seeds, and attempts per task. CI verifies that the current catalog
+still matches it. Released lock files are append-only.
+
+The result contracts have independent integer `schema_version` fields. Exact
+execution is pinned again by release-lock hash, source Git commit, and evaluator
+image digest. The site compares only equal `benchmark_version` values unless
+the reader explicitly selects another release.
+
+The 0.1.x release locks and run manifests remain readable. Run manifest v2 and
+the publication ledger begin at benchmark v0.2.0; historical tags are never
+rewritten.
 
 ## Task versions
 

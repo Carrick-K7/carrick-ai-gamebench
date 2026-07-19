@@ -1,4 +1,7 @@
 import type {
+  AggregateResult,
+  AggregateTaskResult,
+  JsonValue,
   ScoreResult,
   TaskManifest,
   TestOutcome,
@@ -10,26 +13,22 @@ export interface TaskAttempt {
   score: ScoreResult;
 }
 
-export interface AggregateTaskResult {
-  task_id: string;
-  track: Track;
-  attempts: number;
-  mean: number;
-  standard_deviation: number;
-}
-
-export interface AggregateResult {
-  schema_version: 1;
-  tasks: AggregateTaskResult[];
-  coverage: {
-    build: { completed: number; required: number };
-    reproduce: { completed: number; required: number };
-    core: { completed: number; required: number };
-  };
-  leaderboards: {
-    build?: number;
-    reproduce?: number;
-    core?: number;
+export function scoreResultIdentity(score: ScoreResult): JsonValue {
+  return {
+    schema_version: score.schema_version,
+    task_id: score.task_id,
+    task_hash: score.task_hash,
+    earned: score.earned,
+    available: score.available,
+    percent: score.percent,
+    hard_gate_failed: score.hard_gate_failed,
+    categories: score.categories,
+    tests: score.tests.map((test) => ({
+      id: test.id,
+      category: test.category,
+      points: test.points,
+      passed: test.passed,
+    })),
   };
 }
 
