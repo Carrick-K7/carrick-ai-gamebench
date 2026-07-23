@@ -27,13 +27,21 @@ function run(command, args, cwd) {
 for (const relative of templates) {
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "cagb-template-"));
   const workspace = path.join(temporaryRoot, "workspace");
+  const isolatedStore = path.join(temporaryRoot, "pnpm-store");
   try {
     await cp(path.join(repositoryRoot, relative), workspace, {
       recursive: true,
       filter: (entry) =>
         !new Set(["node_modules", "dist", ".git"]).has(path.basename(entry)),
     });
-    await run("pnpm", ["install", "--frozen-lockfile", "--offline"], workspace);
+    // Use a new store so a green smoke test proves the starter can be
+    // installed independently. The former --offline check could pass only
+    // when the runner happened to have every optional package cached.
+    await run(
+      "pnpm",
+      ["install", "--frozen-lockfile", "--store-dir", isolatedStore],
+      workspace,
+    );
     await run("pnpm", ["build"], workspace);
     console.log(`PASS  ${relative}`);
   } finally {
