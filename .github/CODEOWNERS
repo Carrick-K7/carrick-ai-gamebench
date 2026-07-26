@@ -1,0 +1,11 @@
+# The current repository owner remains the fallback until the repository is
+# transferred to Carrick-AI. ADR 0001 records the post-transfer team mapping.
+* @Carrick-K7
+
+/benchmark/ @Carrick-K7
+/packages/core/ @Carrick-K7
+/packages/evaluator/ @Carrick-K7
+/packages/publisher/ @Carrick-K7
+/results/ @Carrick-K7
+/.github/workflows/ @Carrick-K7
+/infra/ @Carrick-K7

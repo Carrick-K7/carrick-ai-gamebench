@@ -47,7 +47,7 @@ pnpm cagb publish \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com
 
-pnpm cagb verify-publication
+pnpm cagb verify-publication --objects .gamebench
 pnpm --filter @carrick/gamebench-site build
 ```
 
@@ -59,7 +59,9 @@ pnpm docker:build
 
 详细说明参见 [方法学](docs/methodology.md)、[架构](docs/architecture.md)、
 [任务编写指南](docs/task-authoring.md)、[版本规则](docs/versioning.md)、
-[结果发布](docs/results-and-publication.md)和[部署](docs/deployment.md)。
+[结果发布](docs/results-and-publication.md)、[结果提交规则](docs/result-submissions.md)、
+[公开网站设计](docs/public-site.md)、[仓库边界 ADR](docs/adr/0001-repository-boundaries.md)
+和[部署](docs/deployment.md)。
 
 ## 扩展游戏
 
@@ -85,6 +87,8 @@ Benchmark 版本后才应使用 `--write` 生成新清单。
 - 机器分仅使用确定性检查；人类偏好通过独立的盲化试玩结果表达。
 - 公开网站完全静态。Git 只保存审核后的结果元数据，大型源码、试玩包和证据
   使用内容寻址对象目录；第一阶段没有数据库和公开提交 API。
+- 每个公开试玩包都由清洁源码重新构建，并以固定 seed 生成确定性封面；网站
+  展示所有纳入聚合的 seed，绝不挑选最高分结果。
 
 ## 许可证
 

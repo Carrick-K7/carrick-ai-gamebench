@@ -1,67 +1,80 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { resultData, score } from "../lib/data";
+import LeaderboardView from "../components/LeaderboardView.astro";
+import { releaseData, resultData } from "../lib/data";
 
-const { index } = await resultData();
-const entries = index.entries.filter(
-  (entry) => entry.tier === "official" && entry.status === "active",
-);
-const versions = [...new Set(entries.map((entry) => entry.benchmark_version))];
+const [releases, results] = await Promise.all([releaseData(), resultData()]);
+const current = releases[0];
+const latestOfficialVersion = releases.find((release) =>
+  results.index.entries.some(
+    (entry) =>
+      entry.benchmark_version === release.benchmark_version &&
+      entry.tier === "official" &&
+      entry.status === "active",
+  ),
+)?.benchmark_version;
 ---
 
 <Layout title="Official leaderboard" description="Verified GameBench results for coding agents.">
   <div class="container">
     <span class="eyebrow">Official leaderboard</span>
-    <h1>Results you can replay.</h1>
+    <h1>Choose the rules before the rank.</h1>
     <p class="lead">
-      Each row is a complete evaluation series. Scores from different benchmark
-      versions are never merged by default.
+      Every canonical leaderboard is bound to one exact Benchmark release.
+      Scores from different releases are never merged.
     </p>
 
-    {versions.length > 1 && (
-      <div class="callout">
-        Multiple benchmark releases are available. Select one exact release
-        before comparing models.
-      </div>
-    )}
-
     <section class="section">
-      <div class="table-wrap">
-        {entries.length === 0 ? (
-          <div class="empty">
-            <strong>The official leaderboard is intentionally empty.</strong>
-            <span class="muted">A result enters only after complete coverage and operator reproduction.</span>
-          </div>
-        ) : (
-          <table>
-            <thead>
-              <tr>
-                <th>#</th><th>Model / configuration</th><th>Agent</th><th>Benchmark</th>
-                <th>Core</th><th>Build</th><th>Reproduce</th><th>Coverage</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries
-                .sort((left, right) => (right.aggregate.leaderboards.core ?? 0) - (left.aggregate.leaderboards.core ?? 0))
-                .map((entry, index) => (
-                  <tr>
-                    <td class="mono">{index + 1}</td>
-                    <td>
-                      <a href={`/results/${entry.publication_id.slice(7)}`}><strong>{entry.agent.model}</strong></a>
-                      <div class="muted mono">{entry.agent.version}</div>
-                    </td>
-                    <td>{entry.agent.id}<div class="muted">{entry.agent.harness}</div></td>
-                    <td class="mono">{entry.benchmark_version}</td>
-                    <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
-                    <td>{score(entry.aggregate.leaderboards.build)}</td>
-                    <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
-                    <td class="mono">{entry.aggregate.coverage.core.completed}/{entry.aggregate.coverage.core.required}</td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        )}
+      <div class="grid cols-3">
+        {releases.map((release) => {
+          const count = results.index.entries.filter(
+            (entry) =>
+              entry.benchmark_version === release.benchmark_version &&
+              entry.tier === "official" &&
+              entry.status === "active",
+          ).length;
+          return (
+            <article class="card">
+              <span class="pill">
+                {release.benchmark_version === current?.benchmark_version
+                  ? "current release"
+                  : release.benchmark_version === latestOfficialVersion
+                    ? "latest ranked"
+                    : "historical"}
+              </span>
+              <h2>v{release.benchmark_version}</h2>
+              <p>{release.task_count} tasks · {count} active Official result{count === 1 ? "" : "s"}</p>
+              <a
+                class="button"
+                href={`/benchmarks/${release.benchmark_version}/leaderboard`}
+              >
+                Open leaderboard
+              </a>
+            </article>
+          );
+        })}
       </div>
     </section>
+
+    {current && (
+      <section class="section">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Current release</span>
+            <h2>v{current.benchmark_version}</h2>
+          </div>
+          <a
+            class="button secondary"
+            href={`/releases/${current.benchmark_version}`}
+          >
+            Inspect release
+          </a>
+        </div>
+        <LeaderboardView
+          version={current.benchmark_version}
+          records={results.records}
+        />
+      </section>
+    )}
   </div>
 </Layout>

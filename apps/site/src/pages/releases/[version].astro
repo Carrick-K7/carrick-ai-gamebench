@@ -1,0 +1,150 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { releaseCatalogData } from "../../lib/data";
+
+export async function getStaticPaths() {
+  const catalogs = await releaseCatalogData();
+  return catalogs.map((catalog, index) => ({
+    params: { version: catalog.release.benchmark_version },
+    props: { catalog, previous: catalogs[index + 1] },
+  }));
+}
+
+const { catalog, previous } = Astro.props;
+const release = catalog.release;
+const previousTasks = new Map(
+  (previous?.release.tasks ?? []).map((task: { id: string }) => [task.id, task]),
+);
+const currentTasks = new Map(release.tasks.map((task) => [task.id, task]));
+const added = release.tasks.filter((task) => !previousTasks.has(task.id));
+const removed = (previous?.release.tasks ?? []).filter(
+  (task: { id: string }) => !currentTasks.has(task.id),
+);
+const changed = release.tasks.filter((task) => {
+  const prior = previousTasks.get(task.id) as
+    | { version: string; hash: string }
+    | undefined;
+  return prior && (prior.version !== task.version || prior.hash !== task.hash);
+});
+const protocolChanged =
+  previous &&
+  JSON.stringify(previous.release.protocols) !== JSON.stringify(release.protocols);
+const scoringChanged =
+  previous &&
+  JSON.stringify("scoring" in previous.release ? previous.release.scoring : null) !==
+    JSON.stringify("scoring" in release ? release.scoring : null);
+const seedPolicyChanged =
+  previous &&
+  JSON.stringify("official" in previous.release ? previous.release.official : null) !==
+    JSON.stringify("official" in release ? release.official : null);
+---
+
+<Layout title={`Release v${release.benchmark_version}`}>
+  <div class="container">
+    <span class="eyebrow">Immutable release contract</span>
+    <h1>GameBench v{release.benchmark_version}</h1>
+    <p class="lead">
+      {release.task_count} tasks · release schema v{release.schema_version}.
+      Results from this version are comparable only with other v{release.benchmark_version}
+      publications.
+    </p>
+    <div class="actions">
+      <a
+        class="button"
+        href={`/benchmarks/${release.benchmark_version}/leaderboard`}
+      >
+        Official leaderboard
+      </a>
+      <a
+        class="button secondary"
+        href={`/benchmarks/${release.benchmark_version}/games`}
+      >
+        Game catalog
+      </a>
+      <a
+        class="button secondary"
+        href={`https://github.com/Carrick-K7/carrick-ai-gamebench/tree/v${release.benchmark_version}`}
+      >
+        Git tag
+      </a>
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Catalog</span><h2>Frozen task identities.</h2></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Task</th><th>Track</th><th>Version</th><th>Source</th><th>Hash</th></tr>
+          </thead>
+          <tbody>
+            {catalog.tasks.map((task) => (
+              <tr>
+                <td>
+                  <a href={`/benchmarks/${release.benchmark_version}/games/${task.id}`}>
+                    {task.id}
+                  </a>
+                </td>
+                <td>{task.track}</td>
+                <td class="mono">{task.version}</td>
+                <td>{task.source ? "retained" : "lock only"}</td>
+                <td class="mono">{task.hash.slice(0, 23)}…</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Adjacent change</span><h2>What changed.</h2></div>
+        <p>
+          {previous
+            ? `Compared with v${previous.release.benchmark_version}.`
+            : "This is the earliest retained release lock."}
+        </p>
+      </div>
+      {!previous ? (
+        <div class="callout">Initial retained Benchmark release.</div>
+      ) : (
+        <div class="grid cols-3">
+          <article class="card">
+            <h3>Tasks</h3>
+            <p>{added.length} added · {removed.length} removed · {changed.length} changed in place</p>
+            {[...added, ...removed, ...changed].length > 0 && (
+              <ul>
+                {added.map((task) => <li>Added <code>{task.id}</code></li>)}
+                {removed.map((task: { id: string }) => <li>Removed <code>{task.id}</code></li>)}
+                {changed.map((task) => <li>Changed <code>{task.id}</code></li>)}
+              </ul>
+            )}
+          </article>
+          <article class="card">
+            <h3>Protocols and scoring</h3>
+            <p>
+              Protocols {protocolChanged ? "changed" : "unchanged"} · scoring
+              {" "}{scoringChanged ? "changed" : "unchanged"}.
+            </p>
+          </article>
+          <article class="card">
+            <h3>Official run policy</h3>
+            <p>{seedPolicyChanged ? "Fixed seeds or attempt policy changed." : "Unchanged."}</p>
+          </article>
+        </div>
+      )}
+    </section>
+
+    <section class="section prose">
+      <h2>Protocol identity</h2>
+      <pre><code>{JSON.stringify(release.protocols, null, 2)}</code></pre>
+      {"scoring" in release && (
+        <><h3>Scoring</h3><pre><code>{JSON.stringify(release.scoring, null, 2)}</code></pre></>
+      )}
+      {"official" in release && (
+        <><h3>Official matrix</h3><pre><code>{JSON.stringify(release.official, null, 2)}</code></pre></>
+      )}
+    </section>
+  </div>
+</Layout>

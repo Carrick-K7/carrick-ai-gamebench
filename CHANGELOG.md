@@ -3,6 +3,19 @@
 All notable benchmark changes are recorded here. Releases also have a
 machine-readable lock under `benchmark/releases/`.
 
+## Unreleased
+
+- Added semantic-versioned Leaderboard, game-catalog, task, release, immutable
+  result, and isolated Showcase pages without changing benchmark scoring.
+- Added exact-hash resolution of retained historical task sources and explicit
+  lock-only rendering when an early source snapshot is unavailable.
+- Added deterministic fixed-seed Showcase capture during clean reproduction.
+- Strengthened Publication validation for object tampering, missing objects,
+  release/task isolation, licenses, supersession, index consistency, and
+  semantic version order.
+- Defined the public Monorepo, private Ops, object storage, raw-run storage,
+  GitHub governance, result submission, and static-build promotion boundaries.
+
 ## 0.3.0
 
 - Activated eight v2 tasks and retained the unchanged v0.2 task sources under

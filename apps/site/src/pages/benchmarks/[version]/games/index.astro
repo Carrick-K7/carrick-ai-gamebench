@@ -1,0 +1,44 @@
+---
+import GameCatalogView from "../../../../components/GameCatalogView.astro";
+import Layout from "../../../../layouts/Layout.astro";
+import { releaseCatalogData, resultData } from "../../../../lib/data";
+
+export async function getStaticPaths() {
+  const catalogs = await releaseCatalogData();
+  return catalogs.map((catalog) => ({
+    params: { version: catalog.release.benchmark_version },
+    props: { catalog },
+  }));
+}
+
+const { catalog } = Astro.props;
+const { records } = await resultData();
+---
+
+<Layout title={`v${catalog.release.benchmark_version} games`}>
+  <div class="container">
+    <span class="eyebrow">Frozen catalog · v{catalog.release.benchmark_version}</span>
+    <h1>Games in this release.</h1>
+    <p class="lead">
+      These task identities, tests, and hashes define which results are
+      comparable on the v{catalog.release.benchmark_version} leaderboard.
+    </p>
+    <div class="actions">
+      <a
+        class="button secondary"
+        href={`/benchmarks/${catalog.release.benchmark_version}/leaderboard`}
+      >
+        View leaderboard
+      </a>
+      <a
+        class="button secondary"
+        href={`/releases/${catalog.release.benchmark_version}`}
+      >
+        Release contract
+      </a>
+    </div>
+    <section class="section">
+      <GameCatalogView catalog={catalog} records={records} />
+    </section>
+  </div>
+</Layout>

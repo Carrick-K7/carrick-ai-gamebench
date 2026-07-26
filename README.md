@@ -50,7 +50,7 @@ pnpm cagb publish \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com
 
-pnpm cagb verify-publication
+pnpm cagb verify-publication --objects .gamebench
 pnpm --filter @carrick/gamebench-site build
 ```
 
@@ -68,6 +68,9 @@ pnpm docker:build
 See [methodology](docs/methodology.md), [architecture](docs/architecture.md),
 [task authoring](docs/task-authoring.md), [versioning](docs/versioning.md),
 [results and publication](docs/results-and-publication.md),
+[result submission policy](docs/result-submissions.md),
+[public site product design](docs/public-site.md),
+[repository boundary ADR](docs/adr/0001-repository-boundaries.md),
 [deployment](docs/deployment.md),
 [contributing](CONTRIBUTING.md), and the [Chinese README](README.zh-CN.md).
 
@@ -100,6 +103,9 @@ after intentionally changing the benchmark version.
 - The public site is static. Git stores audited result metadata and a
   content-addressed object root stores larger source, playable, and evidence
   artifacts. There is no database or public submission API.
+- Every published playable is rebuilt from clean source and receives a
+  deterministic fixed-seed showcase cover; galleries expose every included
+  seed and never select the best-scoring attempt.
 
 ## Licenses
 

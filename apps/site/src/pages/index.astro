@@ -1,19 +1,65 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { gameData, releaseData, resultData, score } from "../lib/data";
+import {
+  defaultOfficialSeed,
+  gameData,
+  releaseData,
+  resultData,
+  score,
+  siteBuildId,
+} from "../lib/data";
 
 const [games, releases, results] = await Promise.all([
   gameData(),
   releaseData(),
   resultData(),
 ]);
+const latest = releases[0];
+const rankedRelease = releases.find((release) =>
+  results.index.entries.some(
+    (entry) =>
+      entry.tier === "official" &&
+      entry.status === "active" &&
+      entry.benchmark_version === release.benchmark_version,
+  ),
+);
 const official = results.index.entries.filter(
   (entry) => entry.tier === "official" && entry.status === "active",
-);
+  ).filter(
+    (entry) => entry.benchmark_version === rankedRelease?.benchmark_version,
+  ).sort(
+    (left, right) =>
+      (right.aggregate.leaderboards.core ?? 0) -
+      (left.aggregate.leaderboards.core ?? 0),
+  );
 const experimental = results.index.entries.filter(
   (entry) => entry.tier === "experimental" && entry.status === "active",
 );
-const latest = releases[0];
+const publicArtifacts = results.publications.flatMap((publication) =>
+  publication.runs.flatMap((run) => run.artifacts),
+);
+const featured = results.records
+  .filter(
+    (record) =>
+      record.entry.status === "active" &&
+      record.entry.benchmark_version ===
+        (rankedRelease?.benchmark_version ?? latest?.benchmark_version),
+  )
+  .flatMap((record) =>
+    record.publication.runs
+      .filter((run) => run.included && run.seed === defaultOfficialSeed)
+      .flatMap((run) => {
+        const playable = run.artifacts.find((artifact) => artifact.role === "playable");
+        const showcase = run.artifacts.find(
+          (artifact) =>
+            artifact.role === "screenshot" &&
+            artifact.file_name ===
+              `${run.task_id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-showcase.png`,
+        );
+        return playable && showcase ? [{ record, run, playable, showcase }] : [];
+      }),
+  )
+  .slice(0, 3);
 ---
 
 <Layout title="GameBench">
@@ -26,8 +72,20 @@ const latest = releases[0];
       inspectable: play the game, read the source, and audit every score.
     </p>
     <div class="actions">
-      <a class="button" href="/leaderboard">View official results</a>
-      <a class="button secondary" href="/games">Explore the games</a>
+      <a
+        class="button"
+        href={rankedRelease
+          ? `/benchmarks/${rankedRelease.benchmark_version}/leaderboard`
+          : "/leaderboard"}
+      >
+        View official results
+      </a>
+      <a
+        class="button secondary"
+        href={latest ? `/benchmarks/${latest.benchmark_version}/games` : "/games"}
+      >
+        Explore the games
+      </a>
     </div>
 
     <section class="section">
@@ -46,7 +104,7 @@ const latest = releases[0];
         </div>
         <div class="card metric">
           <strong>{latest?.benchmark_version ?? "—"}</strong>
-          <span>latest benchmark release</span>
+          <span>current benchmark release</span>
         </div>
       </div>
     </section>
@@ -78,7 +136,11 @@ const latest = releases[0];
                 <tr>
                   <td><a href={`/results/${entry.publication_id.slice(7)}`}>{entry.agent.model}</a></td>
                   <td>{entry.agent.id} · {entry.agent.harness}</td>
-                  <td class="mono">{entry.benchmark_version}</td>
+                  <td class="mono">
+                    <a href={`/benchmarks/${entry.benchmark_version}/leaderboard`}>
+                      {entry.benchmark_version}
+                    </a>
+                  </td>
                   <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
                   <td>{score(entry.aggregate.leaderboards.build)}</td>
                   <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
@@ -88,6 +150,47 @@ const latest = releases[0];
           </table>
         )}
       </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Playable evidence</span>
+          <h2>Scores lead to games.</h2>
+        </div>
+        <p>
+          Deterministic covers come from clean rebuilt playables at the fixed
+          presentation seed. The game itself loads only on demand.
+        </p>
+      </div>
+      {featured.length === 0 ? (
+        <div class="card empty">
+          <strong>No public showcase cover yet.</strong>
+          <span class="muted">The site remains complete before the first reviewed publication.</span>
+        </div>
+      ) : (
+        <div class="grid cols-3">
+          {featured.map(({ record, run, playable, showcase }) => (
+            <article class="card output-card">
+              <img
+                class="cover"
+                src={showcase.url}
+                alt={`${record.entry.agent.model} output for ${run.task_id}`}
+                loading="lazy"
+              />
+              <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
+              <h3>{run.task_id}</h3>
+              <p>{record.entry.agent.model} · score {run.score?.percent.toFixed(1) ?? "—"}</p>
+              <a
+                class="button"
+                href={`/showcase/${playable.artifact_id.slice(7)}`}
+              >
+                Play and inspect
+              </a>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
 
     <section class="section">
@@ -125,6 +228,25 @@ const latest = releases[0];
         <p>{experimental.length} active pilot or partial result{experimental.length === 1 ? "" : "s"} are currently public.</p>
       </div>
       <a class="button secondary" href="/experimental">Open experimental results</a>
+    </section>
+
+    <section class="section">
+      <div class="grid cols-3">
+        <div class="card metric">
+          <strong>{results.index.entries.length}</strong>
+          <span>immutable publications</span>
+        </div>
+        <div class="card metric">
+          <strong>{publicArtifacts.filter((artifact) => artifact.role === "playable").length}</strong>
+          <span>playable references</span>
+        </div>
+        <div class="card metric">
+          <strong title={siteBuildId}>
+            {siteBuildId === "local" ? "local" : `${siteBuildId.slice(0, 8)}…`}
+          </strong>
+          <span>site build · ledger {results.index.generated_at.slice(0, 10)}</span>
+        </div>
+      </div>
     </section>
   </div>
 </Layout>

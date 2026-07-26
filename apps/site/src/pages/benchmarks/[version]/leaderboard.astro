@@ -1,0 +1,41 @@
+---
+import LeaderboardView from "../../../components/LeaderboardView.astro";
+import Layout from "../../../layouts/Layout.astro";
+import { releaseData, resultData } from "../../../lib/data";
+
+export async function getStaticPaths() {
+  const releases = await releaseData();
+  return releases.map((release) => ({
+    params: { version: release.benchmark_version },
+    props: { release },
+  }));
+}
+
+const { release } = Astro.props;
+const { records } = await resultData();
+---
+
+<Layout title={`v${release.benchmark_version} leaderboard`}>
+  <div class="container">
+    <span class="eyebrow">Official · Benchmark v{release.benchmark_version}</span>
+    <h1>One release. One comparable rank.</h1>
+    <p class="lead">
+      This page contains only complete, active Official publications for the
+      exact frozen task and protocol contract below.
+    </p>
+    <div class="actions">
+      <a
+        class="button secondary"
+        href={`/benchmarks/${release.benchmark_version}/games`}
+      >
+        Browse games
+      </a>
+      <a class="button secondary" href={`/releases/${release.benchmark_version}`}>
+        Inspect release
+      </a>
+    </div>
+    <section class="section">
+      <LeaderboardView version={release.benchmark_version} records={records} />
+    </section>
+  </div>
+</Layout>

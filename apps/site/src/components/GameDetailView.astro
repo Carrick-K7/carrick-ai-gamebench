@@ -1,0 +1,200 @@
+---
+import {
+  playableCandidatesForTask,
+  type PublicationRecord,
+  type ReleaseCatalog,
+} from "../lib/data";
+
+interface Props {
+  catalog: ReleaseCatalog;
+  taskId: string;
+  records: PublicationRecord[];
+}
+
+const { catalog, taskId, records } = Astro.props;
+const releasedTask = catalog.tasks.find((task) => task.id === taskId);
+if (!releasedTask) {
+  throw new Error(`release ${catalog.release.benchmark_version} has no task ${taskId}`);
+}
+const version = catalog.release.benchmark_version;
+const source = releasedTask.source;
+const candidates = playableCandidatesForTask(taskId, version, records);
+const candidateByRun = new Map(
+  candidates.map((candidate) => [candidate.run.run_id, candidate]),
+);
+const outputRuns = records
+  .filter((record) => record.publication.benchmark.version === version)
+  .flatMap((record) =>
+    record.publication.runs
+      .filter((run) => run.included && run.task_id === taskId)
+      .map((run) => ({ record, run, candidate: candidateByRun.get(run.run_id) })),
+  )
+  .sort(
+    (left, right) =>
+      Number(right.record.entry.tier === "official") -
+        Number(left.record.entry.tier === "official") ||
+      right.record.entry.created_at.localeCompare(left.record.entry.created_at) ||
+      left.run.seed - right.run.seed,
+  );
+const categories = source
+  ? [...new Set(source.manifest.tests.map((test) => test.category))]
+  : [];
+const title = source?.manifest.title.en ?? releasedTask.id;
+---
+
+<span class="eyebrow">
+  {releasedTask.track}
+  {source ? ` · level ${source.manifest.level}` : ""}
+  · Benchmark {version}
+</span>
+<h1>{title}</h1>
+<p class="lead">
+  {source?.manifest.title.zh ?? releasedTask.id} · {releasedTask.id}
+</p>
+
+<div class="grid cols-4 section">
+  <div class="card metric">
+    <strong>{releasedTask.version}</strong><span>task version</span>
+  </div>
+  <div class="card metric">
+    <strong>{source?.manifest.tests.length ?? "—"}</strong><span>atomic tests</span>
+  </div>
+  <div class="card metric">
+    <strong>{source ? `${source.manifest.budget_seconds / 60}m` : "—"}</strong>
+    <span>agent budget</span>
+  </div>
+  <div class="card metric">
+    <strong>{outputRuns.length}</strong><span>published runs</span>
+  </div>
+</div>
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <span class="eyebrow">Generated outputs</span>
+      <h2>Every seed stays visible.</h2>
+    </div>
+    <p>
+      Official output defaults to seed 104729. The gallery never chooses the
+      highest-scoring attempt, and failures remain in the record.
+    </p>
+  </div>
+  {outputRuns.length === 0 ? (
+    <div class="card empty">
+      <strong>No published output for this release.</strong>
+      <span class="muted">The frozen task contract remains available for audit.</span>
+    </div>
+  ) : (
+    <div class="grid cols-3">
+      {outputRuns.map(({ record, run, candidate }) => (
+        <article class="card output-card">
+          {candidate?.showcase ? (
+            <img
+              class="cover"
+              src={candidate.showcase.url}
+              alt={`${record.entry.agent.model} output for ${taskId}, seed ${run.seed}`}
+              loading="lazy"
+            />
+          ) : (
+            <div class="cover placeholder">
+              {candidate ? "Playable · no showcase cover" : "No playable artifact"}
+            </div>
+          )}
+          <div class="output-meta">
+            <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
+            <span class="pill">{record.entry.status}</span>
+            <span class="mono">seed {run.seed}</span>
+          </div>
+          <h3>{record.entry.agent.model}</h3>
+          <p>
+            {record.entry.agent.id} · {record.entry.agent.harness}<br />
+            Score {run.score ? run.score.percent.toFixed(1) : "—"} · {run.exit_reason}
+          </p>
+          <div class="actions compact">
+            {candidate && (
+              <a
+                class="button"
+                href={`/showcase/${candidate.playable.artifact_id.slice(7)}`}
+              >
+                Play
+              </a>
+            )}
+            {candidate?.source && (
+              <a class="button secondary" href={candidate.source.url}>Source</a>
+            )}
+            <a
+              class="button secondary"
+              href={`/results/${record.entry.publication_id.slice(7)}`}
+            >
+              Result
+            </a>
+          </div>
+        </article>
+      ))}
+    </div>
+  )}
+</section>
+
+<section class="section">
+  <div class="section-head">
+    <div>
+      <span class="eyebrow">Test contract</span>
+      <h2>What this game measures.</h2>
+    </div>
+    <div>{categories.map((category) => <span class="pill">{category}</span>)}</div>
+  </div>
+  {source ? (
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Atomic test</th><th>Category</th><th>Points</th><th>Case</th></tr>
+        </thead>
+        <tbody>
+          {source.manifest.tests.map((test) => (
+            <tr>
+              <td class="mono">{test.id}</td>
+              <td>{test.category}</td>
+              <td class="score">{test.points}</td>
+              <td class="mono">{test.case}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="callout">
+      This early release lock remains authoritative, but its complete task
+      source is not present in this checkout. The lock identity is still shown
+      below; no newer task source is substituted.
+    </div>
+  )}
+</section>
+
+{source && (
+  <section class="section prose">
+    <h2>Runtime contract</h2>
+    <p>
+      The game is evaluated at {source.manifest.runtime.viewport[0]} ×
+      {" "}{source.manifest.runtime.viewport[1]} with Node
+      {" "}{source.manifest.runtime.node}, deterministic seed reset, controlled
+      time, native input, and schema-validated snapshots.
+    </p>
+    {source.manifest.reference && (
+      <p>
+        Reference: <a href={source.manifest.reference.repository}>
+          {source.manifest.reference.project}
+        </a> at commit <code>{source.manifest.reference.commit}</code>,
+        license {source.manifest.reference.license}.
+      </p>
+    )}
+  </section>
+)}
+
+<section class="section prose">
+  <h2>Frozen identity</h2>
+  <p><strong>Task content</strong><br /><code>{releasedTask.hash}</code></p>
+  <p>
+    <strong>Benchmark release</strong><br />
+    <a href={`/releases/${version}`}>v{version} release contract</a>
+  </p>
+</section>

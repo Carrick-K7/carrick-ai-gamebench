@@ -4,9 +4,20 @@ import path from "node:path";
 import test from "node:test";
 import {
   createReleaseLock,
+  compareSemanticVersions,
   findRepositoryRoot,
+  listRetiredTasks,
   listTasks,
+  resolveReleasedTasks,
 } from "../src/index.js";
+
+test("semantic releases sort by precedence rather than filename", () => {
+  const versions = ["0.9.0", "0.10.0", "1.0.0-rc.2", "1.0.0", "1.0.0-rc.10"];
+  assert.deepEqual(
+    versions.sort(compareSemanticVersions),
+    ["0.9.0", "0.10.0", "1.0.0-rc.2", "1.0.0-rc.10", "1.0.0"],
+  );
+});
 
 test("the active v2 catalog contains the eight Build and Reproduce tasks", async () => {
   const repositoryRoot = await findRepositoryRoot();
@@ -100,4 +111,36 @@ test("a release lock freezes every task hash", async () => {
   assert.equal(new Set(lock.tasks.map((task) => task.hash)).size, 8);
   assert.deepEqual(lock.tracks, ["build", "reproduce"]);
   assert.equal(lock.scoring.aggregate, 2);
+});
+
+test("release catalogs resolve active and retired task sources by exact hash", async () => {
+  const repositoryRoot = await findRepositoryRoot();
+  const retired = await listRetiredTasks(repositoryRoot);
+  assert.equal(retired.length, 8);
+  assert.equal(
+    retired.every((task) => task.manifest.id.endsWith(".v1")),
+    true,
+  );
+
+  for (const version of ["0.2.0", "0.3.0"]) {
+    const release = JSON.parse(
+      await readFile(
+        path.join(repositoryRoot, "benchmark", "releases", `${version}.json`),
+        "utf8",
+      ),
+    ) as {
+      tasks: Array<{
+        id: string;
+        version: string;
+        track: "build" | "reproduce";
+        hash: string;
+      }>;
+    };
+    const resolved = await resolveReleasedTasks(release, repositoryRoot);
+    assert.equal(
+      resolved.every((task) => task.source?.hash === task.hash),
+      true,
+      `release ${version} must retain every task source`,
+    );
+  }
 });

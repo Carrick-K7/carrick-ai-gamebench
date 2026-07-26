@@ -31,6 +31,7 @@ export interface EvaluationOptions {
   runDir: string;
   seed: number;
   install?: boolean;
+  showcasePath?: string;
 }
 
 export interface EvaluationResult {
@@ -188,6 +189,65 @@ async function preflightBridge(
       await bridge.ready;
     });
     assertValidSnapshot(await bridgeSnapshot(page), validateSnapshot);
+  } finally {
+    await context.close();
+  }
+}
+
+async function captureShowcase(
+  browser: Browser,
+  task: LoadedTask,
+  baseUrl: string,
+  seed: number,
+  outputPath: string,
+): Promise<void> {
+  const context = await browser.newContext({
+    viewport: {
+      width: task.manifest.runtime.viewport[0],
+      height: task.manifest.runtime.viewport[1],
+    },
+    deviceScaleFactor: task.manifest.runtime.device_scale_factor,
+  });
+  try {
+    const page = await context.newPage();
+    await page.goto(baseUrl, { waitUntil: "networkidle" });
+    await page.waitForFunction(
+      () => Boolean((window as typeof window & {
+        __CARRICK_GAMEBENCH__?: unknown;
+      }).__CARRICK_GAMEBENCH__),
+      undefined,
+      { timeout: 10_000 },
+    );
+    await page.evaluate(async (runSeed) => {
+      const bridge = (
+        window as typeof window & {
+          __CARRICK_GAMEBENCH__: {
+            ready: Promise<void>;
+            reset(input: { seed: number }): Promise<void>;
+            act(input: { type: string }): Promise<void>;
+            advance(ms: number): Promise<void>;
+            snapshot(): Promise<{ status: string }>;
+          };
+        }
+      ).__CARRICK_GAMEBENCH__;
+      await bridge.ready;
+      await bridge.reset({ seed: runSeed });
+      const snapshot = await bridge.snapshot();
+      if (snapshot.status === "menu") {
+        try {
+          await bridge.act({ type: "start" });
+        } catch {
+          // A deterministic menu is still a valid presentation state.
+        }
+      }
+      await bridge.advance(1_000);
+    }, seed);
+    await mkdir(path.dirname(outputPath), { recursive: true });
+    await page.screenshot({
+      path: outputPath,
+      animations: "disabled",
+      caret: "hide",
+    });
   } finally {
     await context.close();
   }
@@ -553,6 +613,15 @@ export async function evaluateSubmission(
     }
 
     if (buildPassed && browser && baseUrl) {
+      if (options.showcasePath) {
+        await captureShowcase(
+          browser,
+          task,
+          baseUrl,
+          options.seed,
+          options.showcasePath,
+        );
+      }
       for (const testCase of task.suite.cases) {
         if (testCase.kind === "browser") {
           caseResults.set(

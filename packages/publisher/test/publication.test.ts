@@ -1,14 +1,27 @@
 import assert from "node:assert/strict";
+import {
+  mkdir,
+  mkdtemp,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
 import {
   PublicationManifestSchema,
   ReleaseLockV2Schema,
+  scoreResultIdentity,
+  sha256Canonical,
+  writeJson,
   type PublicationManifest,
 } from "@carrick/gamebench-core";
 import {
   assertOfficialEligibility,
   computePublicationId,
+  FilesystemArtifactStore,
   verifyPublicationIdentity,
+  verifyResultsRepository,
 } from "../src/index.js";
 
 const hash = (character: string) => `sha256:${character.repeat(64)}`;
@@ -236,4 +249,142 @@ test("publication schema rejects duplicate run IDs", () => {
     }).success,
     false,
   );
+});
+
+async function nonEmptyFixture(root: string) {
+  const objectsRoot = path.join(root, "objects");
+  const resultsRoot = path.join(root, "results");
+  const store = new FilesystemArtifactStore(objectsRoot, "/");
+  const sourcePath = path.join(root, "clean-source.tar.zst");
+  await writeFile(sourcePath, "clean public source", "utf8");
+  const artifact = await store.put(sourcePath, {
+    role: "clean-source",
+    fileName: "clean-source.tar.zst",
+    mediaType: "application/zstd",
+  });
+  const base = publicationPayload();
+  const run = base.runs[0];
+  assert.ok(run?.score);
+  const scoreHash = sha256Canonical(scoreResultIdentity(run.score));
+  const payload: Omit<PublicationManifest, "publication_id"> = {
+    ...base,
+    tier: "experimental",
+    runs: [{
+      ...run,
+      artifacts: [artifact],
+      reproduction: {
+        ...run.reproduction!,
+        clean_source_artifact_id: artifact.artifact_id,
+        recomputed_score_hash: scoreHash,
+      },
+      verification: undefined,
+    }].map(({ verification: _verification, ...publishedRun }) => publishedRun),
+  };
+  const publication = PublicationManifestSchema.parse({
+    ...payload,
+    publication_id: computePublicationId(payload),
+  });
+  await mkdir(path.join(resultsRoot, "publications"), { recursive: true });
+  await writeJson(
+    path.join(
+      resultsRoot,
+      "publications",
+      `${publication.publication_id.slice("sha256:".length)}.json`,
+    ),
+    publication,
+  );
+  await writeJson(path.join(resultsRoot, "index.json"), {
+    schema_version: 1,
+    generated_at: "2026-07-19T00:00:00.000Z",
+    benchmark_versions: ["0.2.0"],
+    entries: [{
+      publication_id: publication.publication_id,
+      created_at: publication.created_at,
+      tier: publication.tier,
+      status: "active",
+      benchmark_version: publication.benchmark.version,
+      series_id: publication.series_id,
+      configuration_id: publication.configuration.configuration_id,
+      agent: publication.configuration.agent,
+      aggregate: publication.aggregate,
+    }],
+  });
+  return {
+    artifact,
+    artifactPath: path.join(
+      objectsRoot,
+      "objects",
+      "sha256",
+      artifact.artifact_id.slice(7, 9),
+      artifact.artifact_id.slice(7),
+      artifact.file_name,
+    ),
+    resultsRoot,
+    store,
+  };
+}
+
+test("a non-empty publication fixture detects missing and tampered objects", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-publication-"));
+  try {
+    const fixture = await nonEmptyFixture(root);
+    assert.deepEqual(
+      await verifyResultsRepository(fixture.resultsRoot, fixture.store),
+      { publications: 1, artifacts: 1 },
+    );
+
+    await writeFile(fixture.artifactPath, "tampered", "utf8");
+    await assert.rejects(
+      verifyResultsRepository(fixture.resultsRoot, fixture.store),
+      /missing published artifact/,
+    );
+
+    await writeFile(fixture.artifactPath, "clean public source", "utf8");
+    await rm(fixture.artifactPath);
+    await assert.rejects(
+      verifyResultsRepository(fixture.resultsRoot, fixture.store),
+      /missing published artifact/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("publication verification rejects a cross-release hash mismatch", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-release-mismatch-"));
+  try {
+    const fixture = await nonEmptyFixture(root);
+    const releaseRoot = path.join(root, "benchmark", "releases");
+    await mkdir(releaseRoot, { recursive: true });
+    await writeJson(path.join(releaseRoot, "0.2.0.json"), {
+      schema_version: 2,
+      benchmark: "carrick-ai-gamebench",
+      benchmark_version: "0.2.0",
+      protocols: {
+        task_manifest: 1,
+        bridge: 1,
+        run_manifest: 2,
+        publication_manifest: 1,
+      },
+      scoring: { score_result: 1, aggregate: 1 },
+      official: {
+        attempts_per_task: 3,
+        seeds: [104729, 130363, 155921],
+      },
+      tracks: ["build", "reproduce"],
+      task_count: 1,
+      tasks: [{
+        id: "build.sample.v1",
+        version: "1.0.0",
+        track: "build",
+        hash: hash("a"),
+      }],
+    });
+    await assert.rejects(
+      verifyResultsRepository(fixture.resultsRoot, fixture.store, root),
+      /publication release hash mismatch/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });

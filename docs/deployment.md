@@ -20,6 +20,13 @@ copies the exact static build into a Git-SHA release directory and atomically
 updates the `current` symlink. The persistent object root is not replaced when
 the site is deployed.
 
+Public CI produces an immutable `gamebench-site-<git-sha>` artifact and
+`site-build.json`; it does not hold production SSH credentials. The exact
+handoff contract is documented in
+[`infra/static-build-interface.md`](../infra/static-build-interface.md).
+Promotion, Production Environment protection, domain state, and smoke
+monitoring belong to the private Ops repository.
+
 A backend becomes justified only when GameBench accepts untrusted uploads,
 authenticated votes, online review assignments, or asynchronous evaluation
 jobs. At that point PostgreSQL records intake and workflow state, while Git

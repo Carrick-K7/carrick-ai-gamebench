@@ -189,12 +189,30 @@ export class FilesystemArtifactStore implements ArtifactStore {
   }
 
   async exists(artifact: ArtifactRef): Promise<boolean> {
-    return pathExists(
-      this.destination(
-        artifact.artifact_id as `sha256:${string}`,
-        artifact.file_name,
-        artifact.role,
-      ),
+    const destination = this.destination(
+      artifact.artifact_id as `sha256:${string}`,
+      artifact.file_name,
+      artifact.role,
     );
+    if (!(await pathExists(destination))) {
+      return false;
+    }
+    try {
+      if (artifact.role === "playable") {
+        const identity = await directoryIdentity(destination);
+        return (
+          identity.id === artifact.artifact_id &&
+          identity.bytes === artifact.size_bytes
+        );
+      }
+      const info = await lstat(destination);
+      return (
+        info.isFile() &&
+        `sha256:${await sha256File(destination)}` === artifact.artifact_id &&
+        info.size === artifact.size_bytes
+      );
+    } catch {
+      return false;
+    }
   }
 }

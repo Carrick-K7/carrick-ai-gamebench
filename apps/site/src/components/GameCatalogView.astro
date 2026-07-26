@@ -1,0 +1,39 @@
+---
+import {
+  playableCandidatesForTask,
+  type PublicationRecord,
+  type ReleaseCatalog,
+} from "../lib/data";
+
+interface Props {
+  catalog: ReleaseCatalog;
+  records: PublicationRecord[];
+}
+
+const { catalog, records } = Astro.props;
+const version = catalog.release.benchmark_version;
+---
+
+<div class="grid cols-3">
+  {catalog.tasks.map((task, index) => {
+    const outputs = playableCandidatesForTask(task.id, version, records);
+    return (
+      <article class="card game-card">
+        <span class="number">{String(index + 1).padStart(2, "0")}</span>
+        <h3>
+          <a href={`/benchmarks/${version}/games/${task.id}`}>
+            {task.source?.manifest.title.en ?? task.id}
+          </a>
+        </h3>
+        <p>{task.source?.manifest.title.zh ?? `Frozen task ${task.version}`}</p>
+        <div class="game-meta">
+          <span class="pill">{task.track}</span>
+          {task.source && <span class="pill">level {task.source.manifest.level}</span>}
+          <span class={`pill ${outputs.length > 0 ? "official" : ""}`}>
+            {outputs.length} playable
+          </span>
+        </div>
+      </article>
+    );
+  })}
+</div>

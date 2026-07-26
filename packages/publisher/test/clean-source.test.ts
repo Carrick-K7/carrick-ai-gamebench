@@ -64,6 +64,23 @@ test("clean source export is allowlisted and deterministic", async () => {
     assert.equal(await store.exists(playable), true);
     assert.match(source.url, /^\/objects\/sha256\//);
     assert.match(playable.url, /^\/play\/[a-f0-9]{64}\/index\.html$/);
+
+    await writeFile(
+      path.join(
+        root,
+        "objects",
+        "play",
+        playable.artifact_id.slice("sha256:".length),
+        "index.html",
+      ),
+      "<main>tampered</main>",
+      "utf8",
+    );
+    assert.equal(
+      await store.exists(playable),
+      false,
+      "content-addressed directory verification must detect tampering",
+    );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

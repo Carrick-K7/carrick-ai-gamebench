@@ -35,6 +35,7 @@ tests.json → score.json → MANIFEST.sha256 → aggregate/reviewer
           │
           ▼
 clean export → independent rebuild → content-addressed artifacts
+                    └──► fixed-seed showcase.png
           │
           ▼
 publication manifest → results/index.json → static site
@@ -108,6 +109,11 @@ from source browsing, so it deliberately does not claim to enforce
 The raw run bundle is private audit material. The publisher exports only
 allowlisted project source, rejects symlinks and credential patterns, rebuilds
 without model credentials, and creates deterministic public artifacts.
+During that clean rebuild, the Evaluator resets the public bridge with the
+physical run seed, advances a fixed presentation interval, and captures a
+1280×720 `showcase.png`. Publisher exposes it as the deterministic
+`<task-id>-showcase.png` screenshot and never treats failure screenshots as a
+cover.
 
 Git stores `results/index.json` and immutable publication JSON. Large source
 archives, playable directories, screenshots, and evidence use SHA-256 object

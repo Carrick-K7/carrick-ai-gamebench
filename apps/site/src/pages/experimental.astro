@@ -2,9 +2,9 @@
 import Layout from "../layouts/Layout.astro";
 import { resultData, score } from "../lib/data";
 
-const { index } = await resultData();
-const entries = index.entries.filter(
-  (entry) => entry.tier === "experimental" && entry.status === "active",
+const { records } = await resultData();
+const entries = records.filter(
+  ({ entry }) => entry.tier === "experimental" && entry.status === "active",
 );
 ---
 
@@ -28,19 +28,34 @@ const entries = index.entries.filter(
         ) : (
           <table>
             <thead>
-              <tr><th>Model</th><th>Agent</th><th>Benchmark</th><th>Core</th><th>Coverage</th><th>Published</th></tr>
+              <tr><th>Model</th><th>Agent</th><th>Benchmark</th><th>Core</th><th>Coverage</th><th>Limitation</th><th>Published</th></tr>
             </thead>
             <tbody>
-              {entries.map((entry) => (
-                <tr>
-                  <td><a href={`/results/${entry.publication_id.slice(7)}`}><strong>{entry.agent.model}</strong></a></td>
-                  <td>{entry.agent.id} · {entry.agent.harness}</td>
-                  <td class="mono">{entry.benchmark_version}</td>
-                  <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
-                  <td class="mono">{entry.aggregate.coverage.core.completed}/{entry.aggregate.coverage.core.required}</td>
-                  <td>{new Date(entry.created_at).toISOString().slice(0, 10)}</td>
-                </tr>
-              ))}
+              {entries.map(({ entry, publication }) => {
+                const included = publication.runs.filter((run) => run.included);
+                const seeds = new Set(included.map((run) => run.seed)).size;
+                const verified = included.filter((run) => run.verification).length;
+                const limitation =
+                  entry.aggregate.coverage.core.completed <
+                    entry.aggregate.coverage.core.required
+                    ? "partial task coverage"
+                    : seeds < 3
+                      ? `${seeds} seed${seeds === 1 ? "" : "s"}`
+                      : verified < included.length
+                        ? "not fully operator verified"
+                        : "non-Official execution";
+                return (
+                  <tr>
+                    <td><a href={`/results/${entry.publication_id.slice(7)}`}><strong>{entry.agent.model}</strong></a></td>
+                    <td>{entry.agent.id} · {entry.agent.harness}</td>
+                    <td class="mono">{entry.benchmark_version}</td>
+                    <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
+                    <td class="mono">{entry.aggregate.coverage.core.completed}/{entry.aggregate.coverage.core.required}</td>
+                    <td>{limitation}</td>
+                    <td>{new Date(entry.created_at).toISOString().slice(0, 10)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         )}

@@ -9,6 +9,9 @@ const {
   description = "GameBench is a game-driven benchmark for coding agents.",
 } = Astro.props;
 const pageTitle = title === "GameBench" ? title : `${title} · GameBench`;
+const canonical = Astro.site
+  ? new URL(Astro.url.pathname, Astro.site)
+  : Astro.url;
 ---
 
 <!doctype html>
@@ -18,6 +21,7 @@ const pageTitle = title === "GameBench" ? title : `${title} · GameBench`;
     <meta name="viewport" content="width=device-width" />
     <meta name="description" content={description} />
     <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>{pageTitle}</title>
   </head>
@@ -106,7 +110,8 @@ const pageTitle = title === "GameBench" ? title : `${title} · GameBench`;
   .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
   .button {
     background: var(--ink); border: 1px solid var(--ink); border-radius: 7px; color: white;
-    display: inline-flex; font-size: 14px; font-weight: 700; padding: 12px 17px; text-decoration: none;
+    cursor: pointer; display: inline-flex; font: inherit; font-size: 14px; font-weight: 700;
+    padding: 12px 17px; text-decoration: none;
   }
   .button.secondary { background: transparent; color: var(--ink); }
   .button:hover { background: var(--green); border-color: var(--green); color: white; }
@@ -148,7 +153,40 @@ const pageTitle = title === "GameBench" ? title : `${title} · GameBench`;
   .prose li { color: var(--muted); line-height: 1.7; margin: 7px 0; }
   code { background: #edf0eb; border-radius: 4px; font-family: var(--mono); font-size: .9em; padding: 2px 5px; }
   .callout { background: #eff9f2; border-left: 4px solid var(--green); padding: 18px 22px; }
+  .status-banner { margin-bottom: 32px; }
   iframe.game { aspect-ratio: 16 / 9; background: #0b0f0d; border: 0; border-radius: 10px; width: 100%; }
+  .output-card { overflow: hidden; }
+  .output-card .cover {
+    aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 7px;
+    display: block; margin: -8px -8px 20px; object-fit: cover; width: calc(100% + 16px);
+  }
+  .cover.placeholder, .player-cover.placeholder {
+    align-items: center; background: #edf0eb; color: var(--muted); display: flex;
+    font-family: var(--mono); font-size: 12px; justify-content: center; padding: 24px; text-align: center;
+  }
+  .output-meta { align-items: center; display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+  .actions.compact { gap: 8px; margin-top: 18px; }
+  .actions.compact .button { padding: 8px 11px; }
+  .seed-list { border-top: 1px solid var(--line); margin-top: 18px; }
+  .seed-row {
+    align-items: center; border-bottom: 1px solid var(--line); display: grid;
+    font-size: 12px; gap: 8px; grid-template-columns: 1.4fr .5fr .5fr .6fr; padding: 10px 0;
+  }
+  .player-shell {
+    aspect-ratio: 16 / 9; background: #0b0f0d; border-radius: 10px; color: white;
+    display: grid; overflow: hidden; place-items: center; position: relative;
+  }
+  .player-cover { height: 100%; inset: 0; object-fit: cover; opacity: .35; position: absolute; width: 100%; }
+  .player-placeholder {
+    align-items: center; display: flex; flex-direction: column; max-width: 520px;
+    padding: 24px; position: relative; text-align: center; z-index: 1;
+  }
+  .player-placeholder strong { font-size: 22px; }
+  .player-placeholder span { color: #cbd2cc; line-height: 1.6; margin: 10px 0 20px; }
+  .player-shell iframe.game { height: 100%; position: absolute; width: 100%; }
+  pre { background: #edf0eb; border-radius: 8px; overflow-x: auto; padding: 18px; }
+  pre code { background: transparent; padding: 0; }
+  .identity code { overflow-wrap: anywhere; }
   footer {
     border-top: 1px solid var(--line); color: var(--muted); display: flex; font-size: 13px;
     justify-content: space-between; padding: 28px clamp(20px, 5vw, 72px); gap: 24px;

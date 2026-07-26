@@ -36,6 +36,16 @@ seed, uses image-area-relative visual tolerances, defines deadline snapshots,
 and changes Core aggregation to equal track weighting. The unchanged `.v1`
 task sources are retained under `benchmark/retired/0.2.0/`.
 
+## Historical tag audit
+
+`v0.2.0` was not tagged at the time of release. Repository history identifies
+commit `ef3b6dc55afcd557a10813bf0b6148a76c9dd19c` as the atomic 0.2.0
+change: its root and package versions are `0.2.0`, it introduces
+`benchmark/releases/0.2.0.json`, and the retained v1 task sources resolve that
+lock by exact content hash. This audit records the candidate commit but does
+not create a retroactive tag. Tag creation remains an explicit governance
+decision and must not move once issued.
+
 ## Task versions
 
 A task ID ends in `.vN`, and `N` must equal the major component of the task's

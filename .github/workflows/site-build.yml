@@ -1,0 +1,88 @@
+name: Static site build
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "apps/site/**"
+      - "packages/core/**"
+      - "benchmark/tasks/**"
+      - "benchmark/retired/**"
+      - "benchmark/releases/**"
+      - "results/**"
+      - "infra/**"
+      - ".github/workflows/site-build.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "apps/site/**"
+      - "packages/core/**"
+      - "benchmark/tasks/**"
+      - "benchmark/retired/**"
+      - "benchmark/releases/**"
+      - "results/**"
+      - "infra/**"
+      - ".github/workflows/site-build.yml"
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: site-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 10.33.0
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22.22.0
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm check:boundaries
+      - run: pnpm --filter @carrick/gamebench-core build
+      - run: pnpm --filter @carrick/gamebench-publisher build
+      - run: pnpm --filter @carrick/gamebench build
+      - run: pnpm cagb verify-publication
+      - name: Build static site
+        env:
+          GAMEBENCH_SITE_BUILD_ID: ${{ github.sha }}
+        run: pnpm --filter @carrick/gamebench-site build
+      - name: Write immutable build manifest
+        env:
+          SITE_BUILD_ID: ${{ github.sha }}
+          SITE_REF: ${{ github.ref }}
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const index = JSON.parse(fs.readFileSync("results/index.json"));
+            const releases = fs.readdirSync("benchmark/releases")
+              .filter((file) => file.endsWith(".json"))
+              .map((file) => JSON.parse(fs.readFileSync(`benchmark/releases/${file}`)).benchmark_version);
+            const manifest = {
+              schema_version: 1,
+              site_build_id: process.env.SITE_BUILD_ID,
+              source_ref: process.env.SITE_REF,
+              benchmark_versions: releases,
+              publication_ids: index.entries.map((entry) => entry.publication_id),
+            };
+            fs.writeFileSync(
+              "apps/site/dist/site-build.json",
+              `${JSON.stringify(manifest, null, 2)}\n`,
+            );
+          '
+      - uses: actions/upload-artifact@v6
+        with:
+          name: gamebench-site-${{ github.sha }}
+          path: apps/site/dist
+          if-no-files-found: error
+          retention-days: 30

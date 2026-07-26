@@ -31,6 +31,14 @@ export interface ValidationResult {
   task?: LoadedTask;
 }
 
+export interface ReleasedTask {
+  id: string;
+  version: string;
+  track: TaskManifest["track"];
+  hash: string;
+  source?: LoadedTask;
+}
+
 async function exists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
@@ -387,11 +395,14 @@ export async function validateTaskManifest(
   }
 }
 
-export async function listTasks(repositoryRoot?: string): Promise<LoadedTask[]> {
-  const root = repositoryRoot ?? (await findRepositoryRoot());
-  const manifests = await walkForTaskManifests(
-    path.join(root, "benchmark", "tasks"),
-  );
+async function loadTaskCatalog(
+  manifestsRoot: string,
+  repositoryRoot: string,
+): Promise<LoadedTask[]> {
+  if (!(await exists(manifestsRoot))) {
+    return [];
+  }
+  const manifests = await walkForTaskManifests(manifestsRoot);
   const tasks: LoadedTask[] = [];
   const failures: string[] = [];
 
@@ -399,7 +410,7 @@ export async function listTasks(repositoryRoot?: string): Promise<LoadedTask[]> 
     const result = await validateTaskManifest(manifestPath);
     if (!result.valid || !result.task) {
       failures.push(
-        `${path.relative(root, manifestPath)}:\n  ${result.errors.join("\n  ")}`,
+        `${path.relative(repositoryRoot, manifestPath)}:\n  ${result.errors.join("\n  ")}`,
       );
     } else {
       tasks.push(result.task);
@@ -412,6 +423,56 @@ export async function listTasks(repositoryRoot?: string): Promise<LoadedTask[]> 
   return tasks.sort((left, right) =>
     left.manifest.id.localeCompare(right.manifest.id),
   );
+}
+
+export async function listTasks(repositoryRoot?: string): Promise<LoadedTask[]> {
+  const root = repositoryRoot ?? (await findRepositoryRoot());
+  return loadTaskCatalog(path.join(root, "benchmark", "tasks"), root);
+}
+
+export async function listRetiredTasks(
+  repositoryRoot?: string,
+): Promise<LoadedTask[]> {
+  const root = repositoryRoot ?? (await findRepositoryRoot());
+  const tasks = await loadTaskCatalog(
+    path.join(root, "benchmark", "retired"),
+    root,
+  );
+  const unique = new Map<string, LoadedTask>();
+  for (const task of tasks) {
+    unique.set(`${task.manifest.id}\0${task.hash}`, task);
+  }
+  return [...unique.values()].sort((left, right) =>
+    left.manifest.id.localeCompare(right.manifest.id),
+  );
+}
+
+export async function resolveReleasedTasks(
+  release: {
+    tasks: Array<{
+      id: string;
+      version: string;
+      track: TaskManifest["track"];
+      hash: string;
+    }>;
+  },
+  repositoryRoot?: string,
+): Promise<ReleasedTask[]> {
+  const root = repositoryRoot ?? (await findRepositoryRoot());
+  const sources = [
+    ...await listTasks(root),
+    ...await listRetiredTasks(root),
+  ];
+  const byIdentity = new Map(
+    sources.map((task) => [
+      `${task.manifest.id}\0${task.hash}`,
+      task,
+    ]),
+  );
+  return release.tasks.map((task) => {
+    const source = byIdentity.get(`${task.id}\0${task.hash}`);
+    return source ? { ...task, source } : task;
+  });
 }
 
 export async function loadTask(

@@ -20,7 +20,11 @@ const releases = await releaseData();
           <div class="section-head">
             <div>
               <span class="pill">schema v{release.schema_version}</span>
-              <h2>v{release.benchmark_version}</h2>
+              <h2>
+                <a href={`/releases/${release.benchmark_version}`}>
+                  v{release.benchmark_version}
+                </a>
+              </h2>
             </div>
             <span class="mono muted">{release.task_count} tasks</span>
           </div>
@@ -30,7 +34,11 @@ const releases = await releaseData();
               <tbody>
                 {release.tasks.map((task) => (
                   <tr>
-                    <td><a href={`/games/${task.id}`}>{task.id}</a></td>
+                    <td>
+                      <a href={`/benchmarks/${release.benchmark_version}/games/${task.id}`}>
+                        {task.id}
+                      </a>
+                    </td>
                     <td>{task.track}</td>
                     <td class="mono">{task.version}</td>
                     <td class="mono">{task.hash.slice(0, 19)}…</td>

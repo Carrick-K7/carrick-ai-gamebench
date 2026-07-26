@@ -28,3 +28,12 @@ in `THIRD_PARTY.yml`. Do not submit material with unclear redistribution terms.
 
 Machine scoring contributions must remain deterministic and auditable. LLM/VLM
 judgments belong in experimental reports, not the trusted score.
+
+Result candidates follow the separate
+[result submission policy](docs/result-submissions.md). External runs enter
+Experimental review; Official results require a maintainer-controlled
+full-matrix rerun and verification.
+
+All contributors must follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report
+security or conduct concerns through the private channel in
+[SECURITY.md](SECURITY.md).

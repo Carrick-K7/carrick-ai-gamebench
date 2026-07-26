@@ -1,0 +1,72 @@
+---
+import { score, type PublicationRecord } from "../lib/data";
+
+interface Props {
+  version: string;
+  records: PublicationRecord[];
+}
+
+const { version, records } = Astro.props;
+const entries = records
+  .filter(
+    (record) =>
+      record.entry.benchmark_version === version &&
+      record.entry.tier === "official" &&
+      record.entry.status === "active",
+  )
+  .sort(
+    (left, right) =>
+      (right.entry.aggregate.leaderboards.core ?? 0) -
+        (left.entry.aggregate.leaderboards.core ?? 0) ||
+      left.entry.publication_id.localeCompare(right.entry.publication_id),
+  );
+---
+
+<div class="table-wrap">
+  {entries.length === 0 ? (
+    <div class="empty">
+      <strong>No Official results for v{version}.</strong>
+      <span class="muted">
+        Complete three-seed, operator-reproduced series will appear here.
+      </span>
+    </div>
+  ) : (
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Model / configuration</th>
+          <th>Agent / harness</th>
+          <th>Core</th>
+          <th>Build</th>
+          <th>Reproduce</th>
+          <th>Coverage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {entries.map(({ entry }, index) => (
+          <tr>
+            <td class="mono">{index + 1}</td>
+            <td>
+              <a href={`/results/${entry.publication_id.slice(7)}`}>
+                <strong>{entry.agent.model}</strong>
+              </a>
+              <div class="muted mono">{entry.agent.version}</div>
+            </td>
+            <td>
+              {entry.agent.id}
+              <div class="muted">{entry.agent.harness}</div>
+            </td>
+            <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
+            <td>{score(entry.aggregate.leaderboards.build)}</td>
+            <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+            <td class="mono">
+              {entry.aggregate.coverage.core.completed}/
+              {entry.aggregate.coverage.core.required}
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )}
+</div>

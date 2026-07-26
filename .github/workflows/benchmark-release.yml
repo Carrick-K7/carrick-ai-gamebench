@@ -6,25 +6,77 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   verify-release:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: 10.33.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: 22.22.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Match tag and benchmark version
-        run: test "v$(node -p "require('./package.json').version")" = "$GITHUB_REF_NAME"
+      - name: Match tag, package, and release lock
+        run: |
+          node --input-type=module -e '
+            import fs from "node:fs";
+            const version = JSON.parse(fs.readFileSync("package.json")).version;
+            if (`v${version}` !== process.env.GITHUB_REF_NAME) {
+              throw new Error(`tag ${process.env.GITHUB_REF_NAME} does not match package ${version}`);
+            }
+            const lock = JSON.parse(fs.readFileSync(`benchmark/releases/${version}.json`));
+            if (lock.benchmark_version !== version) {
+              throw new Error(`release lock ${lock.benchmark_version} does not match ${version}`);
+            }
+          '
       - run: pnpm check
       - run: docker build -f docker/evaluator.Dockerfile -t "carrick-ai-gamebench:${GITHUB_REF_NAME#v}" .
+      - name: Create immutable release evidence
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          install -d release-artifacts
+          cp "benchmark/releases/${version}.json" \
+            "release-artifacts/gamebench-${version}-release-lock.json"
+          docker image inspect "carrick-ai-gamebench:${version}" \
+            --format '{{.Id}}' > release-artifacts/evaluator-image-id.txt
+          {
+            echo "# GameBench ${GITHUB_REF_NAME}"
+            echo
+            echo "- Git commit: \`${GITHUB_SHA}\`"
+            echo "- Benchmark release lock: \`gamebench-${version}-release-lock.json\`"
+            echo "- Evaluator image ID: \`$(cat release-artifacts/evaluator-image-id.txt)\`"
+            echo
+            echo "The evaluator image is built and identified by this workflow but is not"
+            echo "published to a container registry until a public runtime is selected."
+          } > release-artifacts/release-summary.md
+          (
+            cd release-artifacts
+            sha256sum "gamebench-${version}-release-lock.json" \
+              evaluator-image-id.txt > SHA256SUMS
+          )
+      - uses: actions/upload-artifact@v6
+        with:
+          name: "gamebench-${{ github.ref_name }}-release-evidence"
+          path: release-artifacts
+          if-no-files-found: error
+      - name: Create or update GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" release-artifacts/* --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" \
+              --verify-tag \
+              --title "GameBench $GITHUB_REF_NAME" \
+              --notes-file release-artifacts/release-summary.md \
+              release-artifacts/*
+          fi

@@ -1,0 +1,29 @@
+---
+import GameDetailView from "../../../../components/GameDetailView.astro";
+import Layout from "../../../../layouts/Layout.astro";
+import { releaseCatalogData, resultData } from "../../../../lib/data";
+
+export async function getStaticPaths() {
+  const catalogs = await releaseCatalogData();
+  return catalogs.flatMap((catalog) =>
+    catalog.tasks.map((task) => ({
+      params: {
+        version: catalog.release.benchmark_version,
+        id: task.id,
+      },
+      props: { catalog, taskId: task.id },
+    })),
+  );
+}
+
+const { catalog, taskId } = Astro.props;
+const { records } = await resultData();
+const releasedTask = catalog.tasks.find((task: { id: string }) => task.id === taskId);
+const title = releasedTask?.source?.manifest.title.en ?? taskId;
+---
+
+<Layout title={`${title} · v${catalog.release.benchmark_version}`}>
+  <div class="container">
+    <GameDetailView catalog={catalog} taskId={taskId} records={records} />
+  </div>
+</Layout>

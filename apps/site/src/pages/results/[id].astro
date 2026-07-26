@@ -1,80 +1,177 @@
 ---
 import Layout from "../../layouts/Layout.astro";
-import { resultData, score } from "../../lib/data";
+import {
+  defaultOfficialSeed,
+  score,
+  type PublicationRecord,
+} from "../../lib/data";
 
 export async function getStaticPaths() {
-  const { publications } = await resultData();
-  return publications.map((publication) => ({
-    params: { id: publication.publication_id.slice("sha256:".length) },
-    props: { publication },
+  const { resultData } = await import("../../lib/data");
+  const { records } = await resultData();
+  return records.map((record) => ({
+    params: { id: record.publication.publication_id.slice("sha256:".length) },
+    props: { record },
   }));
 }
 
-const { publication } = Astro.props;
-const included = publication.runs.filter((run: { included: boolean }) => run.included);
+const { record } = Astro.props as { record: PublicationRecord };
+const { publication, entry } = record;
+const included = publication.runs.filter((run) => run.included);
+const verified = included.filter((run) => run.verification).length;
+const failedTests = included.flatMap((run) =>
+  (run.score?.tests ?? [])
+    .filter((test) => !test.passed)
+    .map((test) => ({ run, test })),
+);
+const categories = new Map<string, { earned: number; available: number }>();
+for (const run of included) {
+  for (const [name, category] of Object.entries(run.score?.categories ?? {})) {
+    const current = categories.get(name) ?? { earned: 0, available: 0 };
+    categories.set(name, {
+      earned: current.earned + category.earned,
+      available: current.available + category.available,
+    });
+  }
+}
+const imageDigests = [...new Set(
+  included.flatMap((run) =>
+    run.verification ? [run.verification.evaluator_image_digest] : [],
+  ),
+)];
+const supersededBy = entry.superseded_by?.slice("sha256:".length);
 ---
 
 <Layout title={`${publication.configuration.agent.model} result`}>
   <div class="container">
-    <span class={`pill ${publication.tier}`}>{publication.tier}</span>
+    {entry.status !== "active" && (
+      <div class="callout status-banner">
+        This publication is <strong>{entry.status}</strong>.
+        {supersededBy && (
+          <> Use the <a href={`/results/${supersededBy}`}>replacement publication</a> for discovery.</>
+        )}
+        The immutable historical record remains available.
+      </div>
+    )}
+
+    <div class="output-meta">
+      <span class={`pill ${publication.tier}`}>{publication.tier}</span>
+      <span class="pill">{entry.status}</span>
+      <span class="pill">
+        {verified}/{included.length} runs verified
+      </span>
+    </div>
     <h1>{publication.configuration.agent.model}</h1>
     <p class="lead">
-      {publication.configuration.agent.id} · {publication.configuration.agent.harness}
-      · Benchmark {publication.benchmark.version}
+      {publication.configuration.agent.id} ·
+      {" "}{publication.configuration.agent.harness} · Benchmark
+      {" "}{publication.benchmark.version}
     </p>
 
     <div class="grid cols-4 section">
-      <div class="card metric"><strong>{score(publication.aggregate.leaderboards.core)}</strong><span>Core score</span></div>
-      <div class="card metric"><strong>{score(publication.aggregate.leaderboards.build)}</strong><span>Build score</span></div>
-      <div class="card metric"><strong>{score(publication.aggregate.leaderboards.reproduce)}</strong><span>Reproduce score</span></div>
-      <div class="card metric"><strong>{included.length}</strong><span>included runs</span></div>
+      <div class="card metric">
+        <strong>{score(publication.aggregate.leaderboards.core)}</strong>
+        <span>Core score</span>
+      </div>
+      <div class="card metric">
+        <strong>{score(publication.aggregate.leaderboards.build)}</strong>
+        <span>Build score</span>
+      </div>
+      <div class="card metric">
+        <strong>{score(publication.aggregate.leaderboards.reproduce)}</strong>
+        <span>Reproduce score</span>
+      </div>
+      <div class="card metric">
+        <strong>{publication.aggregate.coverage.core.completed}/{publication.aggregate.coverage.core.required}</strong>
+        <span>task coverage</span>
+      </div>
     </div>
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Task breakdown</span><h2>Every score is inspectable.</h2></div>
+        <div>
+          <span class="eyebrow">Generated-game gallery</span>
+          <h2>Model-first, with all seeds.</h2>
+        </div>
+        <p>
+          Seed {defaultOfficialSeed} is the Official presentation default.
+          Every included physical run remains directly accessible.
+        </p>
       </div>
-      <div class="table-wrap">
-        <table>
-          <thead><tr><th>Task</th><th>Track</th><th>Attempts</th><th>Mean</th><th>Deviation</th><th>Play / source</th></tr></thead>
-          <tbody>
-            {publication.aggregate.tasks.map((task: { task_id: string; track: string; attempts: number; mean: number; standard_deviation: number }) => {
-              const run = publication.runs.find((candidate: { task_id: string; included: boolean }) => candidate.task_id === task.task_id && candidate.included);
-              const playable = run?.artifacts.find((artifact: { role: string }) => artifact.role === "playable");
-              const source = run?.artifacts.find((artifact: { role: string }) => artifact.role === "clean-source");
-              return (
-                <tr>
-                  <td><a href={`/games/${task.task_id}`}>{task.task_id}</a></td>
-                  <td>{task.track}</td>
-                  <td>{task.attempts}</td>
-                  <td class="score">{task.mean.toFixed(1)}</td>
-                  <td>{task.standard_deviation.toFixed(1)}</td>
-                  <td>{playable && <a href={playable.url}>Play</a>} {source && <a href={source.url}>Source</a>}</td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+      <div class="grid cols-3">
+        {publication.aggregate.tasks.map((task) => {
+          const runs = included
+            .filter((run) => run.task_id === task.task_id)
+            .sort(
+              (left, right) =>
+                Number(left.seed !== defaultOfficialSeed) -
+                  Number(right.seed !== defaultOfficialSeed) ||
+                left.seed - right.seed,
+            );
+          return (
+            <article class="card output-card">
+              <span class="pill">{task.track}</span>
+              <h3>
+                <a href={`/benchmarks/${publication.benchmark.version}/games/${task.task_id}`}>
+                  {task.task_id}
+                </a>
+              </h3>
+              <p>
+                Mean {task.mean.toFixed(1)} · deviation
+                {" "}{task.standard_deviation.toFixed(1)}
+              </p>
+              <div class="seed-list">
+                {runs.map((run) => {
+                  const playable = run.artifacts.find(
+                    (artifact) => artifact.role === "playable",
+                  );
+                  const source = run.artifacts.find(
+                    (artifact) => artifact.role === "clean-source",
+                  );
+                  return (
+                    <div class="seed-row">
+                      <span class="mono">
+                        {run.seed}
+                        {run.seed === defaultOfficialSeed ? " · default" : ""}
+                      </span>
+                      <span>{run.score ? run.score.percent.toFixed(1) : "—"}</span>
+                      {playable ? (
+                        <a href={`/showcase/${playable.artifact_id.slice(7)}`}>Play</a>
+                      ) : (
+                        <span class="muted">No playable</span>
+                      )}
+                      {source && <a href={source.url}>Source</a>}
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
       </div>
     </section>
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Run evidence</span><h2>Seeds, failures, and verification.</h2></div>
+        <div><span class="eyebrow">Task breakdown</span><h2>Comparable aggregates.</h2></div>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Run</th><th>Task</th><th>Seed</th><th>Score</th><th>Exit</th><th>Included</th><th>Verification</th></tr></thead>
+          <thead>
+            <tr><th>Task</th><th>Track</th><th>Attempts</th><th>Mean</th><th>Deviation</th></tr>
+          </thead>
           <tbody>
-            {publication.runs.map((run: any) => (
+            {publication.aggregate.tasks.map((task) => (
               <tr>
-                <td class="mono">{run.run_id.slice(0, 10)}…</td>
-                <td>{run.task_id}</td>
-                <td class="mono">{run.seed}</td>
-                <td class="score">{run.score ? run.score.percent.toFixed(1) : "—"}</td>
-                <td>{run.exit_reason}</td>
-                <td>{run.included ? "yes" : "no"}</td>
-                <td>{run.verification ? "operator reproduced" : "unverified"}</td>
+                <td>
+                  <a href={`/benchmarks/${publication.benchmark.version}/games/${task.task_id}`}>
+                    {task.task_id}
+                  </a>
+                </td>
+                <td>{task.track}</td>
+                <td>{task.attempts}</td>
+                <td class="score">{task.mean.toFixed(1)}</td>
+                <td>{task.standard_deviation.toFixed(1)}</td>
               </tr>
             ))}
           </tbody>
@@ -82,12 +179,157 @@ const included = publication.runs.filter((run: { included: boolean }) => run.inc
       </div>
     </section>
 
-    <section class="section prose">
-      <h2>Identity</h2>
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Category evidence</span><h2>Points stay decomposable.</h2></div>
+        <p>Category points are summed across included physical runs; they are not a separate leaderboard.</p>
+      </div>
+      <div class="grid cols-3">
+        {[...categories.entries()].map(([name, category]) => (
+          <div class="card metric">
+            <strong>{category.earned.toFixed(1)}/{category.available.toFixed(1)}</strong>
+            <span>{name}</span>
+          </div>
+        ))}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Run evidence</span><h2>Seeds, status, usage, and verification.</h2></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Run</th><th>Task</th><th>Seed</th><th>Score</th><th>Exit</th>
+              <th>Time</th><th>Tokens / cost</th><th>Verification</th>
+            </tr>
+          </thead>
+          <tbody>
+            {publication.runs.map((run) => (
+              <tr>
+                <td class="mono" title={run.run_id}>{run.run_id.slice(0, 10)}…</td>
+                <td>{run.task_id}{!run.included && <div class="muted">excluded</div>}</td>
+                <td class="mono">{run.seed}</td>
+                <td class="score">{run.score ? run.score.percent.toFixed(1) : "—"}</td>
+                <td>{run.exit_reason}</td>
+                <td>{run.wall_time_ms === undefined ? "Not reported" : `${(run.wall_time_ms / 1000).toFixed(1)}s`}</td>
+                <td>
+                  {run.usage ? (
+                    <>
+                      {run.usage.input_tokens ?? "?"} in /
+                      {" "}{run.usage.output_tokens ?? "?"} out
+                      <div class="muted">
+                        {run.usage.cost_usd === undefined
+                          ? "cost not reported"
+                          : `$${run.usage.cost_usd.toFixed(4)}`}
+                      </div>
+                    </>
+                  ) : "Not reported"}
+                </td>
+                <td>
+                  {run.verification
+                    ? `${run.verification.status} · ${run.verification.network_attestation}`
+                    : "Unverified"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Failed atomic tests</span><h2>Failure is public evidence.</h2></div>
+        <p>{failedTests.length} failed test outcome{failedTests.length === 1 ? "" : "s"}.</p>
+      </div>
+      {failedTests.length === 0 ? (
+        <div class="callout">No failed atomic test was recorded in included runs.</div>
+      ) : (
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Task / seed</th><th>Test</th><th>Category</th><th>Points</th><th>Message</th><th>Evidence</th></tr>
+            </thead>
+            <tbody>
+              {failedTests.map(({ run, test }) => (
+                <tr>
+                  <td>{run.task_id}<div class="mono muted">{run.seed}</div></td>
+                  <td class="mono">{test.id}</td>
+                  <td>{test.category}</td>
+                  <td>{test.points}</td>
+                  <td>{test.message ?? "No message"}</td>
+                  <td>
+                    {test.artifacts.length === 0
+                      ? "None"
+                      : test.artifacts.map((artifact) => <div class="mono">{artifact}</div>)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Human review</span><h2>Separate from machine score.</h2></div>
+      </div>
+      {publication.review_summaries.length === 0 ? (
+        <div class="callout">No public human-review summary is attached.</div>
+      ) : (
+        <div class="grid cols-3">
+          {publication.review_summaries.map((review) => (
+            <article class="card">
+              <h3>{review.task_id}</h3>
+              <p>
+                {review.sample_count} samples · {review.outcomes.wins} wins ·
+                {" "}{review.outcomes.losses} losses · {review.outcomes.ties} ties ·
+                {" "}{review.outcomes.both_bad} both bad
+              </p>
+              <p class="mono">{Object.entries(review.tags).map(([tag, count]) => `${tag}:${count}`).join(" · ")}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Public artifacts</span><h2>Source, playables, screenshots, and licenses.</h2></div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Run</th><th>Role</th><th>File</th><th>Bytes</th><th>Content ID</th></tr></thead>
+          <tbody>
+            {publication.runs.flatMap((run) =>
+              run.artifacts.map((artifact) => (
+                <tr>
+                  <td class="mono">{run.run_id.slice(0, 10)}…</td>
+                  <td>{artifact.role}</td>
+                  <td><a href={artifact.url}>{artifact.file_name}</a></td>
+                  <td>{artifact.size_bytes}</td>
+                  <td class="mono">{artifact.artifact_id.slice(0, 23)}…</td>
+                </tr>
+              )),
+            )}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section prose identity">
+      <h2>Immutable identity</h2>
       <p><strong>Publication</strong><br /><code>{publication.publication_id}</code></p>
       <p><strong>Configuration</strong><br /><code>{publication.configuration.configuration_id}</code></p>
+      <p><strong>Model parameters</strong><br /><code>{JSON.stringify(publication.configuration.agent.parameters)}</code></p>
+      <p><strong>Series</strong><br /><code>{publication.series_id}</code></p>
       <p><strong>Release lock</strong><br /><code>{publication.benchmark.release_hash}</code></p>
       <p><strong>Source commit</strong><br /><code>{publication.benchmark.git_commit}</code></p>
+      <p><strong>Evaluator image</strong><br /><code>{imageDigests.length > 0 ? imageDigests.join(", ") : "Not verified"}</code></p>
     </section>
   </div>
 </Layout>

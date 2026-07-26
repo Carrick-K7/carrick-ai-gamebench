@@ -33,6 +33,11 @@ browser traces are audit-private. Clean public source is reconstructed from an
 allowlist, scanned for credentials, rebuilt without model credentials, and
 archived deterministically.
 
+The clean rebuild also creates one fixed-state `showcase.png` at the task
+viewport. Publisher stores it with the stable name
+`<task-id>-showcase.png`; other test and failure screenshots remain evidence
+and are never selected as the gallery cover.
+
 ## Workflow
 
 ```bash

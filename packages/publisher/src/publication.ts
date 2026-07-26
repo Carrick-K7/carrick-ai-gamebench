@@ -15,6 +15,7 @@ import {
   SeriesManifestSchema,
   VerificationRecordSchema,
   aggregateAttempts,
+  compareSemanticVersions,
   listTasks,
   scoreResultIdentity,
   sha256Canonical,
@@ -204,6 +205,18 @@ async function publicArtifacts(
       kind: "directory",
     }),
   ];
+  const showcase = path.join(outputRoot, "showcase.png");
+  if (!(await exists(showcase))) {
+    throw new Error(`run ${run.run_id} has no deterministic showcase`);
+  }
+  artifacts.push(
+    await store.put(showcase, {
+      role: "screenshot",
+      fileName:
+        `${run.task_id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-showcase.png`,
+      mediaType: "image/png",
+    }),
+  );
   const screenshots = await findPngFiles(path.join(runDir, "playwright"));
   for (const [index, screenshot] of screenshots.entries()) {
     artifacts.push(
@@ -494,7 +507,7 @@ export async function publishSeries(
   index.generated_at = new Date().toISOString();
   index.benchmark_versions = [
     ...new Set(index.entries.map((entry) => entry.benchmark_version)),
-  ].sort().reverse();
+  ].sort((left, right) => compareSemanticVersions(right, left));
 
   await writeJson(publicationPath, publication);
   await writeJson(indexPath, ResultIndexSchema.parse(index));
@@ -510,6 +523,9 @@ export async function verifyResultsRepository(
     await readJson(path.join(resultsRoot, "index.json")),
   );
   const seen = new Set<string>();
+  const entriesById = new Map(
+    index.entries.map((entry) => [entry.publication_id, entry]),
+  );
   let artifactCount = 0;
   for (const entry of index.entries) {
     if (seen.has(entry.publication_id)) {
@@ -551,6 +567,30 @@ export async function verifyResultsRepository(
         throw new Error(`publication release hash mismatch: ${entry.publication_id}`);
       }
       const lock = ReleaseLockSchema.parse(await readJson(lockPath));
+      const releaseTasks = new Map(
+        lock.tasks.map((task) => [task.id, task]),
+      );
+      for (const run of publication.runs) {
+        const releaseTask = releaseTasks.get(run.task_id);
+        if (
+          !releaseTask ||
+          releaseTask.version !== run.task_version ||
+          releaseTask.hash !== run.task_hash
+        ) {
+          throw new Error(
+            `publication run is outside release ${lock.benchmark_version}: ${run.run_id}`,
+          );
+        }
+        if (
+          releaseTask.track === "reproduce" &&
+          run.score &&
+          !run.artifacts.some((artifact) => artifact.role === "license")
+        ) {
+          throw new Error(
+            `reproduce run ${run.run_id} has no published license artifact`,
+          );
+        }
+      }
       if (
         lock.schema_version === 2 &&
         publication.aggregate.schema_version !== lock.scoring.aggregate
@@ -611,6 +651,43 @@ export async function verifyResultsRepository(
         }
       }
     }
+  }
+  for (const entry of index.entries) {
+    if (entry.status === "superseded") {
+      if (
+        !entry.superseded_by ||
+        !entriesById.has(entry.superseded_by)
+      ) {
+        throw new Error(
+          `superseded result has no indexed replacement: ${entry.publication_id}`,
+        );
+      }
+    } else if (entry.superseded_by) {
+      throw new Error(
+        `only superseded results may name superseded_by: ${entry.publication_id}`,
+      );
+    }
+  }
+  const expectedVersions = [
+    ...new Set(index.entries.map((entry) => entry.benchmark_version)),
+  ].sort((left, right) => compareSemanticVersions(right, left));
+  if (
+    JSON.stringify(expectedVersions) !==
+    JSON.stringify(index.benchmark_versions)
+  ) {
+    throw new Error("result index benchmark_versions is stale or unsorted");
+  }
+  const publicationsRoot = path.join(resultsRoot, "publications");
+  const publicationFiles = (await exists(publicationsRoot))
+    ? (await readdir(publicationsRoot))
+        .filter((file) => file.endsWith(".json"))
+        .sort()
+    : [];
+  const expectedFiles = [...seen]
+    .map((publicationId) => `${publicationId.slice("sha256:".length)}.json`)
+    .sort();
+  if (JSON.stringify(publicationFiles) !== JSON.stringify(expectedFiles)) {
+    throw new Error("publication directory and result index are inconsistent");
   }
   return { publications: index.entries.length, artifacts: artifactCount };
 }

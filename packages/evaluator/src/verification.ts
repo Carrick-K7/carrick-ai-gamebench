@@ -62,7 +62,8 @@ export async function prepareReproducibleRun(
     !options.force &&
     await exists(reproductionPath) &&
     await exists(path.join(options.runDir, "public", "clean-source.tar.zst")) &&
-    await exists(path.join(options.runDir, "public", "playable", "index.html"))
+    await exists(path.join(options.runDir, "public", "playable", "index.html")) &&
+    await exists(path.join(options.runDir, "public", "showcase.png"))
   ) {
     const evidence = await verifyEvidenceManifest(options.runDir);
     if (!evidence.valid) {
@@ -97,6 +98,7 @@ export async function prepareReproducibleRun(
       submissionDir: cleanSource,
       runDir: evaluationRoot,
       seed: run.seed,
+      showcasePath: path.join(options.runDir, "public", "showcase.png"),
     });
     const originalIdentity = sha256Canonical(scoreResultIdentity(originalScore));
     const recomputedIdentity = sha256Canonical(
