@@ -1,0 +1,18 @@
+schema_version: 1
+project: Radius Raid
+upstream: https://github.com/jackrugile/radius-raid
+commit: 016cb866b6078672e37a1691bd9fe555364dbf58
+license: MIT
+copyright:
+  - "Copyright (c) 2014 Jack Rugile"
+distributed_material:
+  - path: references/radius-menu.png
+    source: images/menu-screenshot.png
+    sha256: 067b2510c9ad281169dd087b903558222f4da5d1fb73a141e523eeb9f15ceaa3
+  - path: references/radius-combat.png
+    source: images/gameplay-screenshot.png
+    sha256: 6fcf5894b14ff325f9cf1f7b542f7cd56e087214720e454467e2d81a6666e0d8
+notes:
+  - "No upstream sound or executable JavaScript is distributed in the active task."
+  - "The scoped task does not require audio."
+  - "The benchmark-specific reference source is released after task retirement."

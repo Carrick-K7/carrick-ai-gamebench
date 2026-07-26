@@ -1,0 +1,78 @@
+{
+  "schema_version": 2,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "0.3.0",
+  "protocols": {
+    "task_manifest": 1,
+    "bridge": 1,
+    "run_manifest": 2,
+    "publication_manifest": 1
+  },
+  "scoring": {
+    "score_result": 1,
+    "aggregate": 2
+  },
+  "official": {
+    "attempts_per_task": 3,
+    "seeds": [
+      104729,
+      130363,
+      155921
+    ]
+  },
+  "tracks": [
+    "build",
+    "reproduce"
+  ],
+  "task_count": 8,
+  "tasks": [
+    {
+      "id": "build.2048.v2",
+      "version": "2.0.0",
+      "track": "build",
+      "hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486"
+    },
+    {
+      "id": "build.minesweeper.v2",
+      "version": "2.0.0",
+      "track": "build",
+      "hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445"
+    },
+    {
+      "id": "build.parking-2d.v2",
+      "version": "2.0.0",
+      "track": "build",
+      "hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c"
+    },
+    {
+      "id": "build.side-scroller-shooter.v2",
+      "version": "2.0.0",
+      "track": "build",
+      "hash": "sha256:7c5291da91f68e321063d926c5a874228e0ce813787fda04f20559c16dd72d44"
+    },
+    {
+      "id": "build.tetris.v2",
+      "version": "2.0.0",
+      "track": "build",
+      "hash": "sha256:c972d0f4b4f10478e51bc23700af9234ca86283ef6deb0462089f6b378e5434d"
+    },
+    {
+      "id": "build.tower-defense.v2",
+      "version": "2.0.0",
+      "track": "build",
+      "hash": "sha256:e7106a56689499d53fb544b8eb509230367a2ad779b119b3f2f1d3bcaaa09d45"
+    },
+    {
+      "id": "reproduce.ohsteem.v2",
+      "version": "2.0.0",
+      "track": "reproduce",
+      "hash": "sha256:6e98888bb72f7372652962b31929e2beaa617fb63ff5787b531a3c0ddaa3673b"
+    },
+    {
+      "id": "reproduce.radius-raid.v2",
+      "version": "2.0.0",
+      "track": "reproduce",
+      "hash": "sha256:3fdc85d6f5407bf3698dca03b04fa606e488d236d91e260280ebc9225a74284a"
+    }
+  ]
+}

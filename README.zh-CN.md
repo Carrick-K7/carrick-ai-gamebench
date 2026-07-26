@@ -26,7 +26,7 @@ pnpm cagb validate-task --all
 
 ```bash
 pnpm cagb run \
-  --task build.2048.v1 \
+  --task build.2048.v2 \
   --agent-command './my-agent --prompt-file "$CAGB_PROMPT_PATH"' \
   --agent-id my-agent
 ```
@@ -42,7 +42,7 @@ pnpm cagb run \
 
 ```bash
 pnpm cagb publish \
-  --series runs/0.2.0/<series-id> \
+  --series runs/0.3.0/<series-id> \
   --tier experimental \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com
@@ -67,6 +67,10 @@ pnpm docker:build
 `benchmark/tasks/<build|reproduce>/<game-slug>/vN/` 下的独立任务包，
 自带中英文提示、状态 Schema、测试用例，以及必要的合法参考材料。新增游戏或
 版本通常不需要修改评测器。
+
+Runner 会把完整公开用例与计分清单放入每个全新工作区，并分别通过
+`CAGB_PUBLIC_TESTS_PATH`、`CAGB_TASK_MANIFEST_PATH` 暴露路径；当前运行
+seed 通过 `CAGB_SEED` 提供。
 
 每次 Benchmark 发布都会在
 `benchmark/releases/<benchmark-version>.json` 中冻结任务 ID、语义化版本和

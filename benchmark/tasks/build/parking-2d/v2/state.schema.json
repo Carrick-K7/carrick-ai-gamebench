@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "status",
+    "tick",
+    "score",
+    "seed",
+    "state",
+    "events"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "menu",
+        "running",
+        "paused",
+        "won",
+        "lost"
+      ]
+    },
+    "tick": {
+      "type": "number",
+      "minimum": 0
+    },
+    "score": {
+      "type": "number"
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "car",
+        "collisions",
+        "level",
+        "levelSignature",
+        "parked"
+      ],
+      "properties": {
+        "car": {
+          "type": "object",
+          "required": [
+            "x",
+            "y",
+            "angle",
+            "speed"
+          ],
+          "properties": {
+            "x": {
+              "type": "number"
+            },
+            "y": {
+              "type": "number"
+            },
+            "angle": {
+              "type": "number"
+            },
+            "speed": {
+              "type": "number"
+            }
+          }
+        },
+        "collisions": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "levelSignature": {
+          "type": "string"
+        },
+        "parked": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "array"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

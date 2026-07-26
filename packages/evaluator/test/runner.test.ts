@@ -14,9 +14,9 @@ import {
 } from "@carrick/gamebench-core";
 import { prepareSubmissionWorkspace } from "../src/runner.js";
 
-test("submission workspace includes the public state schema", async () => {
+test("submission workspace includes the public task contract", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  const task = await loadTask("build.2048.v1", repositoryRoot);
+  const task = await loadTask("build.2048.v2", repositoryRoot);
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), "cagb-runner-"));
   const workspace = path.join(temporaryRoot, "workspace");
   try {
@@ -31,6 +31,19 @@ test("submission workspace includes the public state schema", async () => {
       JSON.parse(
         await readFile(path.join(task.root, "state.schema.json"), "utf8"),
       ),
+    );
+    assert.deepEqual(
+      JSON.parse(
+        await readFile(
+          path.join(workspace, "gamebench", "public-tests.json"),
+          "utf8",
+        ),
+      ),
+      task.suite,
+    );
+    assert.match(
+      await readFile(path.join(workspace, "gamebench", "task.yml"), "utf8"),
+      /id: build\.2048\.v2/,
     );
     await assert.rejects(access(path.join(workspace, "node_modules")));
     await assert.rejects(access(path.join(workspace, "dist")));

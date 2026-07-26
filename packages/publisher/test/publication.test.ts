@@ -180,6 +180,52 @@ test("official eligibility rejects an incomplete fixed-seed matrix", () => {
   );
 });
 
+test("official eligibility rejects agent and evaluation errors", () => {
+  const payload = publicationPayload();
+  const publication = PublicationManifestSchema.parse({
+    ...payload,
+    runs: payload.runs.map((run) => ({
+      ...run,
+      exit_reason: "agent-error" as const,
+    })),
+    publication_id: computePublicationId({
+      ...payload,
+      runs: payload.runs.map((run) => ({
+        ...run,
+        exit_reason: "agent-error" as const,
+      })),
+    }),
+  });
+  const lock = ReleaseLockV2Schema.parse({
+    schema_version: 2,
+    benchmark: "carrick-ai-gamebench",
+    benchmark_version: "0.2.0",
+    protocols: {
+      task_manifest: 1,
+      bridge: 1,
+      run_manifest: 2,
+      publication_manifest: 1,
+    },
+    scoring: { score_result: 1, aggregate: 1 },
+    official: {
+      attempts_per_task: 3,
+      seeds: [104729, 130363, 155921],
+    },
+    tracks: ["build", "reproduce"],
+    task_count: 1,
+    tasks: [{
+      id: "build.sample.v1",
+      version: "1.0.0",
+      track: "build",
+      hash: hash("a"),
+    }],
+  });
+  assert.throws(
+    () => assertOfficialEligibility(publication, lock, false),
+    /invalid exit reason agent-error/,
+  );
+});
+
 test("publication schema rejects duplicate run IDs", () => {
   const payload = publicationPayload();
   assert.equal(

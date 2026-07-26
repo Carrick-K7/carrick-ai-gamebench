@@ -1,0 +1,274 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "build",
+      "kind": "build",
+      "description": "The submission installs, builds, serves, and exposes the bridge."
+    },
+    {
+      "id": "merge-once",
+      "kind": "browser",
+      "description": "A tile cannot merge twice in one move.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "merge-2220"
+        },
+        {
+          "op": "act",
+          "action": "move",
+          "payload": {
+            "direction": "left"
+          }
+        },
+        {
+          "op": "expect",
+          "path": "state.board.0.0",
+          "equals": 4
+        },
+        {
+          "op": "expect",
+          "path": "state.board.0.1",
+          "equals": 2
+        },
+        {
+          "op": "expect",
+          "path": "score",
+          "equals": 4
+        }
+      ]
+    },
+    {
+      "id": "valid-spawn",
+      "kind": "browser",
+      "description": "Only effective moves spawn a tile.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "no-op-left"
+        },
+        {
+          "op": "act",
+          "action": "move",
+          "payload": {
+            "direction": "left"
+          }
+        },
+        {
+          "op": "expect",
+          "path": "state.spawnCount",
+          "equals": 0
+        },
+        {
+          "op": "act",
+          "action": "move",
+          "payload": {
+            "direction": "right"
+          }
+        },
+        {
+          "op": "expect",
+          "path": "state.spawnCount",
+          "equals": 1
+        }
+      ]
+    },
+    {
+      "id": "terminal-state",
+      "kind": "browser",
+      "description": "Combining two 1024 tiles wins.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "near-win"
+        },
+        {
+          "op": "act",
+          "action": "move",
+          "payload": {
+            "direction": "left"
+          }
+        },
+        {
+          "op": "expect",
+          "path": "status",
+          "equals": "won"
+        },
+        {
+          "op": "expect",
+          "path": "state.board.0.0",
+          "equals": 2048
+        }
+      ]
+    },
+    {
+      "id": "directional-move",
+      "kind": "browser",
+      "description": "Directional compression works.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "deterministic"
+        },
+        {
+          "op": "act",
+          "action": "move",
+          "payload": {
+            "direction": "down"
+          }
+        },
+        {
+          "op": "expect",
+          "path": "state.lastMove",
+          "equals": "down"
+        },
+        {
+          "op": "expect",
+          "path": "state.spawnCount",
+          "equals": 1
+        }
+      ]
+    },
+    {
+      "id": "clean-reset",
+      "kind": "browser",
+      "description": "Restart clears score and transient state.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "merge-2220"
+        },
+        {
+          "op": "act",
+          "action": "move",
+          "payload": {
+            "direction": "left"
+          }
+        },
+        {
+          "op": "act",
+          "action": "restart"
+        },
+        {
+          "op": "expect",
+          "path": "score",
+          "equals": 0
+        },
+        {
+          "op": "expect",
+          "path": "state.spawnCount",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "deterministic-seed",
+      "kind": "browser",
+      "description": "The published deterministic fixture is stable.",
+      "steps": [
+        {
+          "op": "reset",
+          "seed": 104729,
+          "scenario": "deterministic"
+        },
+        {
+          "op": "expect",
+          "path": "state.board.0.0",
+          "equals": 2
+        },
+        {
+          "op": "expect",
+          "path": "state.board.1.1",
+          "equals": 2
+        },
+        {
+          "op": "expect",
+          "path": "state.board.3.3",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "keyboard-input",
+      "kind": "browser",
+      "description": "Real keyboard input drives the game state.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "merge-2220"
+        },
+        {
+          "op": "key",
+          "key": "ArrowLeft"
+        },
+        {
+          "op": "expect",
+          "path": "state.lastMove",
+          "equals": "left"
+        },
+        {
+          "op": "expect",
+          "path": "state.board.0.0",
+          "equals": 4
+        }
+      ]
+    },
+    {
+      "id": "rapid-input",
+      "kind": "browser",
+      "description": "Rapid input preserves a valid state.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "deterministic"
+        },
+        {
+          "op": "key",
+          "key": "ArrowLeft"
+        },
+        {
+          "op": "key",
+          "key": "ArrowUp"
+        },
+        {
+          "op": "key",
+          "key": "ArrowRight"
+        },
+        {
+          "op": "key",
+          "key": "ArrowDown"
+        },
+        {
+          "op": "expect",
+          "path": "status",
+          "one_of": [
+            "running",
+            "won",
+            "lost"
+          ]
+        },
+        {
+          "op": "expect",
+          "path": "state.lastMove",
+          "equals": "down"
+        }
+      ]
+    },
+    {
+      "id": "run-seed",
+      "kind": "browser",
+      "description": "The bridge applies and reports the official run seed.",
+      "steps": [
+        {
+          "op": "reset"
+        },
+        {
+          "op": "expect",
+          "path": "seed",
+          "equals_run_seed": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "build",
+      "kind": "build",
+      "description": "The game builds and serves."
+    },
+    {
+      "id": "oriented-motion",
+      "kind": "browser",
+      "description": "Throttle moves along the car heading.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "motion"
+        },
+        {
+          "op": "act",
+          "action": "throttle"
+        },
+        {
+          "op": "advance",
+          "ms": 1000
+        },
+        {
+          "op": "expect",
+          "path": "state.car.x",
+          "greater_than": 400
+        },
+        {
+          "op": "expect",
+          "path": "state.car.speed",
+          "greater_than": 0
+        }
+      ]
+    },
+    {
+      "id": "reverse-steering",
+      "kind": "browser",
+      "description": "Reverse steering changes the pose in the expected direction.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "reverse-turn"
+        },
+        {
+          "op": "act",
+          "action": "reverse"
+        },
+        {
+          "op": "act",
+          "action": "steer-left"
+        },
+        {
+          "op": "advance",
+          "ms": 1000
+        },
+        {
+          "op": "expect",
+          "path": "state.car.speed",
+          "less_than": 0
+        },
+        {
+          "op": "expect",
+          "path": "state.car.angle",
+          "greater_than": 0
+        }
+      ]
+    },
+    {
+      "id": "collision",
+      "kind": "browser",
+      "description": "An obstacle collision is counted without tunnelling.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "collision"
+        },
+        {
+          "op": "act",
+          "action": "throttle"
+        },
+        {
+          "op": "advance",
+          "ms": 1000
+        },
+        {
+          "op": "expect",
+          "path": "state.collisions",
+          "equals": 1
+        },
+        {
+          "op": "expect",
+          "path": "state.car.speed",
+          "approximately": {
+            "value": 0,
+            "tolerance": 0.05
+          }
+        }
+      ]
+    },
+    {
+      "id": "parking-criteria",
+      "kind": "browser",
+      "description": "A fully aligned stopped car completes the level.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "parked"
+        },
+        {
+          "op": "advance",
+          "ms": 100
+        },
+        {
+          "op": "expect",
+          "path": "state.parked",
+          "equals": true
+        },
+        {
+          "op": "expect",
+          "path": "status",
+          "equals": "won"
+        }
+      ]
+    },
+    {
+      "id": "clean-reset",
+      "kind": "browser",
+      "description": "Restart clears physics and collisions.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "collision"
+        },
+        {
+          "op": "act",
+          "action": "throttle"
+        },
+        {
+          "op": "advance",
+          "ms": 1000
+        },
+        {
+          "op": "act",
+          "action": "restart"
+        },
+        {
+          "op": "expect",
+          "path": "state.collisions",
+          "equals": 0
+        },
+        {
+          "op": "expect",
+          "path": "state.car.speed",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "distinct-levels",
+      "kind": "browser",
+      "description": "Level selection changes data, not only labels.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "motion"
+        },
+        {
+          "op": "act",
+          "action": "select-level",
+          "payload": {
+            "level": 2
+          }
+        },
+        {
+          "op": "expect",
+          "path": "state.level",
+          "equals": 2
+        },
+        {
+          "op": "expect",
+          "path": "state.levelSignature",
+          "equals": "reverse-bay"
+        }
+      ]
+    },
+    {
+      "id": "keyboard-input",
+      "kind": "browser",
+      "description": "Real keyboard throttle changes velocity.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "motion"
+        },
+        {
+          "op": "key",
+          "key": "KeyW"
+        },
+        {
+          "op": "advance",
+          "ms": 500
+        },
+        {
+          "op": "expect",
+          "path": "state.car.speed",
+          "greater_than": 0
+        }
+      ]
+    },
+    {
+      "id": "pause-stability",
+      "kind": "browser",
+      "description": "Controlled time does not advance while paused.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "motion"
+        },
+        {
+          "op": "act",
+          "action": "pause"
+        },
+        {
+          "op": "advance",
+          "ms": 1000
+        },
+        {
+          "op": "expect",
+          "path": "status",
+          "equals": "paused"
+        },
+        {
+          "op": "expect",
+          "path": "tick",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "run-seed",
+      "kind": "browser",
+      "description": "The bridge applies and reports the official run seed.",
+      "steps": [
+        {
+          "op": "reset"
+        },
+        {
+          "op": "expect",
+          "path": "seed",
+          "equals_run_seed": true
+        }
+      ]
+    }
+  ]
+}

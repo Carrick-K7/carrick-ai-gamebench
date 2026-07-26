@@ -37,18 +37,18 @@ archived deterministically.
 
 ```bash
 # Continue the same series for every task.
-pnpm cagb run --task build.2048.v1 \
+pnpm cagb run --task build.2048.v2 \
   --agent-command './agent' --agent-id agent --model model \
   --series 01K...
 
 # Rebuild and verify an individual v2 run.
-pnpm cagb verify-run --run runs/0.2.0/01K.../01K... \
+pnpm cagb verify-run --run runs/0.3.0/01K.../01K... \
   --verifier-id operator \
   --image-digest sha256:<digest> \
   --network-attestation not-required
 
 # Publish metadata to Git and artifacts to the static object root.
-pnpm cagb publish --series runs/0.2.0/01K... \
+pnpm cagb publish --series runs/0.3.0/01K... \
   --tier experimental \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com
@@ -61,6 +61,11 @@ release-task and fixed-seed cell, an `official-candidate` series, a clean
 benchmark checkout, operator reproduction, an evaluator image digest, and a
 non-unverified network attestation. Experimental publication requires at least
 one included scored run.
+
+The deadline is part of the execution protocol. A `timeout` run is the scored
+workspace snapshot at that boundary and may be included alongside `completed`
+runs. Runs ending in `agent-error` or `evaluation-error` are preserved for
+audit but are not eligible Official cells.
 
 Published manifests are immutable. A correction creates a new publication and
 uses `--supersedes sha256:<old-id>` to update only the discovery index.

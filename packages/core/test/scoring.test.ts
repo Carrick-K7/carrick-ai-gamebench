@@ -100,3 +100,40 @@ test("incomplete tracks do not publish misleading leaderboard scores", () => {
   assert.equal(result.leaderboards.core, undefined);
   assert.deepEqual(result.coverage.build, { completed: 1, required: 2 });
 });
+
+test("Core gives Build and Reproduce equal weight regardless of task count", () => {
+  const secondBuildTask: TaskManifest = {
+    ...buildTask,
+    id: "build.other.v1",
+    title: { en: "Other", zh: "其他" },
+  };
+  const reproduceTask: TaskManifest = {
+    ...buildTask,
+    id: "reproduce.sample.v1",
+    title: { en: "Reference", zh: "复刻" },
+    track: "reproduce",
+    network_policy: "model-api-only",
+  };
+  const perfect = (task: TaskManifest) =>
+    scoreTask(task, "sha256:test", [
+      { id: "build", passed: true, duration_ms: 1, artifacts: [] },
+      { id: "mechanics", passed: true, duration_ms: 1, artifacts: [] },
+    ]);
+  const zero = scoreTask(reproduceTask, "sha256:test", [
+    { id: "build", passed: false, duration_ms: 1, artifacts: [] },
+    { id: "mechanics", passed: true, duration_ms: 1, artifacts: [] },
+  ]);
+
+  const result = aggregateAttempts(
+    [
+      { task: buildTask, score: perfect(buildTask) },
+      { task: secondBuildTask, score: perfect(secondBuildTask) },
+      { task: reproduceTask, score: zero },
+    ],
+    [buildTask, secondBuildTask, reproduceTask],
+  );
+
+  assert.equal(result.leaderboards.build, 100);
+  assert.equal(result.leaderboards.reproduce, 0);
+  assert.equal(result.leaderboards.core, 50);
+});

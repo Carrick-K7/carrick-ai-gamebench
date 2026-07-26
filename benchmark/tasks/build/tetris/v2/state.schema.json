@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "status",
+    "tick",
+    "score",
+    "seed",
+    "state",
+    "events"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "menu",
+        "running",
+        "paused",
+        "won",
+        "lost"
+      ]
+    },
+    "tick": {
+      "type": "number",
+      "minimum": 0
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "board",
+        "active",
+        "next",
+        "piecesSeen",
+        "piecesLocked",
+        "lines",
+        "level",
+        "legal"
+      ],
+      "properties": {
+        "board": {
+          "type": "array",
+          "minItems": 20,
+          "maxItems": 20
+        },
+        "active": {
+          "type": "object",
+          "required": [
+            "type",
+            "x",
+            "y",
+            "rotation"
+          ],
+          "properties": {
+            "type": {
+              "enum": [
+                "I",
+                "O",
+                "T",
+                "S",
+                "Z",
+                "J",
+                "L"
+              ]
+            },
+            "x": {
+              "type": "integer"
+            },
+            "y": {
+              "type": "integer"
+            },
+            "rotation": {
+              "type": "integer"
+            }
+          }
+        },
+        "next": {
+          "enum": [
+            "I",
+            "O",
+            "T",
+            "S",
+            "Z",
+            "J",
+            "L"
+          ]
+        },
+        "piecesSeen": {
+          "type": "array"
+        },
+        "piecesLocked": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lines": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "level": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "legal": {
+          "type": "boolean"
+        }
+      },
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "array"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

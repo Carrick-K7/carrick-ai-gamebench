@@ -64,9 +64,14 @@ function jsonEqual(left: unknown, right: JsonValue): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
-function assertExpectation(actual: unknown, step: Extract<BrowserStep, { op: "expect" }>): void {
+function assertExpectation(
+  actual: unknown,
+  step: Extract<BrowserStep, { op: "expect" }>,
+  runSeed: number,
+): void {
   const checks = [
     step.equals !== undefined,
+    step.equals_run_seed === true,
     step.one_of !== undefined,
     step.greater_than !== undefined,
     step.less_than !== undefined,
@@ -78,6 +83,11 @@ function assertExpectation(actual: unknown, step: Extract<BrowserStep, { op: "ex
   if (step.equals !== undefined && !jsonEqual(actual, step.equals)) {
     throw new Error(
       `${step.path}: expected ${JSON.stringify(step.equals)}, received ${JSON.stringify(actual)}`,
+    );
+  }
+  if (step.equals_run_seed === true && actual !== runSeed) {
+    throw new Error(
+      `${step.path}: expected run seed ${runSeed}, received ${String(actual)}`,
     );
   }
   if (
@@ -187,7 +197,8 @@ async function compareScreenshot(
   actualPath: string,
   expectedPath: string,
   diffPath: string,
-  maxDiffPixels = 100,
+  maxDiffPixels: number | undefined,
+  maxDiffRatio: number | undefined,
   threshold = 0.2,
 ): Promise<void> {
   const [actualBuffer, expectedBuffer] = await Promise.all([
@@ -210,9 +221,16 @@ async function compareScreenshot(
     actual.height,
     { threshold },
   );
-  if (changed > maxDiffPixels) {
+  if (maxDiffPixels !== undefined && maxDiffRatio !== undefined) {
+    throw new Error("screenshot may declare max_diff_pixels or max_diff_ratio, not both");
+  }
+  const maximum =
+    maxDiffRatio === undefined
+      ? (maxDiffPixels ?? 100)
+      : Math.floor(actual.width * actual.height * maxDiffRatio);
+  if (changed > maximum) {
     await writeFile(diffPath, PNG.sync.write(diff));
-    throw new Error(`screenshot differs by ${changed} pixels; maximum is ${maxDiffPixels}`);
+    throw new Error(`screenshot differs by ${changed} pixels; maximum is ${maximum}`);
   }
 }
 
@@ -334,7 +352,7 @@ async function executeBrowserCase(
       } else if (step.op === "expect") {
         const snapshot = await bridgeSnapshot(page);
         assertValidSnapshot(snapshot, validateSnapshot);
-        assertExpectation(getPath(snapshot, step.path), step);
+        assertExpectation(getPath(snapshot, step.path), step, options.seed);
       } else if (step.op === "screenshot") {
         const actualPath = path.join(artifactsDir, step.name);
         const expectedPath = path.join(task.root, "references", step.name);
@@ -360,6 +378,7 @@ async function executeBrowserCase(
           expectedPath,
           diffPath,
           step.max_diff_pixels,
+          step.max_diff_ratio,
           step.threshold,
         );
       }

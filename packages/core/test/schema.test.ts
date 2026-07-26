@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   TaskManifestSchema,
+  TestSuiteSchema,
   TrackSchema,
   RunManifestV2Schema,
   VoteSchema,
@@ -13,6 +14,44 @@ test("task manifests reject unknown keys", () => {
     unexpected: true,
   });
   assert.equal(result.success, false);
+});
+
+test("public browser cases reject ambiguous runtime operations", () => {
+  const suite = (step: object) => ({
+    schema_version: 1,
+    cases: [{
+      id: "case",
+      kind: "browser",
+      description: "case",
+      steps: [step],
+    }],
+  });
+
+  assert.equal(
+    TestSuiteSchema.safeParse(suite({
+      op: "expect",
+      path: "seed",
+      equals: 1,
+      equals_run_seed: true,
+    })).success,
+    false,
+  );
+  assert.equal(
+    TestSuiteSchema.safeParse(suite({
+      op: "screenshot",
+      name: "capture.png",
+      max_diff_pixels: 100,
+      max_diff_ratio: 0.01,
+    })).success,
+    false,
+  );
+  assert.equal(
+    TestSuiteSchema.safeParse(suite({
+      op: "click",
+      x: 10,
+    })).success,
+    false,
+  );
 });
 
 test("run manifest v2 has immutable identity and no self-verified flag", () => {

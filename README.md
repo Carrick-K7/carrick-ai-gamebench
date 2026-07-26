@@ -28,7 +28,7 @@ Run a local agent command against one task:
 
 ```bash
 pnpm cagb run \
-  --task build.2048.v1 \
+  --task build.2048.v2 \
   --agent-command './my-agent --prompt-file "$CAGB_PROMPT_PATH"' \
   --agent-id my-agent
 ```
@@ -45,7 +45,7 @@ Publish a scored v2 series as Experimental:
 
 ```bash
 pnpm cagb publish \
-  --series runs/0.2.0/<series-id> \
+  --series runs/0.3.0/<series-id> \
   --tier experimental \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com
@@ -77,6 +77,10 @@ Each game is an independent directory under
 `benchmark/tasks/<build|reproduce>/<game-slug>/vN/`. It owns its prompts,
 state schema, test cases, and any licensed reference material, so adding a game
 or version does not require modifying the evaluator.
+
+The runner places the complete public case suite and scored manifest in each
+fresh workspace. Their paths are exposed as `CAGB_PUBLIC_TESTS_PATH` and
+`CAGB_TASK_MANIFEST_PATH`; the active run seed is exposed as `CAGB_SEED`.
 
 Every benchmark release freezes the exact task IDs, semantic versions, and
 content hashes in `benchmark/releases/<benchmark-version>.json`. Run

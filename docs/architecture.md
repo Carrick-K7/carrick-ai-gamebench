@@ -10,6 +10,7 @@ packages/evaluator  cagb CLI, shell runner, Playwright evaluator, review server
 packages/publisher  clean export, verification, object storage, result ledger
 benchmark/starters  fresh Build/Reproduce workspace
 benchmark/tasks     versioned prompts, manifests, schemas, tests, references
+benchmark/retired   preserved inactive task sources grouped by release
 benchmark/releases  immutable task IDs, versions, and content hashes per release
 results             small Git-reviewed public index and immutable manifests
 ```
@@ -20,7 +21,7 @@ runtime small. The CLI does not include model-provider SDKs.
 ## Data flow
 
 ```text
-task manifest + starter + public state schema
+task manifest + starter + public state schema + public cases
           │
           ▼
 fresh workspace ── prompt/env ──► shell agent command
@@ -43,7 +44,10 @@ Build workspaces install from their lockfile with the track's declared network
 policy. Reproduce preparation and evaluation use the local pnpm store in
 offline mode. Runtime games must not depend on external network resources.
 The task's declared state schema is copied into the fresh workspace at its
-manifest-relative path and exposed through `CAGB_STATE_SCHEMA_PATH`.
+manifest-relative path. The public test suite and task manifest are copied
+under `gamebench/`. They are exposed through `CAGB_STATE_SCHEMA_PATH`,
+`CAGB_PUBLIC_TESTS_PATH`, and `CAGB_TASK_MANIFEST_PATH`; the active run seed is
+available as `CAGB_SEED`.
 
 ## Public contracts
 
@@ -61,6 +65,7 @@ window.__CARRICK_GAMEBENCH__: {
   act({ type, payload? }): Promise<void>;
   advance(ms): Promise<void>;
   snapshot(): Promise<{
+    seed: number;
     status: "menu" | "running" | "paused" | "won" | "lost";
     tick: number;
     score?: number;
@@ -119,8 +124,10 @@ iframes have no main-site storage access and are served with
 - Dependency, build, serve, bridge, or initial snapshot failure hard-gates the
   task to zero.
 - A browser case failure records a screenshot and Playwright trace.
-- Agent timeout terminates the process group and is recorded separately from
-  evaluation failure.
+- At the coding deadline, the runner terminates the Agent process group,
+  records `timeout`, and evaluates the delivered workspace. Agent and
+  evaluation errors are recorded separately and cannot be selected for an
+  Official publication.
 - Fresh workspaces copy only source inputs; `node_modules`, `dist`, and `.git`
   are excluded.
 - Evidence manifests reject missing, changed, malformed, or escaping paths.

@@ -45,7 +45,8 @@ Reproduce task budgets:
 
 - Build is the macro mean of all six Build tasks.
 - Reproduce is the macro mean of both Reproduce tasks.
-- Core is the equal-weight macro mean of the eight Build and Reproduce tasks.
+- Core gives Build and Reproduce equal 50% weight by averaging the two track
+  scores. Tasks remain equally weighted within their own track.
 
 A score is omitted until all tasks required by that board are present. The
 aggregate output always reports coverage so a partial run cannot appear to be
@@ -63,6 +64,12 @@ release-task and fixed-seed cell. Failed and retried executions remain in the
 series but are never overwritten; the series explicitly records which run is
 included in aggregation.
 
+Each ordinary bridge reset receives the active run seed. A small number of
+declared deterministic reference cases may override it with an explicit seed.
+Every v2 game must report the applied integer in the top-level snapshot
+`seed`, so the evaluator can verify that the three runs are genuinely distinct
+inputs rather than metadata-only repeats.
+
 ## Browser protocol
 
 The evaluator fixes Chromium, fonts through the evaluator image, a 1280×720
@@ -77,7 +84,9 @@ viewport, and device scale factor 1. It:
 7. captures traces, failure screenshots, and declared visual checkpoints.
 
 Reproduce screenshots use deterministic scenarios and explicit pixel
-tolerances. No LLM or VLM contributes to the trusted machine score.
+tolerances normalized by image area. Thresholds are calibrated against the
+reference implementation, blank pages, and deliberately deficient outputs.
+No LLM or VLM contributes to the trusted machine score.
 
 ## Human playtesting
 
@@ -91,7 +100,7 @@ the same records for Bradley–Terry/Elo aggregation and confidence intervals,
 following the pairwise, playable-output approach of
 [Code Arena](https://arena.ai/blog/code-arena/).
 
-The public v0.2 site does not collect votes. It publishes only aggregate review
+The public site does not collect votes. It publishes only aggregate review
 summaries with opaque artifact hashes, sample counts, outcomes, and issue tags.
 
 ## Publication tiers
@@ -103,14 +112,23 @@ summaries with opaque artifact hashes, sample counts, outcomes, and issue tags.
   score reproduction in a digest-pinned evaluator image, and operator network
   attestation.
 
+The coding deadline is a snapshot boundary, not an automatic zero: when the
+budget expires, the runner terminates the Agent process tree and evaluates the
+workspace as delivered. `completed` and `timeout` snapshots may be included in
+Official aggregation. `agent-error` and `evaluation-error` runs remain in the
+audit history but cannot be selected for Official publication.
+
 Machine score, human review, execution time, token usage, and cost remain
 separate fields. Missing token or cost data is shown as unreported, not zero.
 
 ## Public-test and contamination limits
 
-Public tests make the benchmark inspectable and easier to extend, but allow
-test-specific hardcoding. Source review, full run evidence, task rotation, and
-independent reruns are therefore required for Official publication.
+The complete scored manifest and case suite are copied into the Agent
+workspace and exposed through `CAGB_TASK_MANIFEST_PATH` and
+`CAGB_PUBLIC_TESTS_PATH`. Public tests make the benchmark inspectable and
+easier to extend, but allow test-specific hardcoding. Source review, full run
+evidence, task rotation, and independent reruns are therefore required for
+Official publication.
 
 Reproduce tasks use licensed open-source games and cannot eliminate pretraining
 or prior-source exposure. During a controlled run, the agent receives the

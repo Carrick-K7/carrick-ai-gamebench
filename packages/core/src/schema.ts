@@ -143,6 +143,7 @@ export const BrowserStepSchema = z.discriminatedUnion("op", [
     op: z.literal("expect"),
     path: z.string().min(1),
     equals: JsonValueSchema.optional(),
+    equals_run_seed: z.literal(true).optional(),
     one_of: z.array(JsonValueSchema).min(1).optional(),
     greater_than: z.number().optional(),
     less_than: z.number().optional(),
@@ -158,6 +159,7 @@ export const BrowserStepSchema = z.discriminatedUnion("op", [
     name: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*\.png$/),
     selector: z.string().min(1).optional(),
     max_diff_pixels: z.number().int().nonnegative().optional(),
+    max_diff_ratio: z.number().min(0).max(1).optional(),
     threshold: z.number().min(0).max(1).optional(),
   }),
 ]);
@@ -183,6 +185,60 @@ export const TestCaseSchema = z.discriminatedUnion("kind", [
 export const TestSuiteSchema = z.strictObject({
   schema_version: z.literal(1),
   cases: z.array(TestCaseSchema).min(1),
+}).superRefine((suite, context) => {
+  suite.cases.forEach((testCase, caseIndex) => {
+    if (testCase.kind !== "browser") {
+      return;
+    }
+    testCase.steps.forEach((step, stepIndex) => {
+      const path = ["cases", caseIndex, "steps", stepIndex];
+      if (step.op === "expect") {
+        const comparisons = [
+          step.equals !== undefined,
+          step.equals_run_seed === true,
+          step.one_of !== undefined,
+          step.greater_than !== undefined,
+          step.less_than !== undefined,
+          step.approximately !== undefined,
+        ].filter(Boolean).length;
+        if (comparisons !== 1) {
+          context.addIssue({
+            code: "custom",
+            path,
+            message: "expect must declare exactly one comparison",
+          });
+        }
+      }
+      if (
+        step.op === "screenshot" &&
+        step.max_diff_pixels !== undefined &&
+        step.max_diff_ratio !== undefined
+      ) {
+        context.addIssue({
+          code: "custom",
+          path,
+          message: "screenshot may declare only one diff allowance",
+        });
+      }
+      if (step.op === "click") {
+        const selectorOnly =
+          step.selector !== undefined &&
+          step.x === undefined &&
+          step.y === undefined;
+        const coordinatePair =
+          step.selector === undefined &&
+          step.x !== undefined &&
+          step.y !== undefined;
+        if (!selectorOnly && !coordinatePair) {
+          context.addIssue({
+            code: "custom",
+            path,
+            message: "click requires either a selector or an x/y coordinate pair",
+          });
+        }
+      }
+    });
+  });
 });
 
 export type BrowserStep = z.infer<typeof BrowserStepSchema>;
@@ -340,8 +396,7 @@ const CoverageSchema = z.strictObject({
   required: z.number().int().nonnegative(),
 });
 
-export const AggregateResultSchema = z.strictObject({
-  schema_version: z.literal(1),
+const AggregateResultFields = {
   tasks: z.array(AggregateTaskResultSchema),
   coverage: z.strictObject({
     build: CoverageSchema,
@@ -353,7 +408,22 @@ export const AggregateResultSchema = z.strictObject({
     reproduce: z.number().min(0).max(100).optional(),
     core: z.number().min(0).max(100).optional(),
   }),
+};
+
+export const AggregateResultV1Schema = z.strictObject({
+  schema_version: z.literal(1),
+  ...AggregateResultFields,
 });
+
+export const AggregateResultV2Schema = z.strictObject({
+  schema_version: z.literal(2),
+  ...AggregateResultFields,
+});
+
+export const AggregateResultSchema = z.discriminatedUnion("schema_version", [
+  AggregateResultV1Schema,
+  AggregateResultV2Schema,
+]);
 
 export type AggregateTaskResult = z.infer<typeof AggregateTaskResultSchema>;
 export type AggregateResult = z.infer<typeof AggregateResultSchema>;

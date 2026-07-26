@@ -1,6 +1,6 @@
 # Static deployment
 
-GameBench v0.2 has no application server, database, account system, or public
+GameBench v0.3 has no application server, database, account system, or public
 write endpoint.
 
 - `gamebench.ai.carrick7.com` serves the trusted Astro build.

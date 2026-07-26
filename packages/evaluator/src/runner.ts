@@ -132,6 +132,18 @@ export async function prepareSubmissionWorkspace(
   }
   await mkdir(path.dirname(schemaDestination), { recursive: true });
   await copyFile(path.resolve(task.root, schemaRelative), schemaDestination);
+  const publicTaskDir = path.join(workspace, "gamebench");
+  await mkdir(publicTaskDir, { recursive: true });
+  await Promise.all([
+    copyFile(
+      path.resolve(task.root, task.manifest.test_suite),
+      path.join(publicTaskDir, "public-tests.json"),
+    ),
+    copyFile(
+      path.resolve(task.root, "task.yml"),
+      path.join(publicTaskDir, "task.yml"),
+    ),
+  ]);
   return schemaDestination;
 }
 
@@ -396,6 +408,12 @@ async function runAttempt(
         CAGB_TASK_ID: options.task.manifest.id,
         CAGB_PROMPT_PATH: promptPath,
         CAGB_STATE_SCHEMA_PATH: stateSchemaPath,
+        CAGB_PUBLIC_TESTS_PATH: path.join(
+          workspace,
+          "gamebench",
+          "public-tests.json",
+        ),
+        CAGB_TASK_MANIFEST_PATH: path.join(workspace, "gamebench", "task.yml"),
         CAGB_RUN_DIR: runDir,
         CAGB_SEED: String(seed),
         CAGB_NETWORK_POLICY: options.task.manifest.network_policy,

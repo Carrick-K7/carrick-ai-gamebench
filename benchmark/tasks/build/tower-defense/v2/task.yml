@@ -1,0 +1,32 @@
+schema_version: 1
+id: build.tower-defense.v2
+version: 2.0.0
+title: { en: "Tower Defense Mini", zh: "塔防小游戏" }
+track: build
+level: 3
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: path-following, category: mechanics, points: 15, case: path-following }
+  - { id: range-targeting, category: mechanics, points: 10, case: range-targeting }
+  - { id: economy, category: mechanics, points: 15, case: economy }
+  - { id: wave-progression, category: mechanics, points: 10, case: wave-progression }
+  - { id: upgrade-effect, category: mechanics, points: 10, case: upgrade-effect }
+  - { id: pause-reset, category: state, points: 10, case: pause-reset }
+  - { id: enemy-lifecycle, category: state, points: 5, case: enemy-lifecycle }
+  - { id: pointer-input, category: input, points: 10, case: pointer-input }
+  - { id: load-stability, category: stability, points: 5, case: load-stability }
+  - { id: run-seed, category: state, points: 5, case: run-seed }

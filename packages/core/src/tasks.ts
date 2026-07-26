@@ -168,16 +168,16 @@ export async function validateTaskManifest(
   }
   const buildTests = manifest.tests.filter((test) => test.category === "build");
   if (buildTests.length !== 1 || buildTests[0]?.points !== 5) {
-    errors.push("each v1 task requires exactly one 5-point build hard gate");
+    errors.push("each task requires exactly one 5-point build hard gate");
   }
   if (manifest.budget_seconds !== 3600) {
-    errors.push("v1 tasks must use a 3600-second agent budget");
+    errors.push("tasks must use a 3600-second agent budget");
   }
   if (
     manifest.runtime.viewport[0] !== 1280 ||
     manifest.runtime.viewport[1] !== 720
   ) {
-    errors.push("v1 tasks must use the 1280×720 official viewport");
+    errors.push("tasks must use the 1280×720 official viewport");
   }
   if (
     manifest.track === "reproduce" &&
@@ -339,6 +339,21 @@ export async function validateTaskManifest(
         for (const test of manifest.tests) {
           if (!caseIds.has(test.case)) {
             errors.push(`test ${test.id} references missing case ${test.case}`);
+          }
+        }
+        for (const testCase of suite.cases) {
+          if (testCase.kind !== "browser") {
+            continue;
+          }
+          for (const step of testCase.steps) {
+            if (
+              step.op === "screenshot" &&
+              !(await exists(path.join(root, "references", step.name)))
+            ) {
+              errors.push(
+                `case ${testCase.id} references missing screenshot ${step.name}`,
+              );
+            }
           }
         }
       }

@@ -1,0 +1,32 @@
+schema_version: 1
+id: build.side-scroller-shooter.v2
+version: 2.0.0
+title: { en: "Side-scroller Shooter", zh: "横版射击" }
+track: build
+level: 3
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: projectile-lifecycle, category: mechanics, points: 15, case: projectile-lifecycle }
+  - { id: enemy-variety, category: mechanics, points: 10, case: enemy-variety }
+  - { id: damage-collision, category: mechanics, points: 15, case: damage-collision }
+  - { id: wave-progression, category: mechanics, points: 10, case: wave-progression }
+  - { id: boss-terminal, category: mechanics, points: 10, case: boss-terminal }
+  - { id: pause-reset, category: state, points: 10, case: pause-reset }
+  - { id: object-cleanup, category: state, points: 5, case: object-cleanup }
+  - { id: keyboard-fire, category: input, points: 10, case: keyboard-fire }
+  - { id: long-run, category: stability, points: 5, case: long-run }
+  - { id: run-seed, category: state, points: 5, case: run-seed }

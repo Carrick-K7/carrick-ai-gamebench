@@ -30,6 +30,12 @@ The 0.1.x release locks and run manifests remain readable. Run manifest v2 and
 the publication ledger begin at benchmark v0.2.0; historical tags are never
 rewritten.
 
+Benchmark v0.3.0 activates the `.v2` task set. It makes the public case suite
+available in the Agent workspace, verifies that games apply the active run
+seed, uses image-area-relative visual tolerances, defines deadline snapshots,
+and changes Core aggregation to equal track weighting. The unchanged `.v1`
+task sources are retained under `benchmark/retired/0.2.0/`.
+
 ## Task versions
 
 A task ID ends in `.vN`, and `N` must equal the major component of the task's
@@ -43,8 +49,9 @@ build.2048.v2       version: 2.0.0
 Increment the task major version when a prompt, score weight, test, fixture,
 reference capture, state schema, runtime, or network policy could change a
 score. Keep the old task directory only when old releases must remain
-executable from the same branch; otherwise the Git tag and release lock are the
-historical source of truth.
+executable from the same branch. Retired directories are excluded from active
+catalog discovery; Git tags and release locks remain the authoritative
+historical definition.
 
 Patch versions are reserved for non-scoring metadata corrections. They still
 require a new benchmark release lock so results always name an exact catalog.
@@ -70,4 +77,5 @@ benchmark/tasks/
 
 The catalog is discovered recursively and scored by track macro average.
 Adding a game therefore expands coverage without changing existing game
-weights: every task has equal weight within its track and in Core.
+weights: every task has equal weight within its track, while Build and
+Reproduce each contribute 50% to Core.

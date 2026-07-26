@@ -1,0 +1,75 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "status",
+    "tick",
+    "score",
+    "seed",
+    "state",
+    "events"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "menu",
+        "running",
+        "won",
+        "lost"
+      ]
+    },
+    "tick": {
+      "type": "number",
+      "minimum": 0
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "board",
+        "spawnCount",
+        "lastMove"
+      ],
+      "properties": {
+        "board": {
+          "type": "array",
+          "minItems": 4,
+          "maxItems": 4,
+          "items": {
+            "type": "array",
+            "minItems": 4,
+            "maxItems": 4,
+            "items": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "spawnCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "lastMove": {
+          "enum": [
+            "none",
+            "left",
+            "right",
+            "up",
+            "down"
+          ]
+        }
+      },
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "array"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

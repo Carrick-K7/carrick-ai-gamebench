@@ -99,6 +99,12 @@ export function assertOfficialEligibility(
   lock: ReleaseLockV2,
   sourceTreeDirty: boolean,
 ): void {
+  if (publication.aggregate.schema_version !== lock.scoring.aggregate) {
+    throw new Error(
+      `official publication aggregate schema ${publication.aggregate.schema_version} ` +
+        `does not match release ${lock.scoring.aggregate}`,
+    );
+  }
   if (publication.configuration.execution_profile !== "official-candidate") {
     throw new Error("official publication requires official-candidate execution");
   }
@@ -122,6 +128,14 @@ export function assertOfficialEligibility(
     included.set(key, (included.get(key) ?? 0) + 1);
     if (!run.score) {
       throw new Error(`official run ${run.run_id} has no score`);
+    }
+    if (
+      run.exit_reason !== "completed" &&
+      run.exit_reason !== "timeout"
+    ) {
+      throw new Error(
+        `official run ${run.run_id} has invalid exit reason ${run.exit_reason}`,
+      );
     }
     if (!run.reproduction) {
       throw new Error(`official run ${run.run_id} was not rebuilt from clean source`);
@@ -393,6 +407,12 @@ export async function publishSeries(
       }),
     ),
   );
+  if (aggregate.schema_version !== lock.scoring.aggregate) {
+    throw new Error(
+      `generated aggregate schema ${aggregate.schema_version} does not match ` +
+        `release ${lock.scoring.aggregate}`,
+    );
+  }
   const payload: Omit<PublicationManifest, "publication_id"> = {
     schema_version: 1,
     created_at: series.created_at,
@@ -530,8 +550,16 @@ export async function verifyResultsRepository(
       if (releaseHash !== publication.benchmark.release_hash) {
         throw new Error(`publication release hash mismatch: ${entry.publication_id}`);
       }
+      const lock = ReleaseLockSchema.parse(await readJson(lockPath));
+      if (
+        lock.schema_version === 2 &&
+        publication.aggregate.schema_version !== lock.scoring.aggregate
+      ) {
+        throw new Error(
+          `publication aggregate schema mismatch: ${entry.publication_id}`,
+        );
+      }
       if (publication.tier === "official") {
-        const lock = ReleaseLockSchema.parse(await readJson(lockPath));
         if (lock.schema_version !== 2) {
           throw new Error("official v2 publication requires a v2 release lock");
         }

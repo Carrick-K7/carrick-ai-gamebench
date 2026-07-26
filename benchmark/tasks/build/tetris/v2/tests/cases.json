@@ -1,0 +1,234 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "build",
+      "kind": "build",
+      "description": "The game builds and serves."
+    },
+    {
+      "id": "seven-pieces",
+      "kind": "browser",
+      "description": "All seven tetromino types are implemented.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "all-pieces"
+        },
+        {
+          "op": "expect",
+          "path": "state.piecesSeen",
+          "equals": [
+            "I",
+            "O",
+            "T",
+            "S",
+            "Z",
+            "J",
+            "L"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "collision-rotation",
+      "kind": "browser",
+      "description": "Wall rotation remains legal.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "wall-rotation"
+        },
+        {
+          "op": "act",
+          "action": "rotate"
+        },
+        {
+          "op": "expect",
+          "path": "state.legal",
+          "equals": true
+        },
+        {
+          "op": "expect",
+          "path": "state.active.x",
+          "greater_than": -1
+        }
+      ]
+    },
+    {
+      "id": "line-clear",
+      "kind": "browser",
+      "description": "A completed line is removed and scored.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "single-line"
+        },
+        {
+          "op": "act",
+          "action": "hard-drop"
+        },
+        {
+          "op": "expect",
+          "path": "state.lines",
+          "equals": 1
+        },
+        {
+          "op": "expect",
+          "path": "score",
+          "greater_than": 0
+        }
+      ]
+    },
+    {
+      "id": "hard-drop",
+      "kind": "browser",
+      "description": "Hard drop locks immediately and spawns the next piece.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "hard-drop"
+        },
+        {
+          "op": "act",
+          "action": "hard-drop"
+        },
+        {
+          "op": "expect",
+          "path": "state.piecesLocked",
+          "equals": 1
+        },
+        {
+          "op": "expect",
+          "path": "state.active.y",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "pause-reset",
+      "kind": "browser",
+      "description": "Pause freezes time and restart clears state.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "hard-drop"
+        },
+        {
+          "op": "act",
+          "action": "pause"
+        },
+        {
+          "op": "advance",
+          "ms": 3000
+        },
+        {
+          "op": "expect",
+          "path": "tick",
+          "equals": 0
+        },
+        {
+          "op": "act",
+          "action": "restart"
+        },
+        {
+          "op": "expect",
+          "path": "score",
+          "equals": 0
+        }
+      ]
+    },
+    {
+      "id": "score-level",
+      "kind": "browser",
+      "description": "Line totals advance the level.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "score-level"
+        },
+        {
+          "op": "act",
+          "action": "hard-drop"
+        },
+        {
+          "op": "expect",
+          "path": "state.lines",
+          "equals": 10
+        },
+        {
+          "op": "expect",
+          "path": "state.level",
+          "equals": 2
+        }
+      ]
+    },
+    {
+      "id": "keyboard-input",
+      "kind": "browser",
+      "description": "Real keyboard movement reaches state.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "hard-drop"
+        },
+        {
+          "op": "key",
+          "key": "ArrowLeft"
+        },
+        {
+          "op": "expect",
+          "path": "state.active.x",
+          "equals": 3
+        }
+      ]
+    },
+    {
+      "id": "rapid-input",
+      "kind": "browser",
+      "description": "Rapid rotations and movement never produce an illegal piece.",
+      "steps": [
+        {
+          "op": "reset",
+          "scenario": "wall-rotation"
+        },
+        {
+          "op": "key",
+          "key": "ArrowUp"
+        },
+        {
+          "op": "key",
+          "key": "ArrowLeft"
+        },
+        {
+          "op": "key",
+          "key": "ArrowUp"
+        },
+        {
+          "op": "key",
+          "key": "ArrowRight"
+        },
+        {
+          "op": "expect",
+          "path": "state.legal",
+          "equals": true
+        }
+      ]
+    },
+    {
+      "id": "run-seed",
+      "kind": "browser",
+      "description": "The bridge applies and reports the official run seed.",
+      "steps": [
+        {
+          "op": "reset"
+        },
+        {
+          "op": "expect",
+          "path": "seed",
+          "equals_run_seed": true
+        }
+      ]
+    }
+  ]
+}

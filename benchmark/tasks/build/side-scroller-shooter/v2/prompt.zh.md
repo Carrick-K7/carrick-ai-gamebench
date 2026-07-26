@@ -1,0 +1,32 @@
+# 构建任务：横版射击
+
+实现完成度良好的横版飞机射击游戏。
+
+## 必须实现
+
+- 玩家使用 WASD/方向键移动，并用空格或指针向右射击。
+- 子弹移动、只造成一次伤害，并在命中或离屏后移除。
+- 实现普通、快速和重型三种敌人，速度/血量存在真实差异。
+- 敌人伤害玩家；提供明显命中反馈和短暂无敌时间。显示血量、分数和波次。
+- 难度随波次递增；包含有独立表现的 Boss/精英战和明确胜负。
+- 暂停冻结移动、子弹和生成；重开清理全部对象。
+- 清理死亡和离屏对象，确保 60 秒模拟后对象数量仍受控。
+
+## 公开自动化契约
+
+桥接动作：`move-up`、`move-down`、`move-left`、`move-right`、`stop`、
+`fire`、`pause`、`resume`、`restart`。Snapshot 符合 `state.schema.json`。
+
+Fixture：`projectile-hit` 在射线上放置 1 HP 普通敌人；`enemy-types`
+包含三种敌人；`player-hit` 从接触状态开始；`wave` 距离第二波一个 tick；
+`boss` 在射线上放置 1 HP Boss；`cleanup` 在清理边界外放置 100 个对象。
+空格射击必须与桥接动作共用冷却逻辑。
+
+不得发起运行时网络请求或编写评测器专用分支。
+
+## 测评契约
+
+完整的公开场景契约位于 `$CAGB_PUBLIC_TESTS_PATH`，计分任务清单位于
+`$CAGB_TASK_MANIFEST_PATH`。实现前请读取这两个文件。每次 bridge reset
+都必须应用输入 seed，并在每个 snapshot 顶层以整数 `seed` 字段返回。
+官方运行 seed 也可通过 `$CAGB_SEED` 获取。

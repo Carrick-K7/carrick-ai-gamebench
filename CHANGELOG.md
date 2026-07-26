@@ -3,6 +3,21 @@
 All notable benchmark changes are recorded here. Releases also have a
 machine-readable lock under `benchmark/releases/`.
 
+## 0.3.0
+
+- Activated eight v2 tasks and retained the unchanged v0.2 task sources under
+  `benchmark/retired/0.2.0/`.
+- Copied the complete public test suite and scored task manifest into every
+  Agent workspace.
+- Applied each official run seed to ordinary resets and added a scored snapshot
+  assertion so repeated seeds are different evaluator inputs.
+- Changed Core from a task-count-weighted mean to an equal 50/50 mean of the
+  Build and Reproduce track scores, recorded as aggregate schema v2.
+- Replaced absolute screenshot pixel allowances with calibrated image-area
+  ratios for Reproduce tasks.
+- Defined coding timeout as an evaluated deadline snapshot while excluding
+  Agent and evaluator errors from Official publication.
+
 ## 0.2.0
 
 - Added immutable series, run, verification, publication, artifact, review, and

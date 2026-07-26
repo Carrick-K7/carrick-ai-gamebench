@@ -34,7 +34,7 @@ export const ReleaseLockV2Schema = z.strictObject({
   }),
   scoring: z.strictObject({
     score_result: z.literal(1),
-    aggregate: z.literal(1),
+    aggregate: z.union([z.literal(1), z.literal(2)]),
   }),
   official: z.strictObject({
     attempts_per_task: z.literal(3),
@@ -85,7 +85,7 @@ export function createReleaseLock(
     },
     scoring: {
       score_result: 1,
-      aggregate: 1,
+      aggregate: 2,
     },
     official: {
       attempts_per_task: 3,

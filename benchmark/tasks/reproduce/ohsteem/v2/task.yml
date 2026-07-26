@@ -1,0 +1,41 @@
+schema_version: 1
+id: reproduce.ohsteem.v2
+version: 2.0.0
+title: { en: "Reproduce OhSteem", zh: "复刻 OhSteem" }
+track: reproduce
+level: 2
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: model-api-only
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+reference:
+  project: OhSteem
+  repository: https://gitlab.com/alaskalinuxuser/OhSteem
+  commit: 61bb4e5c3b9d2e5704b805edb994de66214ed1b0
+  license: MIT
+  capture_pack: reference/index.html
+  source_release: after-retirement
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: cell-cycle, category: mechanics, points: 10, case: cell-cycle }
+  - { id: no-three, category: mechanics, points: 10, case: no-three }
+  - { id: balanced-colors, category: mechanics, points: 10, case: balanced-colors }
+  - { id: unique-lines, category: mechanics, points: 10, case: unique-lines }
+  - { id: completion, category: mechanics, points: 5, case: completion }
+  - { id: input-feedback, category: feel, points: 10, case: input-feedback }
+  - { id: size-reset, category: feel, points: 10, case: size-reset }
+  - { id: visual-home, category: visual, points: 10, case: visual-home }
+  - { id: visual-board, category: visual, points: 10, case: visual-board }
+  - { id: deterministic-puzzle, category: stability, points: 2.5, case: deterministic-puzzle }
+  - { id: locked-cell, category: stability, points: 2.5, case: locked-cell }
+  - { id: run-seed, category: stability, points: 5, case: run-seed }

@@ -167,12 +167,18 @@ export function aggregateAttempts(
     completedReproduce === expectedReproduceIds.size
       ? trackMean("reproduce")
       : undefined;
-  const coreValues = tasks
-    .filter((task) => task.track === "build" || task.track === "reproduce")
-    .map((task) => task.mean);
+  const expectedTrackMeans = [
+    ...(expectedBuildIds.size > 0 ? [build] : []),
+    ...(expectedReproduceIds.size > 0 ? [reproduce] : []),
+  ];
+  const core = expectedTrackMeans.every(
+    (value): value is number => value !== undefined,
+  )
+    ? round(mean(expectedTrackMeans))
+    : undefined;
 
   return {
-    schema_version: 1,
+    schema_version: 2,
     tasks,
     coverage: {
       build: { completed: completedBuild, required: expectedBuildIds.size },
@@ -185,9 +191,9 @@ export function aggregateAttempts(
     leaderboards: {
       ...(build === undefined ? {} : { build }),
       ...(reproduce === undefined ? {} : { reproduce }),
-      ...(requiredCore === 0 || completedCore !== requiredCore
+      ...(requiredCore === 0 || completedCore !== requiredCore || core === undefined
         ? {}
-        : { core: round(mean(coreValues)) }),
+        : { core }),
     },
   };
 }

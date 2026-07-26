@@ -1,0 +1,95 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "status",
+    "tick",
+    "score",
+    "seed",
+    "state",
+    "events"
+  ],
+  "properties": {
+    "status": {
+      "enum": [
+        "menu",
+        "running",
+        "paused",
+        "won",
+        "lost"
+      ]
+    },
+    "tick": {
+      "type": "number",
+      "minimum": 0
+    },
+    "score": {
+      "type": "number",
+      "minimum": 0
+    },
+    "state": {
+      "type": "object",
+      "required": [
+        "gold",
+        "life",
+        "wave",
+        "enemyCount",
+        "towerCount",
+        "shotsFired",
+        "leaks",
+        "towerDamage",
+        "maxObjects"
+      ],
+      "properties": {
+        "gold": {
+          "type": "number",
+          "minimum": 0
+        },
+        "life": {
+          "type": "number",
+          "minimum": 0
+        },
+        "wave": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "enemyCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "towerCount": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "shotsFired": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "leaks": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "towerDamage": {
+          "type": "number",
+          "minimum": 0
+        },
+        "maxObjects": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "enemyProgress": {
+          "type": "number",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": true
+    },
+    "events": {
+      "type": "array"
+    },
+    "seed": {
+      "type": "integer"
+    }
+  },
+  "additionalProperties": false
+}

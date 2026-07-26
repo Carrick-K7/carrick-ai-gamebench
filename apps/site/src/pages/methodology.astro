@@ -21,8 +21,9 @@ import Layout from "../layouts/Layout.astro";
 
       <h2>2. Run in a fresh workspace</h2>
       <p>
-        The agent receives a starter, prompt, public state schema, fixed budget,
-        and declared network policy. Each real execution receives a unique
+        The agent receives a starter, prompt, public state schema, complete
+        public cases, scored manifest, active seed, fixed budget, and declared
+        network policy. Each real execution receives a unique
         <code>run_id</code>; equivalent inputs share an
         <code>input_fingerprint</code> but are never overwritten.
       </p>
@@ -31,6 +32,7 @@ import Layout from "../layouts/Layout.astro";
       <p>
         Browser cases combine native keyboard and pointer operations with a
         deterministic bridge for reset, controlled time, actions, and snapshots.
+        Ordinary resets apply the active run seed and the snapshot must report it.
         A failed dependency install, build, server start, bridge preflight, or
         initial snapshot hard-gates the task to zero.
       </p>
@@ -38,9 +40,9 @@ import Layout from "../layouts/Layout.astro";
       <h2>4. Aggregate without hidden weighting</h2>
       <p>
         Each game contributes equally within its track. Attempts are averaged
-        per game, Build and Reproduce scores are macro averages, and Core is the
-        macro average across every required game. Incomplete coverage does not
-        receive a leaderboard score.
+        per game, Build and Reproduce scores are macro averages, and each track
+        contributes 50% to Core. Incomplete coverage does not receive a
+        leaderboard score.
       </p>
 
       <h2>5. Keep human playtesting separate</h2>
@@ -55,8 +57,9 @@ import Layout from "../layouts/Layout.astro";
         Official series require all tasks and three fixed seeds. The operator
         verifies evidence, exports a secret-free source tree, rebuilds it in a
         digest-pinned evaluator image, recomputes the score, and records network
-        isolation. Experimental publications may be partial or unverified and
-        are displayed separately.
+        isolation. A coding timeout is evaluated as the deadline snapshot;
+        Agent or evaluator errors cannot fill an Official cell. Experimental
+        publications may be partial or unverified and are displayed separately.
       </p>
 
       <div class="callout">

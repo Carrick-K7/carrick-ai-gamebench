@@ -15,9 +15,11 @@ tests/cases.json
 Reproduce tasks also require `THIRD_PARTY.yml`, a `reference/` capture page,
 and licensed files under `references/`.
 
-The runner copies the declared `bridge.state_schema` into every fresh
-submission workspace at the same relative path. Agent harnesses can also read
-its absolute location from `CAGB_STATE_SCHEMA_PATH`.
+The runner copies the declared `bridge.state_schema`, complete public case
+suite, and scored task manifest into every fresh submission workspace. Agent
+harnesses can read their absolute locations from `CAGB_STATE_SCHEMA_PATH`,
+`CAGB_PUBLIC_TESTS_PATH`, and `CAGB_TASK_MANIFEST_PATH`. The active execution
+seed is available as `CAGB_SEED`.
 
 Place the complete package at:
 
@@ -56,8 +58,15 @@ Browser cases support:
 
 - `reset`, `act`, and `advance` through the bridge;
 - real `key` and `click` interaction;
-- snapshot `expect` with exact, one-of, numeric, or approximate comparison;
-- deterministic `screenshot`.
+- snapshot `expect` with exact, one-of, numeric, approximate, or active-run-seed
+  comparison;
+- deterministic `screenshot` with a normalized `max_diff_ratio`.
+
+A `reset` step without an explicit seed receives the active run seed. Use an
+explicit case seed only when a fixed reference capture or deterministic
+fixture requires it. Active v2 tasks require `snapshot().seed` and include a
+public `equals_run_seed` assertion; do not merely record the seed in run
+metadata.
 
 ## Quality gate for a new task
 
@@ -68,5 +77,11 @@ Before release:
 3. run twice in clean evaluator environments and compare the test vector;
 4. check real input and bridge state reach the same transition;
 5. audit every third-party asset and record its provenance;
-6. verify screenshot tolerances on the published Chromium image;
+6. verify screenshot tolerances on the published Chromium image against the
+   reference, a blank implementation, and representative deficient mutants;
 7. freeze prompt, fixtures, tests, and image digest together.
+
+Released active tasks live under `benchmark/tasks`. When a new major replaces
+one, preserve the prior files under `benchmark/retired/<benchmark-version>/`
+so the current branch remains readable without letting the catalog discover
+both versions.
