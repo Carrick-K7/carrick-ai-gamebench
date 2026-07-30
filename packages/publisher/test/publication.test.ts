@@ -239,6 +239,50 @@ test("official eligibility rejects agent and evaluation errors", () => {
   );
 });
 
+test("official eligibility requires a deterministic showcase", () => {
+  const payload = publicationPayload();
+  const seeds = [104729, 130363, 155921];
+  const runs = seeds.map((seed, index) => ({
+    ...payload.runs[0]!,
+    run_id: `01K0000000000000000000000${index + 1}`,
+    input_fingerprint: hash(String(index + 3)),
+    seed,
+  }));
+  const publication = PublicationManifestSchema.parse({
+    ...payload,
+    runs,
+    publication_id: computePublicationId({ ...payload, runs }),
+  });
+  const lock = ReleaseLockV2Schema.parse({
+    schema_version: 2,
+    benchmark: "carrick-ai-gamebench",
+    benchmark_version: "0.2.0",
+    protocols: {
+      task_manifest: 1,
+      bridge: 1,
+      run_manifest: 2,
+      publication_manifest: 1,
+    },
+    scoring: { score_result: 1, aggregate: 1 },
+    official: {
+      attempts_per_task: 3,
+      seeds,
+    },
+    tracks: ["build", "reproduce"],
+    task_count: 1,
+    tasks: [{
+      id: "build.sample.v1",
+      version: "1.0.0",
+      track: "build",
+      hash: hash("a"),
+    }],
+  });
+  assert.throws(
+    () => assertOfficialEligibility(publication, lock, false),
+    /has no deterministic showcase/,
+  );
+});
+
 test("publication schema rejects duplicate run IDs", () => {
   const payload = publicationPayload();
   assert.equal(

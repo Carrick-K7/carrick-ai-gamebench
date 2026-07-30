@@ -174,6 +174,20 @@ export function assertOfficialEligibility(
   if (evaluatorImages.size !== 1) {
     throw new Error("official publication must use one evaluator image digest");
   }
+  for (const run of publication.runs) {
+    if (
+      run.included &&
+      !run.artifacts.some(
+        (artifact) =>
+          artifact.role === "screenshot" &&
+          artifact.file_name.endsWith("-showcase.png"),
+      )
+    ) {
+      throw new Error(
+        `official run ${run.run_id} has no deterministic showcase`,
+      );
+    }
+  }
 }
 
 async function publicArtifacts(
@@ -206,17 +220,16 @@ async function publicArtifacts(
     }),
   ];
   const showcase = path.join(outputRoot, "showcase.png");
-  if (!(await exists(showcase))) {
-    throw new Error(`run ${run.run_id} has no deterministic showcase`);
+  if (await exists(showcase)) {
+    artifacts.push(
+      await store.put(showcase, {
+        role: "screenshot",
+        fileName:
+          `${run.task_id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-showcase.png`,
+        mediaType: "image/png",
+      }),
+    );
   }
-  artifacts.push(
-    await store.put(showcase, {
-      role: "screenshot",
-      fileName:
-        `${run.task_id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-showcase.png`,
-      mediaType: "image/png",
-    }),
-  );
   const screenshots = await findPngFiles(path.join(runDir, "playwright"));
   for (const [index, screenshot] of screenshots.entries()) {
     artifacts.push(
