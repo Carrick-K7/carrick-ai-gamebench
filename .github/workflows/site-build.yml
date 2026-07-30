@@ -57,6 +57,8 @@ jobs:
         env:
           GAMEBENCH_SITE_BUILD_ID: ${{ github.sha }}
         run: pnpm --filter @carrick/gamebench-site build
+      - name: Bundle isolated play-origin landing page
+        run: cp -R infra/play-root apps/site/dist/.gamebench-play-root
       - name: Write immutable build manifest
         env:
           SITE_BUILD_ID: ${{ github.sha }}

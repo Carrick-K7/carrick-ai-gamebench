@@ -40,6 +40,9 @@ const canonical = Astro.site
         <a href="/releases">Releases</a>
         <a href="/source">Source</a>
       </nav>
+      <button class="language-toggle" type="button" data-language-toggle aria-label="Switch to Chinese">
+        中文
+      </button>
     </header>
     <main>
       <slot />
@@ -55,6 +58,82 @@ const canonical = Astro.site
         <span>Apache-2.0</span>
       </div>
     </footer>
+    <script>
+      import { zhTranslations } from "../lib/translations";
+
+      type Language = "en" | "zh";
+      const preferenceKey = "gamebench.language";
+      const originalText = new WeakMap<Text, string>();
+      const originalTitle = document.title;
+
+      function normalized(value: string): string {
+        return value.trim().replace(/\s+/g, " ");
+      }
+
+      function selectedLanguage(): Language {
+        try {
+          const stored = localStorage.getItem(preferenceKey);
+          if (stored === "zh" || stored === "en") return stored;
+        } catch {
+          // Browser language remains a safe fallback when storage is unavailable.
+        }
+        return navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+      }
+
+      function translateTextNode(node: Text, language: Language): void {
+        const parent = node.parentElement;
+        if (!parent || parent.closest("script, style")) return;
+        const source = originalText.get(node) ?? node.textContent ?? "";
+        originalText.set(node, source);
+        const translated =
+          language === "zh" ? zhTranslations[normalized(source)] : undefined;
+        if (language === "zh" && translated) {
+          const leading = source.match(/^\s*/)?.[0] ?? "";
+          const trailing = source.match(/\s*$/)?.[0] ?? "";
+          node.textContent = `${leading}${translated}${trailing}`;
+        } else {
+          node.textContent = source;
+        }
+      }
+
+      function applyLanguage(language: Language): void {
+        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+        const nodes: Text[] = [];
+        while (walker.nextNode()) nodes.push(walker.currentNode as Text);
+        for (const node of nodes) translateTextNode(node, language);
+
+        document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+        document.documentElement.dataset.language = language;
+        const [title = originalTitle, suffix] = originalTitle.split(" · ");
+        document.title =
+          language === "zh" && zhTranslations[title]
+            ? `${zhTranslations[title]}${suffix ? ` · ${suffix}` : ""}`
+            : originalTitle;
+        document
+          .querySelector("nav")
+          ?.setAttribute("aria-label", language === "zh" ? "主导航" : "Primary navigation");
+        const toggle = document.querySelector<HTMLButtonElement>("[data-language-toggle]");
+        if (toggle) {
+          toggle.textContent = language === "zh" ? "EN" : "中文";
+          toggle.setAttribute(
+            "aria-label",
+            language === "zh" ? "Switch to English" : "Switch to Chinese",
+          );
+        }
+      }
+
+      applyLanguage(selectedLanguage());
+      document.querySelector("[data-language-toggle]")?.addEventListener("click", () => {
+        const next: Language =
+          document.documentElement.lang === "zh-CN" ? "en" : "zh";
+        try {
+          localStorage.setItem(preferenceKey, next);
+        } catch {
+          // The toggle remains functional when storage is unavailable.
+        }
+        applyLanguage(next);
+      });
+    </script>
   </body>
 </html>
 
@@ -99,6 +178,12 @@ const canonical = Astro.site
   nav { display: flex; flex-wrap: wrap; gap: 24px; }
   nav a { color: var(--muted); font-size: 14px; font-weight: 600; text-decoration: none; }
   nav a:hover { color: var(--green); }
+  .language-toggle {
+    background: transparent; border: 1px solid var(--line); border-radius: 999px; color: var(--ink);
+    cursor: pointer; flex: 0 0 auto; font-family: var(--mono); font-size: 12px; font-weight: 800;
+    padding: 7px 11px;
+  }
+  .language-toggle:hover { border-color: var(--green); color: var(--green); }
   main { min-height: calc(100vh - 170px); }
   .container { margin: 0 auto; max-width: 1280px; padding: 56px clamp(20px, 5vw, 72px) 88px; }
   .eyebrow { color: var(--green); font-family: var(--mono); font-size: 12px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
