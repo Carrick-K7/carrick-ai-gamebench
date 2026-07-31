@@ -177,6 +177,12 @@ export function assertOfficialEligibility(
   for (const run of publication.runs) {
     if (
       run.included &&
+      !run.artifacts.some((artifact) => artifact.role === "playable")
+    ) {
+      throw new Error(`official run ${run.run_id} has no playable artifact`);
+    }
+    if (
+      run.included &&
       !run.artifacts.some(
         (artifact) =>
           artifact.role === "screenshot" &&
@@ -199,7 +205,7 @@ async function publicArtifacts(
   const outputRoot = path.join(runDir, "public");
   const sourceArchive = path.join(outputRoot, "clean-source.tar.zst");
   const playable = path.join(outputRoot, "playable");
-  if (!(await exists(sourceArchive)) || !(await exists(path.join(playable, "index.html")))) {
+  if (!(await exists(sourceArchive))) {
     throw new Error(`run ${run.run_id} has not been prepared for publication`);
   }
   const evidence = await verifyEvidenceManifest(runDir);
@@ -212,13 +218,15 @@ async function publicArtifacts(
       fileName: "clean-source.tar.zst",
       mediaType: "application/zstd",
     }),
-    await store.put(playable, {
+  ];
+  if (await exists(path.join(playable, "index.html"))) {
+    artifacts.push(await store.put(playable, {
       role: "playable",
       fileName: "index.html",
       mediaType: "text/html",
       kind: "directory",
-    }),
-  ];
+    }));
+  }
   const showcase = path.join(outputRoot, "showcase.png");
   if (await exists(showcase)) {
     artifacts.push(

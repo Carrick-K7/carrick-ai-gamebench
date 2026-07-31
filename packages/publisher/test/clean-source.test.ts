@@ -103,3 +103,26 @@ test("secret scanning rejects credentials inside publishable source", async () =
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("a failed build can publish clean source without a playable bundle", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-source-only-"));
+  try {
+    const workspace = await fixture(root);
+    await rm(path.join(workspace, "dist"), { recursive: true });
+    const artifacts = await preparePublicArtifacts(
+      workspace,
+      path.join(root, "public"),
+      { requirePlayable: false },
+    );
+    assert.equal(
+      await readFile(artifacts.sourceArchive, "utf8").then(
+        () => true,
+        () => false,
+      ),
+      true,
+    );
+    assert.equal(artifacts.playable, undefined);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

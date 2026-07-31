@@ -247,6 +247,17 @@ test("official eligibility requires a deterministic showcase", () => {
     run_id: `01K0000000000000000000000${index + 1}`,
     input_fingerprint: hash(String(index + 3)),
     seed,
+    artifacts: [
+      ...payload.runs[0]!.artifacts,
+      {
+        artifact_id: hash("6"),
+        role: "playable" as const,
+        file_name: "index.html",
+        size_bytes: 1,
+        media_type: "text/html",
+        url: "/play",
+      },
+    ],
   }));
   const publication = PublicationManifestSchema.parse({
     ...payload,

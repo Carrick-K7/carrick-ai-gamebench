@@ -61,9 +61,7 @@ export async function prepareReproducibleRun(
   if (
     !options.force &&
     await exists(reproductionPath) &&
-    await exists(path.join(options.runDir, "public", "clean-source.tar.zst")) &&
-    await exists(path.join(options.runDir, "public", "playable", "index.html")) &&
-    await exists(path.join(options.runDir, "public", "showcase.png"))
+    await exists(path.join(options.runDir, "public", "clean-source.tar.zst"))
   ) {
     const evidence = await verifyEvidenceManifest(options.runDir);
     if (!evidence.valid) {
@@ -114,7 +112,10 @@ export async function prepareReproducibleRun(
     const publicArtifacts = await preparePublicArtifacts(
       cleanSource,
       publicRoot,
-      { replacePlayable: true },
+      {
+        replacePlayable: true,
+        requirePlayable: !originalScore.hard_gate_failed,
+      },
     );
     const cleanSourceId =
       `sha256:${await sha256File(publicArtifacts.sourceArchive)}` as const;

@@ -172,11 +172,31 @@ async function runTar(source: string, output: string): Promise<void> {
   });
 }
 
+interface PreparePublicArtifactsOptions {
+  replacePlayable?: boolean;
+  requirePlayable?: boolean;
+}
+
+export function preparePublicArtifacts(
+  workspace: string,
+  outputRoot: string,
+  options?: PreparePublicArtifactsOptions & { requirePlayable?: true },
+): Promise<{ sourceArchive: string; playable: string }>;
+export function preparePublicArtifacts(
+  workspace: string,
+  outputRoot: string,
+  options: PreparePublicArtifactsOptions & { requirePlayable: false },
+): Promise<{ sourceArchive: string; playable?: string }>;
+export function preparePublicArtifacts(
+  workspace: string,
+  outputRoot: string,
+  options: PreparePublicArtifactsOptions,
+): Promise<{ sourceArchive: string; playable?: string }>;
 export async function preparePublicArtifacts(
   workspace: string,
   outputRoot: string,
-  options: { replacePlayable?: boolean } = {},
-): Promise<{ sourceArchive: string; playable: string }> {
+  options: PreparePublicArtifactsOptions = {},
+): Promise<{ sourceArchive: string; playable?: string }> {
   const temporary = await mkdtemp(path.join(os.tmpdir(), "cagb-public-source-"));
   const cleanSource = path.join(temporary, "source");
   try {
@@ -185,7 +205,10 @@ export async function preparePublicArtifacts(
     await runTar(cleanSource, sourceArchive);
     const dist = path.join(workspace, "dist");
     if (!(await exists(path.join(dist, "index.html")))) {
-      throw new Error("playable publication requires workspace/dist/index.html");
+      if (options.requirePlayable !== false) {
+        throw new Error("playable publication requires workspace/dist/index.html");
+      }
+      return { sourceArchive };
     }
     const playable = path.join(outputRoot, "playable");
     if (options.replacePlayable) {
