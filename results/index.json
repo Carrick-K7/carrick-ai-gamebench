@@ -1,6 +1,493 @@
 {
   "schema_version": 1,
-  "generated_at": "2026-07-19T00:00:00.000Z",
-  "benchmark_versions": [],
-  "entries": []
+  "generated_at": "2026-07-31T12:28:14.184Z",
+  "benchmark_versions": [
+    "0.3.0"
+  ],
+  "entries": [
+    {
+      "publication_id": "sha256:70805000616a583bea19f33a19a72a8a037594a754b971cc4ea48fde0a71f272",
+      "created_at": "2026-07-30T16:38:10.034Z",
+      "tier": "experimental",
+      "status": "active",
+      "benchmark_version": "0.3.0",
+      "series_id": "01KYSY7YBJ70YR2TSE0WSX7DT3",
+      "configuration_id": "sha256:f3257c49656cc175e002a6339763efc2bd56c60df177421eb9013fde99e861ad",
+      "agent": {
+        "id": "codex",
+        "version": "0.146.0",
+        "model": "gpt-5.6-terra",
+        "harness": "codex-cli",
+        "parameters": {
+          "requested_reasoning_effort": "medium",
+          "effective_reasoning_effort": "medium",
+          "reasoning_control": "native"
+        }
+      },
+      "aggregate": {
+        "schema_version": 2,
+        "tasks": [
+          {
+            "task_id": "build.2048.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.minesweeper.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.parking-2d.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.side-scroller-shooter.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tetris.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 90,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tower-defense.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.ohsteem.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 80,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.radius-raid.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 90,
+            "standard_deviation": 0
+          }
+        ],
+        "coverage": {
+          "build": {
+            "completed": 6,
+            "required": 6
+          },
+          "reproduce": {
+            "completed": 2,
+            "required": 2
+          },
+          "core": {
+            "completed": 8,
+            "required": 8
+          }
+        },
+        "leaderboards": {
+          "build": 98.3333,
+          "reproduce": 85,
+          "core": 91.6667
+        }
+      }
+    },
+    {
+      "publication_id": "sha256:ca2a76452eba0ed38cc7dd188d2043ec2816ffb43cafb54de5731f10b265dcb0",
+      "created_at": "2026-07-30T16:02:59.428Z",
+      "tier": "experimental",
+      "status": "active",
+      "benchmark_version": "0.3.0",
+      "series_id": "01KYSW7H74C0G3CAKQ66M8DTW2",
+      "configuration_id": "sha256:fe9ea3d60d95041b753b54c575180808d943d39582f36acc9bf4b09fb1e63659",
+      "agent": {
+        "id": "pi-agent",
+        "version": "0.82.1",
+        "model": "deepseek-v4-pro",
+        "harness": "pi-cli",
+        "parameters": {
+          "requested_reasoning_effort": "medium",
+          "effective_reasoning_effort": "high",
+          "reasoning_control": "provider-maps-medium-to-high"
+        }
+      },
+      "aggregate": {
+        "schema_version": 2,
+        "tasks": [
+          {
+            "task_id": "build.2048.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.minesweeper.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.parking-2d.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 90,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.side-scroller-shooter.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tetris.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tower-defense.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.ohsteem.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 70,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.radius-raid.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 90,
+            "standard_deviation": 0
+          }
+        ],
+        "coverage": {
+          "build": {
+            "completed": 6,
+            "required": 6
+          },
+          "reproduce": {
+            "completed": 2,
+            "required": 2
+          },
+          "core": {
+            "completed": 8,
+            "required": 8
+          }
+        },
+        "leaderboards": {
+          "build": 98.3333,
+          "reproduce": 80,
+          "core": 89.1667
+        }
+      }
+    },
+    {
+      "publication_id": "sha256:f1ee6f4081a76d93b48da883a5208994790ea742b9782738047fbf4d8ffd177b",
+      "created_at": "2026-07-30T14:08:41.843Z",
+      "tier": "experimental",
+      "status": "active",
+      "benchmark_version": "0.3.0",
+      "series_id": "01KYSNP8BKNKP8Z8WQ2JX6EDHG",
+      "configuration_id": "sha256:25d2d37c50815b11562f27935e9a3e51ed310b5b5391bfe7936c6ef24c503108",
+      "agent": {
+        "id": "kimi-code-cli",
+        "version": "0.30.0",
+        "model": "kimi-k3",
+        "harness": "kimi-code-cli",
+        "parameters": {
+          "requested_reasoning_effort": "medium",
+          "effective_reasoning_effort": "high",
+          "reasoning_control": "low-high-max-only"
+        }
+      },
+      "aggregate": {
+        "schema_version": 2,
+        "tasks": [
+          {
+            "task_id": "build.2048.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.minesweeper.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.parking-2d.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 85,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.side-scroller-shooter.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tetris.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tower-defense.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          }
+        ],
+        "coverage": {
+          "build": {
+            "completed": 6,
+            "required": 6
+          },
+          "reproduce": {
+            "completed": 0,
+            "required": 2
+          },
+          "core": {
+            "completed": 6,
+            "required": 8
+          }
+        },
+        "leaderboards": {
+          "build": 47.5
+        }
+      }
+    },
+    {
+      "publication_id": "sha256:d53104a7df901f30d40afd2f27a475fb626f2b699ae029ceb0df14c3534df18f",
+      "created_at": "2026-07-30T14:05:21.801Z",
+      "tier": "experimental",
+      "status": "active",
+      "benchmark_version": "0.3.0",
+      "series_id": "01KYSNG5083CDZNY296W49NZYV",
+      "configuration_id": "sha256:fca5b251e4316b3b6e369fc8b7939b6de4201e019cc22c2c5d0798a533807f70",
+      "agent": {
+        "id": "opencode-go",
+        "version": "1.17.11",
+        "model": "qwen3.7-max",
+        "harness": "opencode-cli",
+        "parameters": {
+          "requested_reasoning_effort": "medium",
+          "effective_reasoning_effort": "provider-default",
+          "reasoning_control": "unavailable"
+        }
+      },
+      "aggregate": {
+        "schema_version": 2,
+        "tasks": [
+          {
+            "task_id": "build.2048.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.minesweeper.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.parking-2d.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 90,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.side-scroller-shooter.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tetris.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tower-defense.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.ohsteem.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 80,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.radius-raid.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 80,
+            "standard_deviation": 0
+          }
+        ],
+        "coverage": {
+          "build": {
+            "completed": 6,
+            "required": 6
+          },
+          "reproduce": {
+            "completed": 2,
+            "required": 2
+          },
+          "core": {
+            "completed": 8,
+            "required": 8
+          }
+        },
+        "leaderboards": {
+          "build": 81.6667,
+          "reproduce": 80,
+          "core": 80.8334
+        }
+      }
+    },
+    {
+      "publication_id": "sha256:e42e316044f329e95b1c3cdfbdec9b7424326b02e81a9d0d8f96783557c25615",
+      "created_at": "2026-07-30T14:05:21.800Z",
+      "tier": "experimental",
+      "status": "active",
+      "benchmark_version": "0.3.0",
+      "series_id": "01KYSNG507D05MV5RK15ANK11S",
+      "configuration_id": "sha256:6ac8ffc8a515ff59d9905323a5cf455ccfa69ae8296ce4414f824974a286e33e",
+      "agent": {
+        "id": "opencode-go",
+        "version": "1.17.11",
+        "model": "glm-5.2",
+        "harness": "opencode-cli",
+        "parameters": {
+          "requested_reasoning_effort": "medium",
+          "effective_reasoning_effort": "high",
+          "reasoning_control": "high-or-max-only"
+        }
+      },
+      "aggregate": {
+        "schema_version": 2,
+        "tasks": [
+          {
+            "task_id": "build.2048.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.minesweeper.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.parking-2d.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.side-scroller-shooter.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tetris.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "build.tower-defense.v2",
+            "track": "build",
+            "attempts": 1,
+            "mean": 100,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.ohsteem.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          },
+          {
+            "task_id": "reproduce.radius-raid.v2",
+            "track": "reproduce",
+            "attempts": 1,
+            "mean": 0,
+            "standard_deviation": 0
+          }
+        ],
+        "coverage": {
+          "build": {
+            "completed": 6,
+            "required": 6
+          },
+          "reproduce": {
+            "completed": 2,
+            "required": 2
+          },
+          "core": {
+            "completed": 8,
+            "required": 8
+          }
+        },
+        "leaderboards": {
+          "build": 83.3333,
+          "reproduce": 0,
+          "core": 41.6666
+        }
+      }
+    }
+  ]
 }

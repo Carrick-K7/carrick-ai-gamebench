@@ -1,0 +1,1531 @@
+{
+  "schema_version": 1,
+  "publication_id": "sha256:e42e316044f329e95b1c3cdfbdec9b7424326b02e81a9d0d8f96783557c25615",
+  "created_at": "2026-07-30T14:05:21.800Z",
+  "tier": "experimental",
+  "series_id": "01KYSNG507D05MV5RK15ANK11S",
+  "benchmark": {
+    "version": "0.3.0",
+    "release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+    "git_commit": "4cbb6dbcce902e84392f82307249d17cec058e6b"
+  },
+  "configuration": {
+    "configuration_id": "sha256:6ac8ffc8a515ff59d9905323a5cf455ccfa69ae8296ce4414f824974a286e33e",
+    "agent": {
+      "id": "opencode-go",
+      "version": "1.17.11",
+      "model": "glm-5.2",
+      "harness": "opencode-cli",
+      "parameters": {
+        "requested_reasoning_effort": "medium",
+        "effective_reasoning_effort": "high",
+        "reasoning_control": "high-or-max-only"
+      }
+    },
+    "prompt_language": "en",
+    "execution_profile": "local",
+    "environment": {
+      "platform": "linux",
+      "architecture": "x64",
+      "node": "v24.15.0",
+      "runner_protocol": "2",
+      "git_commit": "4cbb6dbcce902e84392f82307249d17cec058e6b",
+      "source_tree_dirty": false
+    }
+  },
+  "aggregate": {
+    "schema_version": 2,
+    "tasks": [
+      {
+        "task_id": "build.2048.v2",
+        "track": "build",
+        "attempts": 1,
+        "mean": 100,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "build.minesweeper.v2",
+        "track": "build",
+        "attempts": 1,
+        "mean": 0,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "build.parking-2d.v2",
+        "track": "build",
+        "attempts": 1,
+        "mean": 100,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "build.side-scroller-shooter.v2",
+        "track": "build",
+        "attempts": 1,
+        "mean": 100,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "build.tetris.v2",
+        "track": "build",
+        "attempts": 1,
+        "mean": 100,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "build.tower-defense.v2",
+        "track": "build",
+        "attempts": 1,
+        "mean": 100,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "reproduce.ohsteem.v2",
+        "track": "reproduce",
+        "attempts": 1,
+        "mean": 0,
+        "standard_deviation": 0
+      },
+      {
+        "task_id": "reproduce.radius-raid.v2",
+        "track": "reproduce",
+        "attempts": 1,
+        "mean": 0,
+        "standard_deviation": 0
+      }
+    ],
+    "coverage": {
+      "build": {
+        "completed": 6,
+        "required": 6
+      },
+      "reproduce": {
+        "completed": 2,
+        "required": 2
+      },
+      "core": {
+        "completed": 8,
+        "required": 8
+      }
+    },
+    "leaderboards": {
+      "build": 83.3333,
+      "reproduce": 0,
+      "core": 41.6666
+    }
+  },
+  "runs": [
+    {
+      "run_id": "01KYSNG50JN7T94Z03H1ZAMA4C",
+      "input_fingerprint": "sha256:4ab92c81a670951c01ab992f94c66667dfb3c4598aa1414b41b6ef6e2cc9c419",
+      "task_id": "build.2048.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "full",
+      "exit_reason": "completed",
+      "score": {
+        "schema_version": 1,
+        "task_id": "build.2048.v2",
+        "task_hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486",
+        "earned": 100,
+        "available": 100,
+        "percent": 100,
+        "hard_gate_failed": false,
+        "categories": {
+          "build": {
+            "earned": 5,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 60,
+            "available": 60
+          },
+          "state": {
+            "earned": 20,
+            "available": 20
+          },
+          "input": {
+            "earned": 10,
+            "available": 10
+          },
+          "stability": {
+            "earned": 5,
+            "available": 5
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 0,
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "merge-once",
+            "category": "mechanics",
+            "points": 20,
+            "passed": true,
+            "duration_ms": 859,
+            "artifacts": []
+          },
+          {
+            "id": "valid-spawn",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 742,
+            "artifacts": []
+          },
+          {
+            "id": "terminal-state",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 748,
+            "artifacts": []
+          },
+          {
+            "id": "directional-move",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 814,
+            "artifacts": []
+          },
+          {
+            "id": "clean-reset",
+            "category": "state",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 935,
+            "artifacts": []
+          },
+          {
+            "id": "deterministic-seed",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 896,
+            "artifacts": []
+          },
+          {
+            "id": "keyboard-input",
+            "category": "input",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 1131,
+            "artifacts": []
+          },
+          {
+            "id": "rapid-input",
+            "category": "stability",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 870,
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 700,
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 630905,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:af4a4d5afb19118152adbdded6b315a7388ee84aaa38b8d769e79ab67cff8d46",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 11792,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/af/af4a4d5afb19118152adbdded6b315a7388ee84aaa38b8d769e79ab67cff8d46/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:43cf83d2586723318f8eafad9a35e64aac21cdc009a28950b8a9b69e6128cdce",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 8198,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/43cf83d2586723318f8eafad9a35e64aac21cdc009a28950b8a9b69e6128cdce/index.html"
+        },
+        {
+          "artifact_id": "sha256:176e25191fe4cdab7fa6e8eb70ec5ad172f1e9327f3c346b9b13770bdfea38ae",
+          "role": "screenshot",
+          "file_name": "build.2048.v2-showcase.png",
+          "size_bytes": 32331,
+          "media_type": "image/png",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/17/176e25191fe4cdab7fa6e8eb70ec5ad172f1e9327f3c346b9b13770bdfea38ae/build.2048.v2-showcase.png"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:46:39.741Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:af4a4d5afb19118152adbdded6b315a7388ee84aaa38b8d769e79ab67cff8d46",
+        "recomputed_score_hash": "sha256:313ae9478c4ec1c1def87287b72b9a32304a24221d6bae931ce310d35096b327"
+      }
+    },
+    {
+      "run_id": "01KYSP3F10GCBXDFS35G1ZN9Z6",
+      "input_fingerprint": "sha256:ffb6c3e9aa17ef4ffe3d2da5e7d1100d2d6be0afff09c641a9e9bf205e6969d0",
+      "task_id": "build.minesweeper.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "full",
+      "exit_reason": "timeout",
+      "score": {
+        "schema_version": 1,
+        "task_id": "build.minesweeper.v2",
+        "task_hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445",
+        "earned": 0,
+        "available": 100,
+        "percent": 0,
+        "hard_gate_failed": true,
+        "categories": {
+          "build": {
+            "earned": 0,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 0,
+            "available": 60
+          },
+          "state": {
+            "earned": 0,
+            "available": 20
+          },
+          "input": {
+            "earned": 0,
+            "available": 10
+          },
+          "stability": {
+            "earned": 0,
+            "available": 5
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "bridge snapshot does not match state.schema.json: <root> must have required property 'seed'; /state must have required property 'cells'; /state must have required property 'mineCount'; /state must have required property 'revealedSafe'; /state must have required property 'flags'; /state must have required property 'mineSignature'; /state must have required property 'inputLocked'",
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "adjacent-counts",
+            "category": "mechanics",
+            "points": 15,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "flood-expansion",
+            "category": "mechanics",
+            "points": 20,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "flag-behavior",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "terminal-state",
+            "category": "mechanics",
+            "points": 15,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "clean-reset",
+            "category": "state",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "deterministic-seed",
+            "category": "state",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "pointer-input",
+            "category": "input",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "finished-immutable",
+            "category": "stability",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "state",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 3610233,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:47f6ea6b3c6334f6bb3f2271e9ea1f4cafc066424f4b86411d17445ed8817c50",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 7898,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/47/47f6ea6b3c6334f6bb3f2271e9ea1f4cafc066424f4b86411d17445ed8817c50/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:d2d8028a598ae1e2d61db173f0ef88061200172718ceab02c9320ef692f4411a",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 2227,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/d2d8028a598ae1e2d61db173f0ef88061200172718ceab02c9320ef692f4411a/index.html"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:46:43.578Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:47f6ea6b3c6334f6bb3f2271e9ea1f4cafc066424f4b86411d17445ed8817c50",
+        "recomputed_score_hash": "sha256:014bb50080e4b9da47dd4d6be68e49ae5f37c0ebc70b9412c366a19f0415ae43"
+      }
+    },
+    {
+      "run_id": "01KYSSHQK45RNHBWKJSVVS72T0",
+      "input_fingerprint": "sha256:db381695fe8f62470e09f29ba4d904b1816608b3fc17715734e33a6c842dadb1",
+      "task_id": "build.parking-2d.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "full",
+      "exit_reason": "completed",
+      "score": {
+        "schema_version": 1,
+        "task_id": "build.parking-2d.v2",
+        "task_hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c",
+        "earned": 100,
+        "available": 100,
+        "percent": 100,
+        "hard_gate_failed": false,
+        "categories": {
+          "build": {
+            "earned": 5,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 60,
+            "available": 60
+          },
+          "state": {
+            "earned": 20,
+            "available": 20
+          },
+          "input": {
+            "earned": 10,
+            "available": 10
+          },
+          "stability": {
+            "earned": 5,
+            "available": 5
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 0,
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "oriented-motion",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 743,
+            "artifacts": []
+          },
+          {
+            "id": "reverse-steering",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 770,
+            "artifacts": []
+          },
+          {
+            "id": "collision",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 722,
+            "artifacts": []
+          },
+          {
+            "id": "parking-criteria",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 776,
+            "artifacts": []
+          },
+          {
+            "id": "clean-reset",
+            "category": "state",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 713,
+            "artifacts": []
+          },
+          {
+            "id": "distinct-levels",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 723,
+            "artifacts": []
+          },
+          {
+            "id": "keyboard-input",
+            "category": "input",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 767,
+            "artifacts": []
+          },
+          {
+            "id": "pause-stability",
+            "category": "stability",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 848,
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 784,
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 1490808,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:10b136bc534eb102d34b6f1e28a12b72a7d4d87b722e12ecf9512d8a5d971b90",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 14477,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/10/10b136bc534eb102d34b6f1e28a12b72a7d4d87b722e12ecf9512d8a5d971b90/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:4528a8d41409a595072497cfc5ce43d12f2c58c9e6f78e874cb1337466c1b27f",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 14235,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/4528a8d41409a595072497cfc5ce43d12f2c58c9e6f78e874cb1337466c1b27f/index.html"
+        },
+        {
+          "artifact_id": "sha256:c300801690512ed444af7f33214fd9d37ef068e438cd5c2438760b335c1d48de",
+          "role": "screenshot",
+          "file_name": "build.parking-2d.v2-showcase.png",
+          "size_bytes": 7622,
+          "media_type": "image/png",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/c3/c300801690512ed444af7f33214fd9d37ef068e438cd5c2438760b335c1d48de/build.parking-2d.v2-showcase.png"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:46:55.052Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:10b136bc534eb102d34b6f1e28a12b72a7d4d87b722e12ecf9512d8a5d971b90",
+        "recomputed_score_hash": "sha256:ad6d257d98149489fd03e840c2df3668e4ce6146541dac68283ccf3a581a2ec6"
+      }
+    },
+    {
+      "run_id": "01KYSTZ973EGRGEWZAWP5E3AQV",
+      "input_fingerprint": "sha256:84fff97964dd867380b2d168385ef3ffc1ea0000b658369cf3438a00b395a7af",
+      "task_id": "build.side-scroller-shooter.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:7c5291da91f68e321063d926c5a874228e0ce813787fda04f20559c16dd72d44",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "full",
+      "exit_reason": "completed",
+      "score": {
+        "schema_version": 1,
+        "task_id": "build.side-scroller-shooter.v2",
+        "task_hash": "sha256:7c5291da91f68e321063d926c5a874228e0ce813787fda04f20559c16dd72d44",
+        "earned": 100,
+        "available": 100,
+        "percent": 100,
+        "hard_gate_failed": false,
+        "categories": {
+          "build": {
+            "earned": 5,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 60,
+            "available": 60
+          },
+          "state": {
+            "earned": 20,
+            "available": 20
+          },
+          "input": {
+            "earned": 10,
+            "available": 10
+          },
+          "stability": {
+            "earned": 5,
+            "available": 5
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 0,
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "projectile-lifecycle",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 761,
+            "artifacts": []
+          },
+          {
+            "id": "enemy-variety",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 685,
+            "artifacts": []
+          },
+          {
+            "id": "damage-collision",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 690,
+            "artifacts": []
+          },
+          {
+            "id": "wave-progression",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 965,
+            "artifacts": []
+          },
+          {
+            "id": "boss-terminal",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 751,
+            "artifacts": []
+          },
+          {
+            "id": "pause-reset",
+            "category": "state",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 702,
+            "artifacts": []
+          },
+          {
+            "id": "object-cleanup",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 720,
+            "artifacts": []
+          },
+          {
+            "id": "keyboard-fire",
+            "category": "input",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 699,
+            "artifacts": []
+          },
+          {
+            "id": "long-run",
+            "category": "stability",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 699,
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 699,
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 1660384,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:3eb6a9eb0000d5bc5987389cbc5c9f3664abc54078e7629fd5f5b4bf7b06f7b5",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 14463,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/3e/3eb6a9eb0000d5bc5987389cbc5c9f3664abc54078e7629fd5f5b4bf7b06f7b5/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:9e032eddd3d39a80361a02f4d3689cca38b1afa36e3f6a9d83fa081365e180c9",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 12125,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/9e032eddd3d39a80361a02f4d3689cca38b1afa36e3f6a9d83fa081365e180c9/index.html"
+        },
+        {
+          "artifact_id": "sha256:2147d920112324498d435583ffad1b597dfd364bf0332a2699e571c2cd2a05d0",
+          "role": "screenshot",
+          "file_name": "build.side-scroller-shooter.v2-showcase.png",
+          "size_bytes": 17980,
+          "media_type": "image/png",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/21/2147d920112324498d435583ffad1b597dfd364bf0332a2699e571c2cd2a05d0/build.side-scroller-shooter.v2-showcase.png"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:47:06.626Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:3eb6a9eb0000d5bc5987389cbc5c9f3664abc54078e7629fd5f5b4bf7b06f7b5",
+        "recomputed_score_hash": "sha256:8d8a4ed8b315bce80dc5a5e4dd83f2abd7ab2b837fc71ce95ed357ce3eaf7baf"
+      }
+    },
+    {
+      "run_id": "01KYSWJ002XYYGGNSY61N8BFDG",
+      "input_fingerprint": "sha256:1e522c23163621c1bf21b42d8825549fd6556d38c96d4527fc91377e801c62c0",
+      "task_id": "build.tetris.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:c972d0f4b4f10478e51bc23700af9234ca86283ef6deb0462089f6b378e5434d",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "full",
+      "exit_reason": "completed",
+      "score": {
+        "schema_version": 1,
+        "task_id": "build.tetris.v2",
+        "task_hash": "sha256:c972d0f4b4f10478e51bc23700af9234ca86283ef6deb0462089f6b378e5434d",
+        "earned": 100,
+        "available": 100,
+        "percent": 100,
+        "hard_gate_failed": false,
+        "categories": {
+          "build": {
+            "earned": 5,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 60,
+            "available": 60
+          },
+          "state": {
+            "earned": 20,
+            "available": 20
+          },
+          "input": {
+            "earned": 10,
+            "available": 10
+          },
+          "stability": {
+            "earned": 5,
+            "available": 5
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 0,
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "seven-pieces",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 796,
+            "artifacts": []
+          },
+          {
+            "id": "collision-rotation",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 717,
+            "artifacts": []
+          },
+          {
+            "id": "line-clear",
+            "category": "mechanics",
+            "points": 20,
+            "passed": true,
+            "duration_ms": 754,
+            "artifacts": []
+          },
+          {
+            "id": "hard-drop",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 759,
+            "artifacts": []
+          },
+          {
+            "id": "pause-reset",
+            "category": "state",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 740,
+            "artifacts": []
+          },
+          {
+            "id": "score-level",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 702,
+            "artifacts": []
+          },
+          {
+            "id": "keyboard-input",
+            "category": "input",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 697,
+            "artifacts": []
+          },
+          {
+            "id": "rapid-input",
+            "category": "stability",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 718,
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 798,
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 967462,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:65fee4adb238ebe5b373a6ae6b0091b01960f5190d5fcac28596e2ef7e99e52a",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 14367,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/65/65fee4adb238ebe5b373a6ae6b0091b01960f5190d5fcac28596e2ef7e99e52a/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:47bd8f3a6bf5b952fc1a2d123b33987c8023a4acf6683761036d154c83e7aeed",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 13503,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/47bd8f3a6bf5b952fc1a2d123b33987c8023a4acf6683761036d154c83e7aeed/index.html"
+        },
+        {
+          "artifact_id": "sha256:ef9a2f2811813cfef4c21e1ac543b7ef73ddc7b69bbaef9884788cf5dc2a91a5",
+          "role": "screenshot",
+          "file_name": "build.tetris.v2-showcase.png",
+          "size_bytes": 268387,
+          "media_type": "image/png",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/ef/ef9a2f2811813cfef4c21e1ac543b7ef73ddc7b69bbaef9884788cf5dc2a91a5/build.tetris.v2-showcase.png"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:47:17.992Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:65fee4adb238ebe5b373a6ae6b0091b01960f5190d5fcac28596e2ef7e99e52a",
+        "recomputed_score_hash": "sha256:2ba15888d7f766489ddc97df1639a9e9f84b799f30f8ab53bd635c6f06cf10f2"
+      }
+    },
+    {
+      "run_id": "01KYSXFJ018CJNPE8AYECJ2ASM",
+      "input_fingerprint": "sha256:16df540a7aae0db893f41e9fc949c3c83ffbdd4de7cd54f5c9daea4debc17adb",
+      "task_id": "build.tower-defense.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:e7106a56689499d53fb544b8eb509230367a2ad779b119b3f2f1d3bcaaa09d45",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "full",
+      "exit_reason": "agent-error",
+      "score": {
+        "schema_version": 1,
+        "task_id": "build.tower-defense.v2",
+        "task_hash": "sha256:e7106a56689499d53fb544b8eb509230367a2ad779b119b3f2f1d3bcaaa09d45",
+        "earned": 100,
+        "available": 100,
+        "percent": 100,
+        "hard_gate_failed": false,
+        "categories": {
+          "build": {
+            "earned": 5,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 60,
+            "available": 60
+          },
+          "state": {
+            "earned": 20,
+            "available": 20
+          },
+          "input": {
+            "earned": 10,
+            "available": 10
+          },
+          "stability": {
+            "earned": 5,
+            "available": 5
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 0,
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "path-following",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 701,
+            "artifacts": []
+          },
+          {
+            "id": "range-targeting",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 772,
+            "artifacts": []
+          },
+          {
+            "id": "economy",
+            "category": "mechanics",
+            "points": 15,
+            "passed": true,
+            "duration_ms": 703,
+            "artifacts": []
+          },
+          {
+            "id": "wave-progression",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 684,
+            "artifacts": []
+          },
+          {
+            "id": "upgrade-effect",
+            "category": "mechanics",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 698,
+            "artifacts": []
+          },
+          {
+            "id": "pause-reset",
+            "category": "state",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 697,
+            "artifacts": []
+          },
+          {
+            "id": "enemy-lifecycle",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 689,
+            "artifacts": []
+          },
+          {
+            "id": "pointer-input",
+            "category": "input",
+            "points": 10,
+            "passed": true,
+            "duration_ms": 846,
+            "artifacts": []
+          },
+          {
+            "id": "load-stability",
+            "category": "stability",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 747,
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "state",
+            "points": 5,
+            "passed": true,
+            "duration_ms": 722,
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 743197,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:26fb4e8bc9ae0157e9ca78a874233517265b40d1ef4632774e034ac710196896",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 16022,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/26/26fb4e8bc9ae0157e9ca78a874233517265b40d1ef4632774e034ac710196896/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:e5fe977dddde648a7be02490f0e715a28fb9c672b9e5f3507e66cd718bbd7498",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 16150,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/e5fe977dddde648a7be02490f0e715a28fb9c672b9e5f3507e66cd718bbd7498/index.html"
+        },
+        {
+          "artifact_id": "sha256:765c72e4e5640d5082bd2d7f75edc8272f3a0211e4dc7d0ed547327df7632b71",
+          "role": "screenshot",
+          "file_name": "build.tower-defense.v2-showcase.png",
+          "size_bytes": 85439,
+          "media_type": "image/png",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/76/765c72e4e5640d5082bd2d7f75edc8272f3a0211e4dc7d0ed547327df7632b71/build.tower-defense.v2-showcase.png"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:47:30.857Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:26fb4e8bc9ae0157e9ca78a874233517265b40d1ef4632774e034ac710196896",
+        "recomputed_score_hash": "sha256:f62f6db97e97b520679895371f0855ac4be5d593229198708aec0a43bf96974d"
+      }
+    },
+    {
+      "run_id": "01KYSY68YRW56NT2ENCARB55MS",
+      "input_fingerprint": "sha256:3c120eab73bd806711d0d4b4c6011bbb7d2e43172367575695a699f1a98091dc",
+      "task_id": "reproduce.ohsteem.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:6e98888bb72f7372652962b31929e2beaa617fb63ff5787b531a3c0ddaa3673b",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "model-api-only",
+      "exit_reason": "agent-error",
+      "score": {
+        "schema_version": 1,
+        "task_id": "reproduce.ohsteem.v2",
+        "task_hash": "sha256:6e98888bb72f7372652962b31929e2beaa617fb63ff5787b531a3c0ddaa3673b",
+        "earned": 0,
+        "available": 100,
+        "percent": 0,
+        "hard_gate_failed": true,
+        "categories": {
+          "build": {
+            "earned": 0,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 0,
+            "available": 45
+          },
+          "feel": {
+            "earned": 0,
+            "available": 20
+          },
+          "visual": {
+            "earned": 0,
+            "available": 20
+          },
+          "stability": {
+            "earned": 0,
+            "available": 10
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "bridge snapshot does not match state.schema.json: <root> must have required property 'seed'; /state must have required property 'boardSize'; /state must have required property 'cells'; /state must have required property 'valid'; /state must have required property 'violations'; /state must have required property 'moves'; /state must have required property 'feedback'; /state must have required property 'puzzleSignature'",
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "cell-cycle",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "no-three",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "balanced-colors",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "unique-lines",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "completion",
+            "category": "mechanics",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "input-feedback",
+            "category": "feel",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "size-reset",
+            "category": "feel",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "visual-home",
+            "category": "visual",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "visual-board",
+            "category": "visual",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "deterministic-puzzle",
+            "category": "stability",
+            "points": 2.5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "locked-cell",
+            "category": "stability",
+            "points": 2.5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "stability",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 14639,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:79c60a13458f729e90c833a2e81b6dd9ae4c83f0a87ef7a3313eb2678e8e3f41",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 7937,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/79/79c60a13458f729e90c833a2e81b6dd9ae4c83f0a87ef7a3313eb2678e8e3f41/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:d2d8028a598ae1e2d61db173f0ef88061200172718ceab02c9320ef692f4411a",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 2227,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/d2d8028a598ae1e2d61db173f0ef88061200172718ceab02c9320ef692f4411a/index.html"
+        },
+        {
+          "artifact_id": "sha256:84fe1c6e7074a9a07f02551861d0c71d05dc072cd21dffb802cc7675d35c66b4",
+          "role": "license",
+          "file_name": "THIRD_PARTY.yml",
+          "size_bytes": 896,
+          "media_type": "text/yaml",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/84/84fe1c6e7074a9a07f02551861d0c71d05dc072cd21dffb802cc7675d35c66b4/THIRD_PARTY.yml"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:47:34.823Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:79c60a13458f729e90c833a2e81b6dd9ae4c83f0a87ef7a3313eb2678e8e3f41",
+        "recomputed_score_hash": "sha256:799b45cb5346eaf6a33dc057e1669d9458b8246f933fecf6cb8b349bd772782e"
+      }
+    },
+    {
+      "run_id": "01KYSY6RFZJXR2VSHJPDZW6E1F",
+      "input_fingerprint": "sha256:764c2921932e84b2f31ada7a3c5785b8cc658333f0eaf254a746c87f9f313fce",
+      "task_id": "reproduce.radius-raid.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:3fdc85d6f5407bf3698dca03b04fa606e488d236d91e260280ebc9225a74284a",
+      "seed": 104729,
+      "attempt": 1,
+      "included": true,
+      "network_policy": "model-api-only",
+      "exit_reason": "agent-error",
+      "score": {
+        "schema_version": 1,
+        "task_id": "reproduce.radius-raid.v2",
+        "task_hash": "sha256:3fdc85d6f5407bf3698dca03b04fa606e488d236d91e260280ebc9225a74284a",
+        "earned": 0,
+        "available": 100,
+        "percent": 0,
+        "hard_gate_failed": true,
+        "categories": {
+          "build": {
+            "earned": 0,
+            "available": 5
+          },
+          "mechanics": {
+            "earned": 0,
+            "available": 45
+          },
+          "feel": {
+            "earned": 0,
+            "available": 20
+          },
+          "visual": {
+            "earned": 0,
+            "available": 20
+          },
+          "stability": {
+            "earned": 0,
+            "available": 10
+          }
+        },
+        "tests": [
+          {
+            "id": "build",
+            "category": "build",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "bridge snapshot does not match state.schema.json: <root> must have required property 'seed'; /state must have required property 'hero'; /state must have required property 'life'; /state must have required property 'shield'; /state must have required property 'enemyCount'; /state must have required property 'enemyTypes'; /state must have required property 'bulletCount'; /state must have required property 'bulletsFired'; /state must have required property 'particleCount'",
+            "artifacts": [
+              "build.log",
+              "build.stderr.log"
+            ]
+          },
+          {
+            "id": "start-controls",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "shooting",
+            "category": "mechanics",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "enemy-variety",
+            "category": "mechanics",
+            "points": 12,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "powerup",
+            "category": "mechanics",
+            "points": 8,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "damage-score",
+            "category": "mechanics",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "movement-feel",
+            "category": "feel",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "fire-cadence",
+            "category": "feel",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "visual-menu",
+            "category": "visual",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "visual-combat",
+            "category": "visual",
+            "points": 10,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "pause",
+            "category": "stability",
+            "points": 2.5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "restart-cleanup",
+            "category": "stability",
+            "points": 2.5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          },
+          {
+            "id": "run-seed",
+            "category": "stability",
+            "points": 5,
+            "passed": false,
+            "duration_ms": 0,
+            "message": "not run because the build gate failed",
+            "artifacts": []
+          }
+        ]
+      },
+      "wall_time_ms": 17874,
+      "usage": {
+        "source": "not-reported"
+      },
+      "artifacts": [
+        {
+          "artifact_id": "sha256:8ef87e82b1f97507c503c1ad66476fee528ffe4255a09d054c58d9e55b724958",
+          "role": "clean-source",
+          "file_name": "clean-source.tar.zst",
+          "size_bytes": 8003,
+          "media_type": "application/zstd",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/8e/8ef87e82b1f97507c503c1ad66476fee528ffe4255a09d054c58d9e55b724958/clean-source.tar.zst"
+        },
+        {
+          "artifact_id": "sha256:d2d8028a598ae1e2d61db173f0ef88061200172718ceab02c9320ef692f4411a",
+          "role": "playable",
+          "file_name": "index.html",
+          "size_bytes": 2227,
+          "media_type": "text/html",
+          "url": "https://play.gamebench.ai.carrick7.com/play/d2d8028a598ae1e2d61db173f0ef88061200172718ceab02c9320ef692f4411a/index.html"
+        },
+        {
+          "artifact_id": "sha256:c5d624b44f2d55aa6395bc00df42f94a2206741878887e2e0b9784fe48174bd9",
+          "role": "license",
+          "file_name": "THIRD_PARTY.yml",
+          "size_bytes": 753,
+          "media_type": "text/yaml",
+          "url": "https://play.gamebench.ai.carrick7.com/objects/sha256/c5/c5d624b44f2d55aa6395bc00df42f94a2206741878887e2e0b9784fe48174bd9/THIRD_PARTY.yml"
+        }
+      ],
+      "reproduction": {
+        "schema_version": 1,
+        "prepared_at": "2026-07-30T22:47:38.675Z",
+        "benchmark_release_hash": "sha256:d77e10e5f4a83fb92131acac2640eb249de049270b102009a017409d8bb664ae",
+        "clean_source_artifact_id": "sha256:8ef87e82b1f97507c503c1ad66476fee528ffe4255a09d054c58d9e55b724958",
+        "recomputed_score_hash": "sha256:83e2568e740280b38f400feb109ca67ceb971c8a67821d918194043c62a7b472"
+      }
+    }
+  ],
+  "review_summaries": []
+}
