@@ -72,7 +72,7 @@ const socialImage = new URL("/og.png", canonical);
   <body>
     <header class="topbar">
       <a class="brand" href="/">
-        <span class="brand-mark" aria-hidden="true">GB</span>
+        <span class="brand-mark" aria-hidden="true"><img src="/carrick-logo.svg" alt="" /></span>
         <span class="brand-copy"><strong>GameBench</strong><small>PLAY THE PROOF</small></span>
       </a>
       <nav aria-label="Primary navigation">
@@ -257,17 +257,17 @@ const socialImage = new URL("/og.png", canonical);
 <style is:global>
   :root {
     color-scheme: light;
-    --ink: #10130f;
-    --muted: #60675e;
-    --line: #cdd2c8;
-    --paper: #f2f2e9;
-    --panel: rgba(255, 255, 250, .78);
-    --panel-solid: #fffffa;
-    --accent: #165dff;
-    --accent-soft: #dce6ff;
-    --hot: #ff5a36;
-    --lime: #c7ff47;
-    --shadow: 0 18px 60px rgba(34, 39, 31, .12);
+    --ink: #132321;
+    --muted: #5c706d;
+    --line: #c6d8d5;
+    --paper: #f4f6f6;
+    --panel: rgba(255, 255, 255, .8);
+    --panel-solid: #ffffff;
+    --accent: #278f87;
+    --accent-soft: #d8f1ef;
+    --hot: #ff6b9d;
+    --lime: #5dddd4;
+    --shadow: 0 18px 60px rgba(16, 63, 59, .12);
     --radius: 18px;
     --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -276,17 +276,17 @@ const socialImage = new URL("/og.png", canonical);
 
   html[data-theme="arcade"] {
     color-scheme: dark;
-    --ink: #fff7dc;
-    --muted: #b9add2;
-    --line: #4b376d;
-    --paper: #0d071d;
-    --panel: rgba(25, 15, 50, .9);
-    --panel-solid: #190f32;
-    --accent: #50f4df;
-    --accent-soft: #173f47;
-    --hot: #ff5d9e;
-    --lime: #d7ff40;
-    --shadow: 8px 8px 0 #05030d;
+    --ink: #eefaff;
+    --muted: #9bb8cb;
+    --line: rgba(0, 255, 255, .25);
+    --paper: #04060f;
+    --panel: rgba(8, 13, 28, .92);
+    --panel-solid: #080d1c;
+    --accent: #00ffff;
+    --accent-soft: #0d2935;
+    --hot: #ff00d4;
+    --lime: #00ff88;
+    --shadow: 8px 8px 0 #01030a;
     --radius: 2px;
     --display: var(--mono);
   }
@@ -321,9 +321,9 @@ const socialImage = new URL("/og.png", canonical);
   }
   html[data-theme="arcade"] body {
     background:
-      radial-gradient(circle at 20% 0%, rgba(106, 58, 198, .35), transparent 34rem),
-      radial-gradient(circle at 90% 35%, rgba(255, 40, 137, .2), transparent 30rem),
-      #0d071d;
+      radial-gradient(circle at 20% 0%, rgba(0, 255, 255, .16), transparent 34rem),
+      radial-gradient(circle at 90% 35%, rgba(255, 0, 212, .15), transparent 30rem),
+      #04060f;
     cursor: crosshair;
   }
   html[data-theme="arcade"] body::before {
@@ -351,12 +351,9 @@ const socialImage = new URL("/og.png", canonical);
     backdrop-filter: blur(18px) saturate(1.2);
   }
   .brand { align-items: center; display: flex; gap: 11px; text-decoration: none; }
-  .brand-mark {
-    align-items: center; background: var(--ink); border-radius: 9px; color: var(--lime);
-    display: inline-flex; font-family: var(--mono); font-size: 11px; font-weight: 900;
-    height: 38px; justify-content: center; letter-spacing: -.08em; transform: rotate(-3deg); width: 38px;
-  }
-  html[data-theme="arcade"] .brand-mark { border-radius: 0; box-shadow: 4px 4px 0 var(--hot); }
+  .brand-mark { display: inline-flex; height: 38px; width: 58px; }
+  .brand-mark img { display: block; height: 100%; object-fit: contain; width: 100%; }
+  html[data-theme="arcade"] .brand-mark { filter: drop-shadow(0 0 8px rgba(0, 255, 255, .38)); }
   .brand-copy { display: grid; gap: 1px; }
   .brand-copy strong { font-family: var(--display); font-size: 18px; letter-spacing: -.04em; }
   .brand-copy small { color: var(--muted); font-family: var(--mono); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
@@ -375,10 +372,10 @@ const socialImage = new URL("/og.png", canonical);
   html[data-theme="arcade"] .mode-switch,
   html[data-theme="arcade"] .mode-switch button { border-radius: 0; }
   .language-toggle {
-    background: var(--hot); border: 1px solid var(--hot); border-radius: 999px; color: white;
+    background: #39c5bb; border: 1px solid #39c5bb; border-radius: 999px; color: #071c1a;
     flex: 0 0 auto; font-family: var(--mono); font-size: 11px; font-weight: 900; padding: 8px 10px;
   }
-  html[data-theme="arcade"] .language-toggle { border-radius: 0; box-shadow: 3px 3px 0 var(--lime); color: #130a24; }
+  html[data-theme="arcade"] .language-toggle { background: var(--accent); border-color: var(--accent); border-radius: 0; box-shadow: 3px 3px 0 var(--hot); color: #04060f; }
   .language-toggle:hover { filter: brightness(1.08); transform: translateY(-1px); }
   .status-rail {
     align-items: center; background: var(--ink); color: var(--paper); display: flex; font-family: var(--mono);
@@ -401,7 +398,7 @@ const socialImage = new URL("/og.png", canonical);
   html[data-language="zh"] .status-rail,
   html[data-language="zh"] th { letter-spacing: .04em; }
   html[data-theme="arcade"] h1,
-  html[data-theme="arcade"] h2 { letter-spacing: -.08em; text-shadow: 4px 4px 0 rgba(255, 93, 158, .25); }
+  html[data-theme="arcade"] h2 { letter-spacing: -.08em; text-shadow: 4px 4px 0 rgba(255, 0, 212, .2); }
   html[data-language="zh"][data-theme="arcade"] h1,
   html[data-language="zh"][data-theme="arcade"] h2 { letter-spacing: -.025em; }
   p { color: var(--muted); line-height: 1.7; }
@@ -427,7 +424,7 @@ const socialImage = new URL("/og.png", canonical);
     box-shadow: 0 1px 0 rgba(255,255,255,.35) inset; padding: 24px; transition: border-color .18s ease, transform .18s ease, box-shadow .18s ease;
   }
   .card:hover { border-color: var(--accent); box-shadow: var(--shadow); transform: translateY(-3px); }
-  html[data-theme="arcade"] .card { box-shadow: 6px 6px 0 #05030d; }
+  html[data-theme="arcade"] .card { box-shadow: 6px 6px 0 #01030a; }
   html[data-theme="arcade"] .card:hover { box-shadow: 6px 6px 0 var(--hot); transform: translate(-2px, -2px); }
   .card p:last-child { margin-bottom: 0; }
   .metric { overflow: hidden; position: relative; }
@@ -454,7 +451,7 @@ const socialImage = new URL("/og.png", canonical);
   td { font-size: 13px; }
   td.score { color: var(--accent); font-family: var(--display); font-size: 21px; font-weight: 900; }
   .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
-  html[data-theme="arcade"] .table-wrap { box-shadow: 6px 6px 0 #05030d; }
+  html[data-theme="arcade"] .table-wrap { box-shadow: 6px 6px 0 #01030a; }
   .empty { display: grid; gap: 9px; justify-items: center; padding: 64px 24px; text-align: center; }
   .empty::before { color: var(--hot); content: "◇"; font-family: var(--mono); font-size: 34px; }
   .empty strong { display: block; font-size: 20px; }
@@ -540,7 +537,7 @@ const socialImage = new URL("/og.png", canonical);
   .hero-game:nth-child(3) { bottom: 0; right: 8%; transform: rotate(2deg); z-index: 4; }
   .hero-game:hover { transform: rotate(0) scale(1.035); z-index: 8; }
   .hero-game .score-chip { background: var(--hot); border-radius: 999px; color: white; font-family: var(--mono); padding: 4px 7px; }
-  html[data-theme="arcade"] .hero-game { border-radius: 0; box-shadow: 8px 8px 0 #05030d; }
+  html[data-theme="arcade"] .hero-game { border-radius: 0; box-shadow: 8px 8px 0 #01030a; }
   .hero-badge { align-items: center; background: var(--lime); border: 2px solid var(--ink); border-radius: 50%; color: #152006; display: flex; font-family: var(--display); font-size: 16px; height: 105px; justify-content: center; line-height: 1; padding: 15px; position: absolute; right: -2%; text-align: center; text-transform: uppercase; top: 43%; transform: rotate(9deg); width: 105px; z-index: 9; }
   html[data-theme="arcade"] .hero-badge { border-radius: 0; box-shadow: 5px 5px 0 var(--hot); }
   .how-grid { counter-reset: step; }

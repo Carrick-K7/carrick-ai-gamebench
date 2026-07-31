@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 140" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <filter id="neon-glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="2" result="blur1"/>
+      <feGaussianBlur stdDeviation="4" result="blur2"/>
+      <feGaussianBlur stdDeviation="8" result="blur3"/>
+      <feMerge>
+        <feMergeNode in="blur3"/>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <style>
+    @media (prefers-color-scheme: dark) {
+      .logo { filter: url(#neon-glow) drop-shadow(0 0 8px rgba(57, 197, 187, 0.5)); }
+    }
+  </style>
+  <g class="logo" fill="#39C5BB" transform="translate(38.5, 14)">
+    <g id="char-C">
+      <polygon points="18,5 42,5 47,10 42,15 18,15 13,10"/>
+      <polygon points="5,18 10,13 15,18 15,48 10,53 5,48"/>
+      <polygon points="5,64 10,59 15,64 15,94 10,99 5,94"/>
+      <polygon points="18,97 42,97 47,102 42,107 18,107 13,102"/>
+    </g>
+    <g id="char-0" transform="translate(66, 0)">
+      <polygon points="18,5 42,5 47,10 42,15 18,15 13,10"/>
+      <polygon points="45,18 50,13 55,18 55,48 50,53 45,48"/>
+      <polygon points="45,64 50,59 55,64 55,94 50,99 45,94"/>
+      <polygon points="18,97 42,97 47,102 42,107 18,107 13,102"/>
+      <polygon points="5,64 10,59 15,64 15,94 10,99 5,94"/>
+      <polygon points="5,18 10,13 15,18 15,48 10,53 5,48"/>
+    </g>
+    <g id="char-1" transform="translate(103, 0)">
+      <polygon points="45,12 50,7 55,12 55,48 50,53 45,48"/>
+      <polygon points="45,64 50,59 55,64 55,100 50,105 45,100"/>
+    </g>
+  </g>
+</svg>

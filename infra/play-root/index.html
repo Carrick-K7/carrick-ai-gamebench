@@ -20,8 +20,8 @@
       :root {
         color-scheme: dark;
         font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background: #0d071d;
-        color: #fff7dc;
+        background: #04060f;
+        color: #eefaff;
       }
       * { box-sizing: border-box; }
       body {
@@ -29,9 +29,9 @@
         background:
           linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
           linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
-          radial-gradient(circle at 18% 10%, rgba(80, 244, 223, .22), transparent 38%),
-          radial-gradient(circle at 88% 78%, rgba(255, 93, 158, .19), transparent 36%),
-          #0d071d;
+          radial-gradient(circle at 18% 10%, rgba(0, 255, 255, .18), transparent 38%),
+          radial-gradient(circle at 88% 78%, rgba(255, 0, 212, .15), transparent 36%),
+          #04060f;
         background-size: 32px 32px, 32px 32px, auto, auto, auto;
         cursor: crosshair;
         display: flex;
@@ -41,10 +41,10 @@
         padding: 28px;
       }
       main {
-        background: rgba(25, 15, 50, .94);
-        border: 2px solid #50f4df;
+        background: rgba(8, 13, 28, .94);
+        border: 2px solid #00ffff;
         border-radius: 2px;
-        box-shadow: 10px 10px 0 #05030d, 16px 16px 0 #ff5d9e;
+        box-shadow: 10px 10px 0 #01030a, 16px 16px 0 #ff00d4;
         max-width: 720px;
         padding: clamp(28px, 6vw, 56px);
         width: 100%;
@@ -52,30 +52,31 @@
       header { align-items: center; display: flex; justify-content: space-between; }
       .brand { align-items: center; display: flex; font-weight: 780; gap: 11px; }
       .mark {
-        align-items: center; background: #d7ff40; border-radius: 0; box-shadow: 4px 4px 0 #ff5d9e; color: #130a24;
-        display: inline-flex; font-family: monospace; font-size: 11px; height: 36px; justify-content: center; width: 36px;
+        align-items: center; color: #39c5bb; display: inline-flex; font-family: monospace; font-size: 12px;
+        font-weight: 900; height: 36px; justify-content: center; letter-spacing: -.12em;
+        text-shadow: 0 0 10px rgba(57,197,187,.55); width: 42px;
       }
       button {
-        background: transparent; border: 1px solid #50f4df; border-radius: 0; color: #fff7dc;
+        background: transparent; border: 1px solid #00ffff; border-radius: 0; color: #eefaff;
         cursor: pointer; font: 700 12px monospace; padding: 7px 12px;
       }
       .status {
-        color: #50f4df; font: 700 12px monospace; letter-spacing: .1em;
+        color: #00ffff; font: 700 12px monospace; letter-spacing: .1em;
         margin: 68px 0 18px; text-transform: uppercase;
       }
-      h1 { font-family: monospace; font-size: clamp(36px, 8vw, 64px); letter-spacing: -.075em; line-height: .95; margin: 0 0 24px; text-shadow: 5px 5px 0 rgba(255,93,158,.25); text-transform: uppercase; }
-      p { color: #b9add2; font-size: 17px; line-height: 1.7; margin: 0; }
+      h1 { font-family: monospace; font-size: clamp(36px, 8vw, 64px); letter-spacing: -.075em; line-height: .95; margin: 0 0 24px; text-shadow: 5px 5px 0 rgba(255,0,212,.2); text-transform: uppercase; }
+      p { color: #9bb8cb; font-size: 17px; line-height: 1.7; margin: 0; }
       nav { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 36px; }
       a {
-        background: #d7ff40; border: 1px solid #d7ff40; border-radius: 0; box-shadow: 4px 4px 0 #ff5d9e; color: #130a24;
+        background: #00ffff; border: 1px solid #00ffff; border-radius: 0; box-shadow: 4px 4px 0 #ff00d4; color: #04060f;
         font-size: 14px; font-weight: 750; padding: 12px 16px; text-decoration: none;
       }
-      a:hover { box-shadow: 1px 1px 0 #50f4df; transform: translate(3px, 3px); }
-      a.secondary { background: transparent; border-color: #4b376d; box-shadow: none; color: #fff7dc; }
+      a:hover { box-shadow: 1px 1px 0 #00ff88; transform: translate(3px, 3px); }
+      a.secondary { background: transparent; border-color: rgba(0,255,255,.25); box-shadow: none; color: #eefaff; }
       .coins { display: flex; gap: 8px; margin-top: 32px; }
-      .coins i { animation: blink 1.4s steps(2,end) infinite; background: #50f4df; display: block; height: 7px; width: 7px; }
-      .coins i:nth-child(2) { animation-delay: .2s; background: #ff5d9e; }
-      .coins i:nth-child(3) { animation-delay: .4s; background: #d7ff40; }
+      .coins i { animation: blink 1.4s steps(2,end) infinite; background: #00ffff; display: block; height: 7px; width: 7px; }
+      .coins i:nth-child(2) { animation-delay: .2s; background: #ff00d4; }
+      .coins i:nth-child(3) { animation-delay: .4s; background: #00ff88; }
       @keyframes blink { 50% { opacity: .15; } }
       [data-lang="zh"] { display: none; }
       html[lang="zh-CN"] [data-lang="en"] { display: none; }
@@ -85,7 +86,7 @@
   <body>
     <main>
       <header>
-        <div class="brand"><span class="mark">G</span> GameBench Play</div>
+        <div class="brand"><span class="mark">C01</span> GameBench Play</div>
         <button type="button" data-toggle aria-label="Switch to Chinese">中文</button>
       </header>
       <div class="status">
