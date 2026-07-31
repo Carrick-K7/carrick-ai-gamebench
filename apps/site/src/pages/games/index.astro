@@ -12,12 +12,12 @@ const current = catalogs[0];
 
 <Layout title="Games" description="Versioned game tasks and generated outputs in GameBench.">
   <div class="container">
-    <span class="eyebrow">Evaluation set</span>
-    <h1>Games expose what code alone can hide.</h1>
+    <span class="eyebrow">Choose your game</span>
+    <h1>Eight challenges. Dozens of model-made versions.</h1>
     <p class="lead">
-      Build tasks create games from specifications. Reproduce tasks recover an
-      existing open-source game's behavior from licensed reference material.
-      Each catalog is frozen by Benchmark version.
+      Open a challenge to play different models solving the same brief. Six
+      games are made from scratch; two ask the model to recreate an existing
+      open-source game.
     </p>
 
     <div class="actions">
@@ -35,10 +35,10 @@ const current = catalogs[0];
       <section class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Current catalog</span>
-            <h2>Benchmark v{current.release.benchmark_version}</h2>
+            <span class="eyebrow">Current season · v{current.release.benchmark_version}</span>
+            <h2>Pick a challenge.</h2>
           </div>
-          <p>{current.release.task_count} immutable task contracts.</p>
+          <p>Each card shows how many model-made builds are ready to play.</p>
         </div>
         <GameCatalogView catalog={current} records={results.records} />
       </section>

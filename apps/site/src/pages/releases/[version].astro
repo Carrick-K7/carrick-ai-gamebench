@@ -37,58 +37,61 @@ const seedPolicyChanged =
   previous &&
   JSON.stringify("official" in previous.release ? previous.release.official : null) !==
     JSON.stringify("official" in release ? release.official : null);
+const taskTitles = (task: (typeof catalog.tasks)[number]) =>
+  task.source?.manifest.title ?? { en: task.id, zh: task.id };
 ---
 
 <Layout title={`Release v${release.benchmark_version}`}>
   <div class="container">
-    <span class="eyebrow">Immutable release contract</span>
+    <span class="eyebrow">GameBench season</span>
     <h1>GameBench v{release.benchmark_version}</h1>
     <p class="lead">
-      {release.task_count} tasks · release schema v{release.schema_version}.
-      Results from this version are comparable only with other v{release.benchmark_version}
-      publications.
+      {release.task_count} game challenges share one scoring ruleset. Results
+      from this version compete only with other v{release.benchmark_version} runs.
     </p>
     <div class="actions">
       <a
         class="button"
         href={`/benchmarks/${release.benchmark_version}/leaderboard`}
       >
-        Official leaderboard
+        Official board
       </a>
       <a
         class="button secondary"
         href={`/benchmarks/${release.benchmark_version}/games`}
       >
-        Game catalog
+        Play the games
       </a>
       <a
         class="button secondary"
         href={`https://github.com/Carrick-K7/carrick-ai-gamebench/tree/v${release.benchmark_version}`}
       >
-        Git tag
+        Frozen source tag
       </a>
     </div>
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Catalog</span><h2>Frozen task identities.</h2></div>
+        <div><span class="eyebrow">Games in this season</span><h2>The complete challenge list.</h2></div>
       </div>
       <div class="table-wrap">
         <table>
           <thead>
-            <tr><th>Task</th><th>Track</th><th>Version</th><th>Source</th><th>Hash</th></tr>
+            <tr><th>Game challenge</th><th>Type</th><th>Version</th><th>Source retained</th><th>Content ID</th></tr>
           </thead>
           <tbody>
             {catalog.tasks.map((task) => (
               <tr>
                 <td>
                   <a href={`/benchmarks/${release.benchmark_version}/games/${task.id}`}>
-                    {task.id}
+                    <span class="lang-en">{taskTitles(task).en}</span>
+                    <span class="lang-zh">{taskTitles(task).zh}</span>
                   </a>
+                  <div class="mono muted">{task.id}</div>
                 </td>
-                <td>{task.track}</td>
+                <td>{task.track === "build" ? "Made new" : "Recreated"}</td>
                 <td class="mono">{task.version}</td>
-                <td>{task.source ? "retained" : "lock only"}</td>
+                <td>{task.source ? "Yes" : "Identity only"}</td>
                 <td class="mono">{task.hash.slice(0, 23)}…</td>
               </tr>
             ))}
@@ -99,7 +102,7 @@ const seedPolicyChanged =
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Adjacent change</span><h2>What changed.</h2></div>
+        <div><span class="eyebrow">Compared with the prior season</span><h2>What changed?</h2></div>
         <p>
           {previous
             ? `Compared with v${previous.release.benchmark_version}.`
@@ -137,14 +140,18 @@ const seedPolicyChanged =
     </section>
 
     <section class="section prose">
-      <h2>Protocol identity</h2>
-      <pre><code>{JSON.stringify(release.protocols, null, 2)}</code></pre>
-      {"scoring" in release && (
-        <><h3>Scoring</h3><pre><code>{JSON.stringify(release.scoring, null, 2)}</code></pre></>
-      )}
-      {"official" in release && (
-        <><h3>Official matrix</h3><pre><code>{JSON.stringify(release.official, null, 2)}</code></pre></>
-      )}
+      <details class="audit">
+        <summary>Protocol, scoring, and Official matrix JSON</summary>
+        <div class="audit-body">
+          <h3>Protocols</h3><pre><code>{JSON.stringify(release.protocols, null, 2)}</code></pre>
+          {"scoring" in release && (
+            <><h3>Scoring</h3><pre><code>{JSON.stringify(release.scoring, null, 2)}</code></pre></>
+          )}
+          {"official" in release && (
+            <><h3>Official matrix</h3><pre><code>{JSON.stringify(release.official, null, 2)}</code></pre></>
+          )}
+        </div>
+      </details>
     </section>
   </div>
 </Layout>

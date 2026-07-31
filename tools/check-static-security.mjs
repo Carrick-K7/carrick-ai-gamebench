@@ -51,7 +51,8 @@ const requirements = [
   {
     valid:
       showcase.includes("referrerPolicy = \"no-referrer\"") &&
-      showcase.includes("loads only after you press Play"),
+      showcase.includes("data-player data-src={playable.url}") &&
+      showcase.includes('querySelector("[data-load]")?.addEventListener'),
     message: "the player must be explicit, lazy, and referrer-isolated",
   },
 ];

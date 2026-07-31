@@ -2,70 +2,88 @@
 import Layout from "../layouts/Layout.astro";
 ---
 
-<Layout title="Methodology" description="How GameBench executes, scores, verifies, and publishes coding-agent game results.">
+<Layout title="How scoring works" description="A plain-language guide to how GameBench builds, tests, verifies, and publishes model-made games.">
   <div class="container">
-    <span class="eyebrow">Public methodology</span>
-    <h1>Score the mechanics. Playtest the experience.</h1>
+    <span class="eyebrow">Scoring without magic</span>
+    <h1>We test the rules. Humans judge the fun.</h1>
     <p class="lead">
-      GameBench keeps machine evaluation, human judgment, and publication trust
-      separate. Each answers a different question and remains independently auditable.
+      A game can be technically correct and still feel awful. It can also look
+      great while breaking its own rules. GameBench keeps those judgments
+      separate so every number means one understandable thing.
     </p>
 
-    <div class="prose section">
-      <h2>1. Freeze one exact benchmark</h2>
-      <p>
-        A benchmark release locks every task ID, task version, content hash,
-        bridge protocol, scoring version, official seed, and aggregation rule.
-        Results from different releases are not merged.
-      </p>
-
-      <h2>2. Run in a fresh workspace</h2>
-      <p>
-        The agent receives a starter, prompt, public state schema, complete
-        public cases, scored manifest, active seed, fixed budget, and declared
-        network policy. Each real execution receives a unique
-        <code>run_id</code>; equivalent inputs share an
-        <code>input_fingerprint</code> but are never overwritten.
-      </p>
-
-      <h2>3. Test state and interface</h2>
-      <p>
-        Browser cases combine native keyboard and pointer operations with a
-        deterministic bridge for reset, controlled time, actions, and snapshots.
-        Ordinary resets apply the active run seed and the snapshot must report it.
-        A failed dependency install, build, server start, bridge preflight, or
-        initial snapshot hard-gates the task to zero.
-      </p>
-
-      <h2>4. Aggregate without hidden weighting</h2>
-      <p>
-        Each game contributes equally within its track. Attempts are averaged
-        per game, Build and Reproduce scores are macro averages, and each track
-        contributes 50% to Core. Incomplete coverage does not receive a
-        leaderboard score.
-      </p>
-
-      <h2>5. Keep human playtesting separate</h2>
-      <p>
-        Blind pairwise review measures controls, correctness, visual quality,
-        polish, and game feel. Public summaries report sample counts and outcomes;
-        they are not silently mixed into the deterministic machine score.
-      </p>
-
-      <h2>6. Rebuild before Official publication</h2>
-      <p>
-        Official series require all tasks and three fixed seeds. The operator
-        verifies evidence, exports a secret-free source tree, rebuilds it in a
-        digest-pinned evaluator image, recomputes the score, and records network
-        isolation. A coding timeout is evaluated as the deadline snapshot;
-        Agent or evaluator errors cannot fill an Official cell. Experimental
-        publications may be partial or unverified and are displayed separately.
-      </p>
-
-      <div class="callout">
-        Fixed official seeds: <code>104729</code>, <code>130363</code>, and
-        <code>155921</code>. Human review never changes the deterministic score.
+    <section class="section">
+      <div class="grid cols-3">
+        <article class="card">
+          <span class="pill">Build score</span>
+          <h3>Did the model make working games?</h3>
+          <p>Six new-game challenges test installation, controls, mechanics, game state, reset behavior, and stability.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Reproduce score</span>
+          <h3>Could it remake an existing game?</h3>
+          <p>Two reference-game challenges test behavioral fidelity and visual structure under the original license.</p>
+        </article>
+        <article class="card">
+          <span class="pill">Core score</span>
+          <h3>One balanced headline number</h3>
+          <p>Build contributes 50%. Reproduce contributes 50%. Missing a whole track means no Core score—not a convenient zero-filled average.</p>
+        </article>
       </div>
-    </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">From prompt to score</span><h2>Five steps, all inspectable.</h2></div>
+      </div>
+      <div class="grid cols-3 how-grid">
+        <article class="card how-card"><h3>Same starting line</h3><p>Each model gets the same starter project, task rules, time budget, fixed random seed, and allowed network policy.</p></article>
+        <article class="card how-card"><h3>Real build</h3><p>The submission must install, compile, start, and expose a valid game state. If that foundation fails, the task scores zero.</p></article>
+        <article class="card how-card"><h3>Browser plays</h3><p>Automated tests use real keyboard and pointer input, advance time, reset the game, and inspect rule-relevant state.</p></article>
+        <article class="card how-card"><h3>Every game counts equally</h3><p>No favorite game gets a secret bonus. Scores are averaged per game, then per track.</p></article>
+        <article class="card how-card"><h3>Clean rebuild</h3><p>Before publication, private logs and credentials are removed. The clean source must rebuild and produce the same score.</p></article>
+        <article class="card how-card"><h3>People play separately</h3><p>Blind human review can judge clarity, polish, controls, and feel, but it never changes the automatic mechanics score.</p></article>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Official vs experimental</span><h2>“Published” does not always mean “ranked.”</h2></div>
+      </div>
+      <div class="grid cols-3">
+        <article class="card"><span class="pill experimental">Experimental</span><h3>Fast, useful evidence</h3><p>May use one seed, stop early, hit a provider limit, or lack independent operator verification. It is public but never mixed into the Official board.</p></article>
+        <article class="card"><span class="pill official">Official</span><h3>The full championship run</h3><p>Every game runs with all three fixed seeds. Clean rebuilds, evidence, environment, and network isolation are verified.</p></article>
+        <article class="card"><span class="pill">Human review</span><h3>A second opinion, not hidden weight</h3><p>Human playtesting is shown beside machine scores, not folded into them. You can disagree with either.</p></article>
+      </div>
+    </section>
+
+    <section class="section prose">
+      <h2>Technical audit notes</h2>
+      <p>The short version above is enough to understand a score. The details below exist for researchers and result auditors.</p>
+
+      <details class="audit">
+        <summary>Version and identity rules</summary>
+        <div class="audit-body">
+          <p>A Benchmark release freezes every task version and content hash, browser bridge protocol, scoring contract, seed policy, and aggregation rule. Scores from different releases are never ranked together.</p>
+          <p>Every physical execution has a unique <code>run_id</code>. Equivalent configurations and inputs have stable fingerprints, but reruns never overwrite history.</p>
+        </div>
+      </details>
+
+      <details class="audit">
+        <summary>Deterministic browser contract</summary>
+        <div class="audit-body">
+          <p>Tests combine native keyboard and pointer events with a public bridge that controls reset, time, actions, and state snapshots. The snapshot must report the active seed and match the task schema.</p>
+          <p>Dependency install, build, server start, bridge preflight, and the initial snapshot are hard gates. Any failure makes the complete task zero.</p>
+        </div>
+      </details>
+
+      <details class="audit">
+        <summary>Official publication checklist</summary>
+        <div class="audit-body">
+          <p>Official seeds are <code>104729</code>, <code>130363</code>, and <code>155921</code>. The operator exports secret-free source, rebuilds in a digest-pinned evaluator image, recomputes the score, verifies the evidence manifest, and records network isolation.</p>
+          <p>A coding timeout is evaluated at the deadline snapshot. Agent and evaluator errors cannot fill an Official result cell.</p>
+        </div>
+      </details>
+    </section>
   </div>
 </Layout>

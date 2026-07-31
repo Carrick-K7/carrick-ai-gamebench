@@ -50,32 +50,42 @@ async function readJson(filePath: string): Promise<unknown> {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
 
+let releasesPromise: Promise<ReleaseLock[]> | undefined;
+
 async function loadReleases(): Promise<ReleaseLock[]> {
-  const releasesRoot = path.join(repositoryRoot, "benchmark", "releases");
-  const files = (await readdir(releasesRoot))
-    .filter((file) => file.endsWith(".json"));
-  const releases = await Promise.all(
-    files.map(async (file) =>
-      ReleaseLockSchema.parse(await readJson(path.join(releasesRoot, file))),
-    ),
-  );
-  return releases.sort((left, right) =>
-    compareSemanticVersions(right.benchmark_version, left.benchmark_version),
-  );
+  releasesPromise ??= (async () => {
+    const releasesRoot = path.join(repositoryRoot, "benchmark", "releases");
+    const files = (await readdir(releasesRoot))
+      .filter((file) => file.endsWith(".json"));
+    const releases = await Promise.all(
+      files.map(async (file) =>
+        ReleaseLockSchema.parse(await readJson(path.join(releasesRoot, file))),
+      ),
+    );
+    return releases.sort((left, right) =>
+      compareSemanticVersions(right.benchmark_version, left.benchmark_version),
+    );
+  })();
+  return releasesPromise;
 }
 
 export async function releaseData(): Promise<ReleaseLock[]> {
   return loadReleases();
 }
 
+let releaseCatalogPromise: Promise<ReleaseCatalog[]> | undefined;
+
 export async function releaseCatalogData(): Promise<ReleaseCatalog[]> {
-  const releases = await loadReleases();
-  return Promise.all(
-    releases.map(async (release) => ({
-      release,
-      tasks: await resolveReleasedTasks(release, repositoryRoot),
-    })),
-  );
+  releaseCatalogPromise ??= (async () => {
+    const releases = await loadReleases();
+    return Promise.all(
+      releases.map(async (release) => ({
+        release,
+        tasks: await resolveReleasedTasks(release, repositoryRoot),
+      })),
+    );
+  })();
+  return releaseCatalogPromise;
 }
 
 export async function releaseCatalogFor(

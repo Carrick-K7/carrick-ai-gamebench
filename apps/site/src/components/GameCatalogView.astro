@@ -18,19 +18,31 @@ const version = catalog.release.benchmark_version;
   {catalog.tasks.map((task, index) => {
     const outputs = playableCandidatesForTask(task.id, version, records);
     return (
-      <article class="card game-card">
+      <article class="card game-card" data-ghost={String(index + 1).padStart(2, "0")}>
         <span class="number">{String(index + 1).padStart(2, "0")}</span>
         <h3>
           <a href={`/benchmarks/${version}/games/${task.id}`}>
-            {task.source?.manifest.title.en ?? task.id}
+            <span class="lang-en">{task.source?.manifest.title.en ?? task.id}</span>
+            <span class="lang-zh">{task.source?.manifest.title.zh ?? task.id}</span>
           </a>
         </h3>
-        <p>{task.source?.manifest.title.zh ?? `Frozen task ${task.version}`}</p>
+        <p>
+          <span class="lang-en">
+            {task.track === "build"
+              ? "Build a complete game from a precise playable brief."
+              : "Recreate the behavior and look of an existing open game."}
+          </span>
+          <span class="lang-zh">
+            {task.track === "build"
+              ? "根据精确的可玩需求制作一个完整游戏。"
+              : "复刻现有开源游戏的行为与外观。"}
+          </span>
+        </p>
         <div class="game-meta">
-          <span class="pill">{task.track}</span>
-          {task.source && <span class="pill">level {task.source.manifest.level}</span>}
+          <span class="pill">{task.track === "build" ? "make new" : "recreate"}</span>
+          {task.source && <span class="pill">difficulty {task.source.manifest.level}</span>}
           <span class={`pill ${outputs.length > 0 ? "official" : ""}`}>
-            {outputs.length} playable
+            {outputs.length} playable build{outputs.length === 1 ? "" : "s"}
           </span>
         </div>
       </article>

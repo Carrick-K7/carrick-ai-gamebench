@@ -17,24 +17,24 @@ const { records } = await resultData();
 
 <Layout title={`v${catalog.release.benchmark_version} games`}>
   <div class="container">
-    <span class="eyebrow">Frozen catalog · v{catalog.release.benchmark_version}</span>
-    <h1>Games in this release.</h1>
+    <span class="eyebrow">GameBench season v{catalog.release.benchmark_version}</span>
+    <h1>Choose a challenge.</h1>
     <p class="lead">
-      These task identities, tests, and hashes define which results are
-      comparable on the v{catalog.release.benchmark_version} leaderboard.
+      Every model on this page faced the same game rules and browser checks.
+      Switch versions only when you want to inspect an older ruleset.
     </p>
     <div class="actions">
       <a
         class="button secondary"
         href={`/benchmarks/${catalog.release.benchmark_version}/leaderboard`}
       >
-        View leaderboard
+        Official board
       </a>
       <a
         class="button secondary"
         href={`/releases/${catalog.release.benchmark_version}`}
       >
-        Release contract
+        Version details
       </a>
     </div>
     <section class="section">

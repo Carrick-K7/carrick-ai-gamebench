@@ -17,12 +17,14 @@ const latestOfficialVersion = releases.find((release) =>
 
 <Layout title="Official leaderboard" description="Verified GameBench results for coding agents.">
   <div class="container">
-    <span class="eyebrow">Official leaderboard</span>
-    <h1>Choose the rules before the rank.</h1>
+    <span class="eyebrow">Official championship</span>
+    <h1>The podium is not open yet.</h1>
     <p class="lead">
-      Every canonical leaderboard is bound to one exact Benchmark release.
-      Scores from different releases are never merged.
+      An Official result must finish every game three times and pass independent
+      rebuild checks. Current one-seed runs are already playable in the live lab,
+      but they do not qualify for this board.
     </p>
+    <div class="actions"><a class="button" href="/experimental">See current lab results</a><a class="button secondary" href="/methodology">What makes a result Official?</a></div>
 
     <section class="section">
       <div class="grid cols-3">
@@ -48,7 +50,7 @@ const latestOfficialVersion = releases.find((release) =>
                 class="button"
                 href={`/benchmarks/${release.benchmark_version}/leaderboard`}
               >
-                Open leaderboard
+                Open season
               </a>
             </article>
           );
@@ -60,14 +62,14 @@ const latestOfficialVersion = releases.find((release) =>
       <section class="section">
         <div class="section-head">
           <div>
-            <span class="eyebrow">Current release</span>
-            <h2>v{current.benchmark_version}</h2>
+            <span class="eyebrow">Current season</span>
+            <h2>v{current.benchmark_version} podium</h2>
           </div>
           <a
             class="button secondary"
             href={`/releases/${current.benchmark_version}`}
           >
-            Inspect release
+            See version rules
           </a>
         </div>
         <LeaderboardView

@@ -6,7 +6,6 @@ import {
   releaseData,
   resultData,
   score,
-  siteBuildId,
 } from "../lib/data";
 
 const [games, releases, results] = await Promise.all([
@@ -15,237 +14,184 @@ const [games, releases, results] = await Promise.all([
   resultData(),
 ]);
 const latest = releases[0];
-const rankedRelease = releases.find((release) =>
-  results.index.entries.some(
-    (entry) =>
-      entry.tier === "official" &&
-      entry.status === "active" &&
-      entry.benchmark_version === release.benchmark_version,
-  ),
+const activeRecords = results.records.filter(
+  ({ entry }) =>
+    entry.status === "active" &&
+    entry.benchmark_version === latest?.benchmark_version,
 );
-const official = results.index.entries.filter(
-  (entry) => entry.tier === "official" && entry.status === "active",
-  ).filter(
-    (entry) => entry.benchmark_version === rankedRelease?.benchmark_version,
-  ).sort(
+const experimental = activeRecords
+  .filter(({ entry }) => entry.tier === "experimental")
+  .sort(
     (left, right) =>
-      (right.aggregate.leaderboards.core ?? 0) -
-      (left.aggregate.leaderboards.core ?? 0),
+      (right.entry.aggregate.leaderboards.core ?? -1) -
+        (left.entry.aggregate.leaderboards.core ?? -1),
   );
-const experimental = results.index.entries.filter(
-  (entry) => entry.tier === "experimental" && entry.status === "active",
-);
-const publicArtifacts = results.publications.flatMap((publication) =>
+const publicArtifacts = activeRecords.flatMap(({ publication }) =>
   publication.runs.flatMap((run) => run.artifacts),
 );
-const featured = results.records
-  .filter(
-    (record) =>
-      record.entry.status === "active" &&
-      record.entry.benchmark_version ===
-        (rankedRelease?.benchmark_version ?? latest?.benchmark_version),
-  )
-  .flatMap((record) =>
-    record.publication.runs
-      .filter((run) => run.included && run.seed === defaultOfficialSeed)
-      .flatMap((run) => {
-        const playable = run.artifacts.find((artifact) => artifact.role === "playable");
-        const showcase = run.artifacts.find(
-          (artifact) =>
-            artifact.role === "screenshot" &&
-            artifact.file_name ===
-              `${run.task_id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-showcase.png`,
-        );
-        return playable && showcase ? [{ record, run, playable, showcase }] : [];
-      }),
-  )
-  .slice(0, 3);
+const showcasePool = activeRecords.flatMap((record) =>
+  record.publication.runs
+    .filter((run) => run.included && run.seed === defaultOfficialSeed)
+    .flatMap((run) => {
+      const playable = run.artifacts.find((artifact) => artifact.role === "playable");
+      const showcase = run.artifacts.find(
+        (artifact) =>
+          artifact.role === "screenshot" &&
+          artifact.file_name ===
+            `${run.task_id.replace(/[^a-zA-Z0-9._-]+/g, "-")}-showcase.png`,
+      );
+      return playable && showcase ? [{ record, run, playable, showcase }] : [];
+    }),
+);
+const featured: typeof showcasePool = [];
+const usedModels = new Set<string>();
+const usedTasks = new Set<string>();
+for (const candidate of showcasePool) {
+  if (
+    featured.length < 3 &&
+    !usedModels.has(candidate.record.entry.agent.model) &&
+    !usedTasks.has(candidate.run.task_id)
+  ) {
+    featured.push(candidate);
+    usedModels.add(candidate.record.entry.agent.model);
+    usedTasks.add(candidate.run.task_id);
+  }
+}
+const titleByTask = new Map(
+  games.map((game) => [game.manifest.id, game.manifest.title]),
+);
 ---
 
-<Layout title="GameBench">
+<Layout title="GameBench" description="Play the games coding agents made, inspect every score, and judge the result for yourself.">
   <div class="container">
-    <span class="eyebrow">Game-driven coding agent benchmark</span>
-    <h1>Can an agent build a game worth playing?</h1>
-    <p class="lead">
-      GameBench evaluates coding agents through deterministic game mechanics,
-      real browser interaction, and separate human playtesting. The output is
-      inspectable: play the game, read the source, and audit every score.
-    </p>
-    <div class="actions">
-      <a
-        class="button"
-        href={rankedRelease
-          ? `/benchmarks/${rankedRelease.benchmark_version}/leaderboard`
-          : "/leaderboard"}
-      >
-        View official results
-      </a>
-      <a
-        class="button secondary"
-        href={latest ? `/benchmarks/${latest.benchmark_version}/games` : "/games"}
-      >
-        Explore the games
-      </a>
-    </div>
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="eyebrow">The coding benchmark you can actually play</span>
+        <h1>Models made the games. <em>You get the controller.</em></h1>
+        <p class="lead">
+          GameBench asks coding agents to build real browser games. We test the
+          rules and controls, then let people play the result. No demo video.
+          No hidden judge. The game is the proof.
+        </p>
+        <div class="actions">
+          <a class="button" href="/games">Play the games</a>
+          <a class="button secondary" href="/experimental">See model scores</a>
+        </div>
+      </div>
+      <div class="hero-stage" aria-label="Games generated by coding agents">
+        {featured.map(({ record, run, playable, showcase }) => (
+          <a class="hero-game" href={`/showcase/${playable.artifact_id.slice(7)}`}>
+            <img src={showcase.url} alt={`${titleByTask.get(run.task_id)?.en ?? run.task_id}, made by ${record.entry.agent.model}`} />
+            <span class="hero-caption">
+              <span>
+                {record.entry.agent.model} ·
+                {" "}<span class="lang-en">{titleByTask.get(run.task_id)?.en ?? run.task_id}</span>
+                <span class="lang-zh">{titleByTask.get(run.task_id)?.zh ?? run.task_id}</span>
+              </span>
+              <span class="score-chip">{run.score?.percent.toFixed(0) ?? "—"}</span>
+            </span>
+          </a>
+        ))}
+        <span class="hero-badge">Play<br />the proof</span>
+      </div>
+    </section>
 
     <section class="section">
       <div class="grid cols-4">
-        <div class="card metric">
-          <strong>{games.length}</strong>
-          <span>versioned game tasks</span>
-        </div>
-        <div class="card metric">
-          <strong>{games.filter((game) => game.manifest.track === "build").length}</strong>
-          <span>Build tasks</span>
-        </div>
-        <div class="card metric">
-          <strong>{games.filter((game) => game.manifest.track === "reproduce").length}</strong>
-          <span>Reproduce tasks</span>
-        </div>
-        <div class="card metric">
-          <strong>{latest?.benchmark_version ?? "—"}</strong>
-          <span>current benchmark release</span>
-        </div>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">Official leaderboard</span>
-          <h2>Comparable by construction.</h2>
-        </div>
-        <p>
-          Official results cover every task and fixed seed, use one exact
-          benchmark release, and are independently rebuilt before publication.
-        </p>
-      </div>
-      <div class="table-wrap">
-        {official.length === 0 ? (
-          <div class="empty">
-            <strong>No official series yet.</strong>
-            <span class="muted">Verified full-matrix results will appear here.</span>
-          </div>
-        ) : (
-          <table>
-            <thead>
-              <tr><th>Model</th><th>Agent</th><th>Release</th><th>Core</th><th>Build</th><th>Reproduce</th></tr>
-            </thead>
-            <tbody>
-              {official.slice(0, 5).map((entry) => (
-                <tr>
-                  <td><a href={`/results/${entry.publication_id.slice(7)}`}>{entry.agent.model}</a></td>
-                  <td>{entry.agent.id} · {entry.agent.harness}</td>
-                  <td class="mono">
-                    <a href={`/benchmarks/${entry.benchmark_version}/leaderboard`}>
-                      {entry.benchmark_version}
-                    </a>
-                  </td>
-                  <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
-                  <td>{score(entry.aggregate.leaderboards.build)}</td>
-                  <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">Playable evidence</span>
-          <h2>Scores lead to games.</h2>
-        </div>
-        <p>
-          Deterministic covers come from clean rebuilt playables at the fixed
-          presentation seed. The game itself loads only on demand.
-        </p>
-      </div>
-      {featured.length === 0 ? (
-        <div class="card empty">
-          <strong>No public showcase cover yet.</strong>
-          <span class="muted">The site remains complete before the first reviewed publication.</span>
-        </div>
-      ) : (
-        <div class="grid cols-3">
-          {featured.map(({ record, run, playable, showcase }) => (
-            <article class="card output-card">
-              <img
-                class="cover"
-                src={showcase.url}
-                alt={`${record.entry.agent.model} output for ${run.task_id}`}
-                loading="lazy"
-              />
-              <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
-              <h3>{run.task_id}</h3>
-              <p>{record.entry.agent.model} · score {run.score?.percent.toFixed(1) ?? "—"}</p>
-              <a
-                class="button"
-                href={`/showcase/${playable.artifact_id.slice(7)}`}
-              >
-                Play and inspect
-              </a>
-            </article>
-          ))}
-        </div>
-      )}
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">Evaluation model</span>
-          <h2>One benchmark, two forms of truth.</h2>
-        </div>
-      </div>
-      <div class="grid cols-3">
-        <article class="card">
-          <span class="pill">01 · Machine</span>
-          <h3>Deterministic mechanics</h3>
-          <p>Fixed seeds, controlled time, state schemas, and native keyboard and pointer actions produce repeatable atomic scores.</p>
-        </article>
-        <article class="card">
-          <span class="pill">02 · Human</span>
-          <h3>Blind playtesting</h3>
-          <p>Human review captures controls, visual polish, game feel, and playability without contaminating the machine score.</p>
-        </article>
-        <article class="card">
-          <span class="pill">03 · Audit</span>
-          <h3>Source-level evidence</h3>
-          <p>Every public result names exact versions and content hashes, with clean source and playable artifacts available for inspection.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="section-head">
-        <div>
-          <span class="eyebrow">Experimental</span>
-          <h2>See the work before it ranks.</h2>
-        </div>
-        <p>{experimental.length} active pilot or partial result{experimental.length === 1 ? "" : "s"} are currently public.</p>
-      </div>
-      <a class="button secondary" href="/experimental">Open experimental results</a>
-    </section>
-
-    <section class="section">
-      <div class="grid cols-3">
-        <div class="card metric">
-          <strong>{results.index.entries.length}</strong>
-          <span>immutable publications</span>
-        </div>
+        <div class="card metric"><strong>{games.length}</strong><span>different game challenges</span></div>
+        <div class="card metric"><strong>{experimental.length}</strong><span>public model runs</span></div>
         <div class="card metric">
           <strong>{publicArtifacts.filter((artifact) => artifact.role === "playable").length}</strong>
-          <span>playable references</span>
+          <span>games ready to play</span>
         </div>
-        <div class="card metric">
-          <strong title={siteBuildId}>
-            {siteBuildId === "local" ? "local" : `${siteBuildId.slice(0, 8)}…`}
-          </strong>
-          <span>site build · ledger {results.index.generated_at.slice(0, 10)}</span>
+        <div class="card metric"><strong>v{latest?.benchmark_version ?? "—"}</strong><span>current ruleset</span></div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Jump in</span>
+          <h2>Three games. Three models. Zero setup.</h2>
         </div>
+        <p>Each game opens in an isolated player. Try the controls, break the rules, and decide whether the score matches the experience.</p>
+      </div>
+      <div class="grid cols-3">
+        {featured.map(({ record, run, playable, showcase }) => (
+          <article class="card output-card">
+            <img class="cover" src={showcase.url} alt={`${titleByTask.get(run.task_id)?.en ?? run.task_id} generated by ${record.entry.agent.model}`} loading="lazy" />
+            <div class="output-meta">
+              <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
+              <span class="pill">score {run.score?.percent.toFixed(0) ?? "—"}</span>
+            </div>
+            <h3>
+              <span class="lang-en">{titleByTask.get(run.task_id)?.en ?? run.task_id}</span>
+              <span class="lang-zh">{titleByTask.get(run.task_id)?.zh ?? run.task_id}</span>
+            </h3>
+            <p>Built by <strong>{record.entry.agent.model}</strong>. The score checks whether the game behaves correctly; your hands judge the feel.</p>
+            <a class="button" href={`/showcase/${playable.artifact_id.slice(7)}`}>Start playing</a>
+          </article>
+        ))}
+      </div>
+      <div class="actions"><a class="button secondary" href="/games">Browse all eight challenges</a></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">How a score is earned</span><h2>Build it. Test it. Play it.</h2></div>
+        <p>The machine score and the human verdict answer different questions, so GameBench never blends them into a mystery number.</p>
+      </div>
+      <div class="grid cols-3 how-grid">
+        <article class="card how-card">
+          <h3>The model builds</h3>
+          <p>Every agent starts from the same small web project, task, time limit, and game rules.</p>
+        </article>
+        <article class="card how-card">
+          <h3>The browser tests</h3>
+          <p>Real keyboard and pointer actions check controls, game state, reset behavior, stability, and winning rules.</p>
+        </article>
+        <article class="card how-card">
+          <h3>People play</h3>
+          <p>Humans judge clarity, polish, feel, and fun separately from the automatic score.</p>
+        </article>
+      </div>
+      <div class="actions"><a class="button secondary" href="/methodology">See exactly how scoring works</a></div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Current lab results</span><h2>No champion yet. Plenty to play.</h2></div>
+        <p>These are one-seed experimental runs. They are useful evidence, but they are not the three-seed Official leaderboard.</p>
+      </div>
+      <div class="grid">
+        {experimental.slice(0, 5).map(({ entry }, index) => (
+          <a class="card result-card" href={`/results/${entry.publication_id.slice(7)}`} style="text-decoration:none">
+            <span class="result-rank">{String(index + 1).padStart(2, "0")}</span>
+            <span>
+              <strong>{entry.agent.model}</strong>
+              <span class="muted"> · {entry.agent.id} · GameBench {entry.benchmark_version}</span>
+            </span>
+            <span class="result-score">
+              {score(entry.aggregate.leaderboards.core)}
+              <small>{entry.aggregate.leaderboards.core === undefined ? "incomplete run" : "core score"}</small>
+            </span>
+          </a>
+        ))}
+      </div>
+      <div class="actions">
+        <a class="button" href="/experimental">Open every result</a>
+        <a class="button secondary" href="/leaderboard">Why the Official board is empty</a>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="eyebrow">Nothing up our sleeve</span><h2>Every point has a trail.</h2></div>
+      </div>
+      <div class="grid cols-3">
+        <article class="card"><h3>Play the exact output</h3><p>The game you open is the content-addressed build attached to that scored run.</p></article>
+        <article class="card"><h3>Read the clean source</h3><p>Public source excludes model logs, credentials, caches, and private provider responses.</p></article>
+        <article class="card"><h3>Audit the tests</h3><p>Task rules, point weights, failures, versions, and immutable result records are public.</p></article>
       </div>
     </section>
   </div>

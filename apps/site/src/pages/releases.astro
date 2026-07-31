@@ -7,11 +7,11 @@ const releases = await releaseData();
 
 <Layout title="Releases">
   <div class="container">
-    <span class="eyebrow">Version ledger</span>
-    <h1>Every comparison names its rules.</h1>
+    <span class="eyebrow">GameBench seasons</span>
+    <h1>Scores only compete under the same rules.</h1>
     <p class="lead">
-      Release locks are append-only. They preserve the exact task catalog and
-      protocol contract behind each public result.
+      A new version can change games, tests, scoring, or required seeds. We keep
+      every old ruleset available, but never mix its scores into a newer board.
     </p>
 
     <section class="section grid">
@@ -19,34 +19,17 @@ const releases = await releaseData();
         <article class="card">
           <div class="section-head">
             <div>
-              <span class="pill">schema v{release.schema_version}</span>
+              <span class="pill">{release.task_count} game challenges</span>
               <h2>
                 <a href={`/releases/${release.benchmark_version}`}>
                   v{release.benchmark_version}
                 </a>
               </h2>
             </div>
-            <span class="mono muted">{release.task_count} tasks</span>
+            <span class="mono muted">frozen rules</span>
           </div>
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Task</th><th>Track</th><th>Version</th><th>Content hash</th></tr></thead>
-              <tbody>
-                {release.tasks.map((task) => (
-                  <tr>
-                    <td>
-                      <a href={`/benchmarks/${release.benchmark_version}/games/${task.id}`}>
-                        {task.id}
-                      </a>
-                    </td>
-                    <td>{task.track}</td>
-                    <td class="mono">{task.version}</td>
-                    <td class="mono">{task.hash.slice(0, 19)}…</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <p>Contains {release.tasks.filter((task) => task.track === "build").length} make-new challenges and {release.tasks.filter((task) => task.track === "reproduce").length} recreation challenges.</p>
+          <div class="actions"><a class="button" href={`/releases/${release.benchmark_version}`}>See what changed</a><a class="button secondary" href={`/benchmarks/${release.benchmark_version}/games`}>Play this version</a></div>
         </article>
       ))}
     </section>

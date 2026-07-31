@@ -17,21 +17,21 @@ const { records } = await resultData();
 
 <Layout title={`v${release.benchmark_version} leaderboard`}>
   <div class="container">
-    <span class="eyebrow">Official · Benchmark v{release.benchmark_version}</span>
-    <h1>One release. One comparable rank.</h1>
+    <span class="eyebrow">Official season · v{release.benchmark_version}</span>
+    <h1>Same games. Same rules. Fair rank.</h1>
     <p class="lead">
-      This page contains only complete, active Official publications for the
-      exact frozen task and protocol contract below.
+      Only models that finished every required game and seed under this exact
+      ruleset can appear here.
     </p>
     <div class="actions">
       <a
         class="button secondary"
         href={`/benchmarks/${release.benchmark_version}/games`}
       >
-        Browse games
+        Play this season
       </a>
       <a class="button secondary" href={`/releases/${release.benchmark_version}`}>
-        Inspect release
+        See version rules
       </a>
     </div>
     <section class="section">

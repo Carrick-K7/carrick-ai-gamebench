@@ -18,6 +18,17 @@ origin.
 
 ## Product principles
 
+- Lead with a playable game, a human game title, and a plain-language score.
+  Task IDs, seeds, hashes, schemas, and artifact records remain available but
+  belong in progressive-disclosure audit sections rather than primary page
+  headings.
+- Every public page should answer one ordinary-language question before it
+  explains implementation detail. Prefer “browser check” to “atomic test,”
+  “game challenge” to “task contract,” and “version rules” to “release lock”
+  outside auditor-facing sections.
+- An empty Official leaderboard must direct visitors to playable Experimental
+  evidence and explain the qualification gap; it must not be the main home-page
+  call to action before Official results exist.
 - A model name is not a result. The visible identity is the exact model,
   reasoning settings, Agent version, harness, Benchmark version, and execution
   environment.

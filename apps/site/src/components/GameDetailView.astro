@@ -40,31 +40,44 @@ const categories = source
   ? [...new Set(source.manifest.tests.map((test) => test.category))]
   : [];
 const title = source?.manifest.title.en ?? releasedTask.id;
+const humanize = (value: string) => value
+  .replace(/[-_.]+/g, " ")
+  .replace(/\b\w/g, (letter) => letter.toUpperCase());
 ---
 
 <span class="eyebrow">
-  {releasedTask.track}
-  {source ? ` · level ${source.manifest.level}` : ""}
-  · Benchmark {version}
+  {releasedTask.track === "build" ? "Make a new game" : "Recreate an open game"}
+  {source ? ` · difficulty ${source.manifest.level}` : ""}
 </span>
-<h1>{title}</h1>
+<h1>
+  <span class="lang-en">{title}</span>
+  <span class="lang-zh">{source?.manifest.title.zh ?? title}</span>
+</h1>
 <p class="lead">
-  {source?.manifest.title.zh ?? releasedTask.id} · {releasedTask.id}
+  <span class="lang-en">
+    This challenge asks a coding agent to deliver a game you can actually play.
+    It is checked by {source?.manifest.tests.length ?? "a fixed set of"} browser
+    tests, then published here with its score and source.
+  </span>
+  <span class="lang-zh">
+    这个挑战要求编程智能体交付一个真正可玩的游戏。经过
+    {" "}{source?.manifest.tests.length ?? "一组固定"} 项浏览器测试后，分数与源码会一起发布在这里。
+  </span>
 </p>
 
 <div class="grid cols-4 section">
   <div class="card metric">
-    <strong>{releasedTask.version}</strong><span>task version</span>
+    <strong>{releasedTask.version}</strong><span>challenge version</span>
   </div>
   <div class="card metric">
-    <strong>{source?.manifest.tests.length ?? "—"}</strong><span>atomic tests</span>
+    <strong>{source?.manifest.tests.length ?? "—"}</strong><span>browser checks</span>
   </div>
   <div class="card metric">
     <strong>{source ? `${source.manifest.budget_seconds / 60}m` : "—"}</strong>
-    <span>agent budget</span>
+    <span>time allowed</span>
   </div>
   <div class="card metric">
-    <strong>{outputRuns.length}</strong><span>published runs</span>
+    <strong>{outputRuns.length}</strong><span>model attempts published</span>
   </div>
 </div>
 
@@ -72,11 +85,11 @@ const title = source?.manifest.title.en ?? releasedTask.id;
   <div class="section-head">
     <div>
       <span class="eyebrow">Generated outputs</span>
-      <h2>Every seed stays visible.</h2>
+      <h2>Same challenge. Different model-made games.</h2>
     </div>
     <p>
-      Official output defaults to seed 104729. The gallery never chooses the
-      highest-scoring attempt, and failures remain in the record.
+      We never cherry-pick the highest score. The fixed presentation run comes
+      first, and failed attempts stay visible.
     </p>
   </div>
   {outputRuns.length === 0 ? (
@@ -97,18 +110,18 @@ const title = source?.manifest.title.en ?? releasedTask.id;
             />
           ) : (
             <div class="cover placeholder">
-              {candidate ? "Playable · no showcase cover" : "No playable artifact"}
+              {candidate ? "Playable game · cover unavailable" : "This attempt did not produce a game you can open"}
             </div>
           )}
           <div class="output-meta">
             <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
             <span class="pill">{record.entry.status}</span>
-            <span class="mono">seed {run.seed}</span>
+            <span class="mono">test seed {run.seed}</span>
           </div>
           <h3>{record.entry.agent.model}</h3>
           <p>
             {record.entry.agent.id} · {record.entry.agent.harness}<br />
-            Score {run.score ? run.score.percent.toFixed(1) : "—"} · {run.exit_reason}
+            Score {run.score ? run.score.percent.toFixed(1) : "—"} · {humanize(run.exit_reason)}
           </p>
           <div class="actions compact">
             {candidate && (
@@ -139,21 +152,21 @@ const title = source?.manifest.title.en ?? releasedTask.id;
   <div class="section-head">
     <div>
       <span class="eyebrow">Test contract</span>
-      <h2>What this game measures.</h2>
+      <h2>What the browser checks.</h2>
     </div>
-    <div>{categories.map((category) => <span class="pill">{category}</span>)}</div>
+    <div>{categories.map((category) => <span class="pill">{humanize(category)}</span>)}</div>
   </div>
   {source ? (
     <div class="table-wrap">
       <table>
         <thead>
-          <tr><th>Atomic test</th><th>Category</th><th>Points</th><th>Case</th></tr>
+          <tr><th>Check</th><th>What it measures</th><th>Points</th><th>Test file</th></tr>
         </thead>
         <tbody>
           {source.manifest.tests.map((test) => (
             <tr>
-              <td class="mono">{test.id}</td>
-              <td>{test.category}</td>
+              <td>{humanize(test.id)}<div class="mono muted">{test.id}</div></td>
+              <td>{humanize(test.category)}</td>
               <td class="score">{test.points}</td>
               <td class="mono">{test.case}</td>
             </tr>
@@ -170,31 +183,26 @@ const title = source?.manifest.title.en ?? releasedTask.id;
   )}
 </section>
 
-{source && (
-  <section class="section prose">
-    <h2>Runtime contract</h2>
-    <p>
-      The game is evaluated at {source.manifest.runtime.viewport[0]} ×
-      {" "}{source.manifest.runtime.viewport[1]} with Node
-      {" "}{source.manifest.runtime.node}, deterministic seed reset, controlled
-      time, native input, and schema-validated snapshots.
-    </p>
-    {source.manifest.reference && (
-      <p>
-        Reference: <a href={source.manifest.reference.repository}>
-          {source.manifest.reference.project}
-        </a> at commit <code>{source.manifest.reference.commit}</code>,
-        license {source.manifest.reference.license}.
-      </p>
-    )}
-  </section>
-)}
-
 <section class="section prose">
-  <h2>Frozen identity</h2>
-  <p><strong>Task content</strong><br /><code>{releasedTask.hash}</code></p>
-  <p>
-    <strong>Benchmark release</strong><br />
-    <a href={`/releases/${version}`}>v{version} release contract</a>
-  </p>
+  <details class="audit">
+    <summary>Technical challenge identity</summary>
+    <div class="audit-body">
+      {source && (
+        <p>
+          Tested at {source.manifest.runtime.viewport[0]} × {source.manifest.runtime.viewport[1]}
+          {" "}with Node {source.manifest.runtime.node}, fixed-seed resets, controlled time,
+          native input, and schema-validated state snapshots.
+        </p>
+      )}
+      {source?.manifest.reference && (
+        <p>
+          Reference: <a href={source.manifest.reference.repository}>{source.manifest.reference.project}</a>
+          {" "}at commit <code>{source.manifest.reference.commit}</code>, license {source.manifest.reference.license}.
+        </p>
+      )}
+      <p><strong>Task ID</strong><br /><code>{releasedTask.id}</code></p>
+      <p><strong>Task content</strong><br /><code>{releasedTask.hash}</code></p>
+      <p><a href={`/releases/${version}`}>Open the v{version} release contract</a></p>
+    </div>
+  </details>
 </section>
