@@ -47,7 +47,7 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
     <h1>GameBench v{release.benchmark_version}</h1>
     <p class="lead">
       <span class="lang-en">{release.task_count} game challenges share one scoring ruleset. Results from this version compete only with other v{release.benchmark_version} runs.</span>
-      <span class="lang-zh">{release.task_count} 个游戏挑战共享同一套评分规则。本版本结果只与其他 v{release.benchmark_version} 运行比较。</span>
+      <span class="lang-zh">{release.task_count} 个游戏任务共用一套评分规则；本版本只和同为 v{release.benchmark_version} 的结果比较。</span>
     </p>
     <div class="actions">
       <a
@@ -105,7 +105,7 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
         <div><span class="eyebrow">Compared with the prior season</span><h2>What changed?</h2></div>
         <p>
           <span class="lang-en">{previous ? `Compared with v${previous.release.benchmark_version}.` : "This is the earliest retained release lock."}</span>
-          <span class="lang-zh">{previous ? `与 v${previous.release.benchmark_version} 比较。` : "这是目前保留的最早版本锁。"}</span>
+          <span class="lang-zh">{previous ? `对比 v${previous.release.benchmark_version}。` : "这是目前保留的最早版本。"}</span>
         </p>
       </div>
       {!previous ? (
@@ -116,7 +116,7 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
             <h3>Tasks</h3>
             <p>
               <span class="lang-en">{added.length} added · {removed.length} removed · {changed.length} changed in place</span>
-              <span class="lang-zh">新增 {added.length} 项 · 移除 {removed.length} 项 · 原位变更 {changed.length} 项</span>
+              <span class="lang-zh">新增 {added.length} 项 · 移除 {removed.length} 项 · 修改 {changed.length} 项</span>
             </p>
             {[...added, ...removed, ...changed].length > 0 && (
               <ul>
@@ -130,7 +130,7 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
             <h3>Protocols and scoring</h3>
             <p>
               <span class="lang-en">Protocols {protocolChanged ? "changed" : "unchanged"} · scoring {scoringChanged ? "changed" : "unchanged"}.</span>
-              <span class="lang-zh">协议{protocolChanged ? "已变更" : "未变更"} · 评分{scoringChanged ? "已变更" : "未变更"}。</span>
+              <span class="lang-zh">协议{protocolChanged ? "有变化" : "无变化"} · 评分{scoringChanged ? "有变化" : "无变化"}。</span>
             </p>
           </article>
           <article class="card">

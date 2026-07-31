@@ -47,7 +47,7 @@ const entries = records
                 ? "not independently operator verified"
                 : "non-Official execution profile";
           const limitationZh = !complete
-            ? `完成 ${entry.aggregate.coverage.core.completed}/${entry.aggregate.coverage.core.required} 个游戏`
+            ? `只完成 ${entry.aggregate.coverage.core.completed}/${entry.aggregate.coverage.core.required} 个游戏`
             : seeds < 3
               ? `${seeds} 个固定种子，而非 3 个`
               : verified < included.length

@@ -80,9 +80,8 @@ const supersededBy = entry.superseded_by?.slice("sha256:".length);
         GameBench {publication.benchmark.version}.
       </span>
       <span class="lang-zh">
-        一次模型运行，覆盖 {publication.aggregate.tasks.length} 个游戏挑战。
-        打开下方任意游戏，将实际体验与分数比较，也可以检查清洁源码。
-        使用 {publication.configuration.agent.id} 在 GameBench {publication.benchmark.version} 上测试。
+        这次一共测试了 {publication.aggregate.tasks.length} 个游戏任务。你可以直接试玩、对照分数，也可以查看整理后的源码。
+        本次使用 {publication.configuration.agent.id}，基准版本为 GameBench {publication.benchmark.version}。
       </span>
     </p>
 
