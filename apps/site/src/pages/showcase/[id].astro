@@ -79,9 +79,13 @@ const {
 const catalog = await releaseCatalogFor(entry.benchmark_version);
 const releasedTask = catalog?.tasks.find((task) => task.id === run.task_id);
 const taskTitle = releasedTask?.source?.manifest.title.en ?? run.task_id;
+const taskTitleZh = releasedTask?.source?.manifest.title.zh ?? taskTitle;
 ---
 
-<Layout title={`${entry.agent.model} · ${taskTitle}`}>
+<Layout
+  title={`${entry.agent.model} · ${taskTitle}`}
+  titleZh={`${entry.agent.model} · ${taskTitleZh}`}
+>
   <div class="container">
     <div class="output-meta">
       <span class={`pill ${entry.tier}`}>{entry.tier}</span>
@@ -178,7 +182,9 @@ const taskTitle = releasedTask?.source?.manifest.title.en ?? run.task_id;
     }
     const iframe = document.createElement("iframe");
     iframe.className = "game";
-    iframe.title = "Generated GameBench playable";
+    iframe.title = document.documentElement.lang === "zh-CN"
+      ? "GameBench 生成游戏"
+      : "Generated GameBench playable";
     iframe.src = shell.dataset.src ?? "";
     iframe.sandbox.add("allow-scripts", "allow-pointer-lock");
     iframe.referrerPolicy = "no-referrer";

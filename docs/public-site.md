@@ -273,6 +273,28 @@ The deployable output is copied to a Git-SHA directory and the trusted site's
 replaced. HTML and discovery pages use short caching; content-addressed
 playables and objects use long immutable caching.
 
+## Language policy
+
+The first public stage uses one canonical URL per page with an English and
+Simplified Chinese presentation. The selected language follows an explicit
+`?lang=en|zh` handoff, then a device-local preference, then the browser
+language. It is not part of Benchmark identity and never changes a score or
+Publication URL.
+
+Public navigation, explanations, score labels, status, empty states, page
+titles, descriptions, image alternatives, and ARIA labels must switch
+together. Model names, version numbers, task IDs, hashes, filenames, source
+code, and verbatim evaluator failures remain unchanged because translating
+them would damage auditability. Chinese pages use a CJK-first type stack and
+less aggressive letter spacing.
+
+The isolated play origin keeps its own local preference because it cannot read
+the trusted site's storage. Links between the two origins pass the language
+explicitly. Separate `/zh/` URLs should be introduced only when localized
+search indexing or independently shareable Chinese metadata becomes a product
+requirement; until then the single canonical URL avoids doubling every
+immutable result and showcase route.
+
 ## Delivery stages
 
 ### Stage 1: comparable public data

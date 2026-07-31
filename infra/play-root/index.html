@@ -5,6 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="robots" content="noindex" />
     <title>GameBench Play</title>
+    <script>
+      try {
+        const requested = new URLSearchParams(location.search).get("lang");
+        const stored = localStorage.getItem("gamebench.play.language");
+        const language = requested === "zh" || requested === "en"
+          ? requested
+          : stored === "zh-CN" || stored === "zh" ? "zh" : stored === "en" ? "en"
+            : navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+        document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+      } catch {}
+    </script>
     <style>
       :root {
         color-scheme: dark;
@@ -75,7 +86,7 @@
     <main>
       <header>
         <div class="brand"><span class="mark">G</span> GameBench Play</div>
-        <button type="button" data-toggle>中文</button>
+        <button type="button" data-toggle aria-label="Switch to Chinese">中文</button>
       </header>
       <div class="status">
         <span data-lang="en">Isolated play origin</span>
@@ -97,10 +108,10 @@
         </span>
       </p>
       <nav>
-        <a href="https://gamebench.ai.carrick7.com/games">
+        <a href="https://gamebench.ai.carrick7.com/games" data-main-link="/games">
           <span data-lang="en">Browse games</span><span data-lang="zh">浏览游戏</span>
         </a>
-        <a class="secondary" href="https://gamebench.ai.carrick7.com/">
+        <a class="secondary" href="https://gamebench.ai.carrick7.com/" data-main-link="/">
           <span data-lang="en">GameBench home</span><span data-lang="zh">返回 GameBench</span>
         </a>
       </nav>
@@ -111,10 +122,15 @@
       function apply(language) {
         document.documentElement.lang = language;
         button.textContent = language === "zh-CN" ? "EN" : "中文";
+        button.setAttribute("aria-label", language === "zh-CN" ? "切换为英文" : "Switch to Chinese");
+        document.title = language === "zh-CN" ? "GameBench 试玩" : "GameBench Play";
+        document.querySelectorAll("[data-main-link]").forEach((link) => {
+          const path = link.getAttribute("data-main-link") || "/";
+          link.href = `https://gamebench.ai.carrick7.com${path}${language === "zh-CN" ? "?lang=zh" : "?lang=en"}`;
+        });
         try { localStorage.setItem("gamebench.play.language", language); } catch {}
       }
-      let initial = navigator.language.toLowerCase().startsWith("zh") ? "zh-CN" : "en";
-      try { initial = localStorage.getItem("gamebench.play.language") || initial; } catch {}
+      let initial = document.documentElement.lang === "zh-CN" ? "zh-CN" : "en";
       apply(initial);
       button.addEventListener("click", () => {
         apply(document.documentElement.lang === "zh-CN" ? "en" : "zh-CN");

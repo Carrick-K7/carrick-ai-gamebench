@@ -19,9 +19,10 @@ const { catalog, taskId } = Astro.props;
 const { records } = await resultData();
 const releasedTask = catalog.tasks.find((task: { id: string }) => task.id === taskId);
 const title = releasedTask?.source?.manifest.title.en ?? taskId;
+const titleZh = releasedTask?.source?.manifest.title.zh ?? title;
 ---
 
-<Layout title={title}>
+<Layout title={title} titleZh={titleZh}>
   <div class="container">
     <div class="callout">
       Current-version shortcut. Canonical URL:

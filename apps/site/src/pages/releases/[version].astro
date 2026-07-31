@@ -46,8 +46,8 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
     <span class="eyebrow">GameBench season</span>
     <h1>GameBench v{release.benchmark_version}</h1>
     <p class="lead">
-      {release.task_count} game challenges share one scoring ruleset. Results
-      from this version compete only with other v{release.benchmark_version} runs.
+      <span class="lang-en">{release.task_count} game challenges share one scoring ruleset. Results from this version compete only with other v{release.benchmark_version} runs.</span>
+      <span class="lang-zh">{release.task_count} 个游戏挑战共享同一套评分规则。本版本结果只与其他 v{release.benchmark_version} 运行比较。</span>
     </p>
     <div class="actions">
       <a
@@ -104,9 +104,8 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
       <div class="section-head">
         <div><span class="eyebrow">Compared with the prior season</span><h2>What changed?</h2></div>
         <p>
-          {previous
-            ? `Compared with v${previous.release.benchmark_version}.`
-            : "This is the earliest retained release lock."}
+          <span class="lang-en">{previous ? `Compared with v${previous.release.benchmark_version}.` : "This is the earliest retained release lock."}</span>
+          <span class="lang-zh">{previous ? `与 v${previous.release.benchmark_version} 比较。` : "这是目前保留的最早版本锁。"}</span>
         </p>
       </div>
       {!previous ? (
@@ -115,7 +114,10 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
         <div class="grid cols-3">
           <article class="card">
             <h3>Tasks</h3>
-            <p>{added.length} added · {removed.length} removed · {changed.length} changed in place</p>
+            <p>
+              <span class="lang-en">{added.length} added · {removed.length} removed · {changed.length} changed in place</span>
+              <span class="lang-zh">新增 {added.length} 项 · 移除 {removed.length} 项 · 原位变更 {changed.length} 项</span>
+            </p>
             {[...added, ...removed, ...changed].length > 0 && (
               <ul>
                 {added.map((task) => <li>Added <code>{task.id}</code></li>)}
@@ -127,13 +129,16 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
           <article class="card">
             <h3>Protocols and scoring</h3>
             <p>
-              Protocols {protocolChanged ? "changed" : "unchanged"} · scoring
-              {" "}{scoringChanged ? "changed" : "unchanged"}.
+              <span class="lang-en">Protocols {protocolChanged ? "changed" : "unchanged"} · scoring {scoringChanged ? "changed" : "unchanged"}.</span>
+              <span class="lang-zh">协议{protocolChanged ? "已变更" : "未变更"} · 评分{scoringChanged ? "已变更" : "未变更"}。</span>
             </p>
           </article>
           <article class="card">
             <h3>Official run policy</h3>
-            <p>{seedPolicyChanged ? "Fixed seeds or attempt policy changed." : "Unchanged."}</p>
+            <p>
+              <span class="lang-en">{seedPolicyChanged ? "Fixed seeds or attempt policy changed." : "Unchanged."}</span>
+              <span class="lang-zh">{seedPolicyChanged ? "固定种子或尝试规则已变更。" : "未变更。"}</span>
+            </p>
           </article>
         </div>
       )}

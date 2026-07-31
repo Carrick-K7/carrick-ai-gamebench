@@ -128,7 +128,10 @@ const titleByTask = new Map(
               <span class="lang-en">{titleByTask.get(run.task_id)?.en ?? run.task_id}</span>
               <span class="lang-zh">{titleByTask.get(run.task_id)?.zh ?? run.task_id}</span>
             </h3>
-            <p>Built by <strong>{record.entry.agent.model}</strong>. The score checks whether the game behaves correctly; your hands judge the feel.</p>
+            <p>
+              <span class="lang-en">Built by <strong>{record.entry.agent.model}</strong>. The score checks whether the game behaves correctly; your hands judge the feel.</span>
+              <span class="lang-zh">由 <strong>{record.entry.agent.model}</strong> 制作。分数检查游戏行为是否正确，手感则由你的双手判断。</span>
+            </p>
             <a class="button" href={`/showcase/${playable.artifact_id.slice(7)}`}>Start playing</a>
           </article>
         ))}

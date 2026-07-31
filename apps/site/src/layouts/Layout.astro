@@ -1,14 +1,21 @@
 ---
+import { translateToZh } from "../lib/translations";
+
 interface Props {
   title: string;
+  titleZh?: string;
   description?: string;
+  descriptionZh?: string;
 }
 
 const {
   title,
+  titleZh = translateToZh(title),
   description = "GameBench is a game-driven benchmark for coding agents.",
+  descriptionZh = translateToZh(description),
 } = Astro.props;
 const pageTitle = title === "GameBench" ? title : `${title} · GameBench`;
+const pageTitleZh = titleZh === "GameBench" ? titleZh : `${titleZh} · GameBench`;
 const canonical = Astro.site
   ? new URL(Astro.url.pathname, Astro.site)
   : Astro.url;
@@ -16,31 +23,49 @@ const socialImage = new URL("/og.png", canonical);
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" data-language="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width" />
-    <meta name="description" content={description} />
+    <meta name="description" content={description} data-content-en={description} data-content-zh={descriptionZh} />
     <meta name="generator" content={Astro.generator} />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="GameBench" />
-    <meta property="og:title" content={pageTitle} />
-    <meta property="og:description" content={description} />
+    <meta property="og:title" content={pageTitle} data-content-en={pageTitle} data-content-zh={pageTitleZh} />
+    <meta property="og:description" content={description} data-content-en={description} data-content-zh={descriptionZh} />
+    <meta property="og:locale" content="en_US" data-content-en="en_US" data-content-zh="zh_CN" />
+    <meta property="og:locale:alternate" content="zh_CN" data-content-en="zh_CN" data-content-zh="en_US" />
     <meta property="og:url" content={canonical} />
     <meta property="og:image" content={socialImage} />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content={pageTitle} />
-    <meta name="twitter:description" content={description} />
+    <meta name="twitter:title" content={pageTitle} data-content-en={pageTitle} data-content-zh={pageTitleZh} />
+    <meta name="twitter:description" content={description} data-content-en={description} data-content-zh={descriptionZh} />
     <meta name="twitter:image" content={socialImage} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>{pageTitle}</title>
+    <title data-title-en={pageTitle} data-title-zh={pageTitleZh}>{pageTitle}</title>
     <script is:inline>
       try {
         document.documentElement.dataset.theme =
           localStorage.getItem("gamebench.theme") === "arcade" ? "arcade" : "arena";
       } catch {
         document.documentElement.dataset.theme = "arena";
+      }
+      try {
+        const requested = new URLSearchParams(location.search).get("lang");
+        const stored = localStorage.getItem("gamebench.language");
+        const language = requested === "zh" || requested === "en"
+          ? requested
+          : stored === "zh" || stored === "en"
+            ? stored
+            : navigator.language.toLowerCase().startsWith("zh") ? "zh" : "en";
+        if (requested === "zh" || requested === "en") {
+          localStorage.setItem("gamebench.language", requested);
+        }
+        document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
+        document.documentElement.dataset.language = language;
+      } catch {
+        document.documentElement.dataset.language = "en";
       }
     </script>
   </head>
@@ -89,20 +114,22 @@ const socialImage = new URL("/og.png", canonical);
     </footer>
     <div class="cursor-reticle" aria-hidden="true"></div>
     <script>
-      import { zhTranslations } from "../lib/translations";
+      import { translateToZh } from "../lib/translations";
 
       type Language = "en" | "zh";
       type Theme = "arena" | "arcade";
       const preferenceKey = "gamebench.language";
       const themeKey = "gamebench.theme";
       const originalText = new WeakMap<Text, string>();
-      const originalTitle = document.title;
+      const originalAttributes = new WeakMap<Element, Map<string, string>>();
 
       function normalized(value: string): string {
         return value.trim().replace(/\s+/g, " ");
       }
 
       function selectedLanguage(): Language {
+        const initialized = document.documentElement.dataset.language;
+        if (initialized === "zh" || initialized === "en") return initialized;
         try {
           const stored = localStorage.getItem(preferenceKey);
           if (stored === "zh" || stored === "en") return stored;
@@ -117,9 +144,8 @@ const socialImage = new URL("/og.png", canonical);
         if (!parent || parent.closest("script, style")) return;
         const source = originalText.get(node) ?? node.textContent ?? "";
         originalText.set(node, source);
-        const translated =
-          language === "zh" ? zhTranslations[normalized(source)] : undefined;
-        if (language === "zh" && translated) {
+        const translated = language === "zh" ? translateToZh(normalized(source)) : source;
+        if (language === "zh" && translated !== normalized(source)) {
           const leading = source.match(/^\s*/)?.[0] ?? "";
           const trailing = source.match(/\s*$/)?.[0] ?? "";
           node.textContent = `${leading}${translated}${trailing}`;
@@ -128,19 +154,41 @@ const socialImage = new URL("/og.png", canonical);
         }
       }
 
+      function translateAttributes(language: Language): void {
+        const attributes = ["aria-label", "alt", "placeholder", "title"] as const;
+        document.querySelectorAll<HTMLElement>("[aria-label], [alt], [placeholder], [title]").forEach((element) => {
+          const originals = originalAttributes.get(element) ?? new Map<string, string>();
+          for (const attribute of attributes) {
+            const current = element.getAttribute(attribute);
+            if (current === null) continue;
+            if (!originals.has(attribute)) originals.set(attribute, current);
+            const source = originals.get(attribute) ?? current;
+            element.setAttribute(attribute, language === "zh" ? translateToZh(source) : source);
+          }
+          originalAttributes.set(element, originals);
+        });
+      }
+
       function applyLanguage(language: Language): void {
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
         const nodes: Text[] = [];
         while (walker.nextNode()) nodes.push(walker.currentNode as Text);
         for (const node of nodes) translateTextNode(node, language);
+        translateAttributes(language);
 
         document.documentElement.lang = language === "zh" ? "zh-CN" : "en";
         document.documentElement.dataset.language = language;
-        const [title = originalTitle, suffix] = originalTitle.split(" · ");
-        document.title =
-          language === "zh" && zhTranslations[title]
-            ? `${zhTranslations[title]}${suffix ? ` · ${suffix}` : ""}`
-            : originalTitle;
+        const title = document.querySelector<HTMLTitleElement>("title");
+        if (title) {
+          document.title = language === "zh"
+            ? title.dataset.titleZh ?? title.dataset.titleEn ?? document.title
+            : title.dataset.titleEn ?? document.title;
+        }
+        document.querySelectorAll<HTMLMetaElement>("meta[data-content-en]").forEach((meta) => {
+          meta.content = language === "zh"
+            ? meta.dataset.contentZh ?? meta.dataset.contentEn ?? meta.content
+            : meta.dataset.contentEn ?? meta.content;
+        });
         document
           .querySelector("nav")
           ?.setAttribute("aria-label", language === "zh" ? "主导航" : "Primary navigation");
@@ -149,9 +197,10 @@ const socialImage = new URL("/og.png", canonical);
           toggle.textContent = language === "zh" ? "EN" : "中文";
           toggle.setAttribute(
             "aria-label",
-            language === "zh" ? "Switch to English" : "Switch to Chinese",
+            language === "zh" ? "切换为英文" : "Switch to Chinese",
           );
         }
+        document.documentElement.dataset.languageReady = "true";
       }
 
       applyLanguage(selectedLanguage());
@@ -240,6 +289,11 @@ const socialImage = new URL("/og.png", canonical);
     --shadow: 8px 8px 0 #05030d;
     --radius: 2px;
     --display: var(--mono);
+  }
+
+  html[data-language="zh"] {
+    --sans: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+    --display: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", var(--sans);
   }
 
   * { box-sizing: border-box; }
@@ -340,8 +394,16 @@ const socialImage = new URL("/og.png", canonical);
   h1 { font-size: clamp(46px, 7.6vw, 112px); letter-spacing: -.065em; line-height: .88; margin: 20px 0 26px; max-width: 1120px; text-transform: uppercase; }
   h2 { font-size: clamp(31px, 4.5vw, 62px); letter-spacing: -.055em; line-height: .96; margin: 0 0 17px; }
   h3 { font-size: 20px; letter-spacing: -.025em; margin: 0 0 10px; }
+  html[data-language="zh"] h1,
+  html[data-language="zh"] h2,
+  html[data-language="zh"] h3 { letter-spacing: -.025em; text-wrap: pretty; }
+  html[data-language="zh"] .eyebrow,
+  html[data-language="zh"] .status-rail,
+  html[data-language="zh"] th { letter-spacing: .04em; }
   html[data-theme="arcade"] h1,
   html[data-theme="arcade"] h2 { letter-spacing: -.08em; text-shadow: 4px 4px 0 rgba(255, 93, 158, .25); }
+  html[data-language="zh"][data-theme="arcade"] h1,
+  html[data-language="zh"][data-theme="arcade"] h2 { letter-spacing: -.025em; }
   p { color: var(--muted); line-height: 1.7; }
   .lead { font-size: clamp(18px, 2vw, 25px); line-height: 1.5; max-width: 820px; }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }

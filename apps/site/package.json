@@ -7,7 +7,7 @@
   "scripts": {
     "build": "astro build",
     "typecheck": "astro check",
-    "test": "node --test",
+    "test": "node --experimental-strip-types --test test/*.test.mjs",
     "dev": "astro dev",
     "preview": "astro preview",
     "clean": "rm -rf dist .astro"
