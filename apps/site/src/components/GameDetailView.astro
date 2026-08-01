@@ -4,6 +4,7 @@ import {
   type PublicationRecord,
   type ReleaseCatalog,
 } from "../lib/data";
+import { sampleIndexForRun, sampleLetter } from "../lib/presentation";
 
 interface Props {
   catalog: ReleaseCatalog;
@@ -43,6 +44,12 @@ const title = source?.manifest.title.en ?? releasedTask.id;
 const humanize = (value: string) => value
   .replace(/[-_.]+/g, " ")
   .replace(/\b\w/g, (letter) => letter.toUpperCase());
+const sampleFor = (record: PublicationRecord, runId: string) => {
+  const runs = record.publication.runs.filter(
+    (run) => run.included && run.task_id === taskId,
+  );
+  return sampleLetter(Math.max(sampleIndexForRun(runs, runId), 0));
+};
 ---
 
 <span class="eyebrow">
@@ -105,7 +112,7 @@ const humanize = (value: string) => value
             <img
               class="cover"
               src={candidate.showcase.url}
-              alt={`${record.entry.agent.model} output for ${taskId}, seed ${run.seed}`}
+              alt={`${record.entry.agent.model} output for ${taskId}`}
               loading="lazy"
             />
           ) : (
@@ -116,7 +123,10 @@ const humanize = (value: string) => value
           <div class="output-meta">
             <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
             <span class="pill">{record.entry.status}</span>
-            <span class="mono">test seed {run.seed}</span>
+            <span class="pill">
+              <span class="lang-en">Sample {sampleFor(record, run.run_id)}</span>
+              <span class="lang-zh">样本 {sampleFor(record, run.run_id)}</span>
+            </span>
           </div>
           <h3>{record.entry.agent.model}</h3>
           <p>

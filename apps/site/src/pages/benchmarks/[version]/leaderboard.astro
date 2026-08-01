@@ -1,5 +1,5 @@
 ---
-import LeaderboardView from "../../../components/LeaderboardView.astro";
+import RankingsPage from "../../../components/RankingsPage.astro";
 import Layout from "../../../layouts/Layout.astro";
 import { releaseData, resultData } from "../../../lib/data";
 
@@ -12,30 +12,9 @@ export async function getStaticPaths() {
 }
 
 const { release } = Astro.props;
-const { records } = await resultData();
+const [releases, { records }] = await Promise.all([releaseData(), resultData()]);
 ---
 
-<Layout title={`v${release.benchmark_version} leaderboard`}>
-  <div class="container">
-    <span class="eyebrow">Official season · v{release.benchmark_version}</span>
-    <h1>Same games. Same rules. Fair rank.</h1>
-    <p class="lead">
-      Only models that finished every required game and seed under this exact
-      ruleset can appear here.
-    </p>
-    <div class="actions">
-      <a
-        class="button secondary"
-        href={`/benchmarks/${release.benchmark_version}/games`}
-      >
-        Play this season
-      </a>
-      <a class="button secondary" href={`/releases/${release.benchmark_version}`}>
-        See version rules
-      </a>
-    </div>
-    <section class="section">
-      <LeaderboardView version={release.benchmark_version} records={records} />
-    </section>
-  </div>
+<Layout title={`v${release.benchmark_version} evaluation rankings`} titleZh={`v${release.benchmark_version} 评测排行`}>
+  <RankingsPage version={release.benchmark_version} releases={releases} records={records} />
 </Layout>

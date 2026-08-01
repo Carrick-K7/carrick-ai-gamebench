@@ -1,11 +1,15 @@
 ---
 import Layout from "../../layouts/Layout.astro";
 import {
-  defaultOfficialSeed,
   releaseCatalogFor,
   score,
   type PublicationRecord,
 } from "../../lib/data";
+import {
+  sampleIndexForRun,
+  sampleLetter,
+  sortRunsForPresentation,
+} from "../../lib/presentation";
 
 export async function getStaticPaths() {
   const { resultData } = await import("../../lib/data");
@@ -50,6 +54,11 @@ const imageDigests = [...new Set(
   ),
 )];
 const supersededBy = entry.superseded_by?.slice("sha256:".length);
+const sampleFor = (run: (typeof publication.runs)[number]) => {
+  const taskRuns = included.filter((candidate) => candidate.task_id === run.task_id);
+  const index = sampleIndexForRun(taskRuns, run.run_id);
+  return sampleLetter(Math.max(index, 0));
+};
 ---
 
 <Layout title={`${publication.configuration.agent.model} result`}>
@@ -117,14 +126,9 @@ const supersededBy = entry.superseded_by?.slice("sha256:".length);
       </div>
       <div class="grid cols-3">
         {publication.aggregate.tasks.map((task) => {
-          const runs = included
-            .filter((run) => run.task_id === task.task_id)
-            .sort(
-              (left, right) =>
-                Number(left.seed !== defaultOfficialSeed) -
-                  Number(right.seed !== defaultOfficialSeed) ||
-                left.seed - right.seed,
-            );
+          const runs = sortRunsForPresentation(
+            included.filter((run) => run.task_id === task.task_id),
+          );
           const primaryRun = runs[0];
           const primaryPlayable = primaryRun?.artifacts.find(
             (artifact) => artifact.role === "playable",
@@ -157,7 +161,7 @@ const supersededBy = entry.superseded_by?.slice("sha256:".length);
                 <a class="button" href={`/showcase/${primaryPlayable.artifact_id.slice(7)}`}>Play this game</a>
               )}
               <div class="seed-list">
-                {runs.map((run) => {
+                {runs.map((run, runIndex) => {
                   const playable = run.artifacts.find(
                     (artifact) => artifact.role === "playable",
                   );
@@ -167,8 +171,8 @@ const supersededBy = entry.superseded_by?.slice("sha256:".length);
                   return (
                     <div class="seed-row">
                       <span class="mono">
-                        {run.seed}
-                        {run.seed === defaultOfficialSeed ? " · fixed" : ""}
+                        <span class="lang-en">Sample {sampleLetter(runIndex)}{runIndex === 0 ? " · default" : ""}</span>
+                        <span class="lang-zh">样本 {sampleLetter(runIndex)}{runIndex === 0 ? " · 默认展示" : ""}</span>
                       </span>
                       <span>{run.score ? run.score.percent.toFixed(1) : "—"}</span>
                       {playable ? (
@@ -251,7 +255,10 @@ const supersededBy = entry.superseded_by?.slice("sha256:".length);
                   <td>
                     <span class="lang-en">{taskTitles(run.task_id).en}</span>
                     <span class="lang-zh">{taskTitles(run.task_id).zh}</span>
-                    <div class="mono muted">seed {run.seed}</div>
+                    <div class="mono muted">
+                      <span class="lang-en">Sample {sampleFor(run)}</span>
+                      <span class="lang-zh">样本 {sampleFor(run)}</span>
+                    </div>
                   </td>
                   <td>{humanize(test.id)}<div class="mono muted">{test.id}</div></td>
                   <td>{humanize(test.category)}</td>

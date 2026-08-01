@@ -37,7 +37,7 @@ import Layout from "../layouts/Layout.astro";
         <div><span class="eyebrow">From prompt to score</span><h2>Five steps, all inspectable.</h2></div>
       </div>
       <div class="grid cols-3 how-grid">
-        <article class="card how-card"><h3>Same starting line</h3><p>Each model gets the same starter project, task rules, time budget, fixed random seed, and allowed network policy.</p></article>
+        <article class="card how-card"><h3>Same starting line</h3><p>Each model gets the same starter project, task rules, time budget, fixed random condition (seed), and allowed network policy.</p></article>
         <article class="card how-card"><h3>Real build</h3><p>The submission must install, compile, start, and expose a valid game state. If that foundation fails, the task scores zero.</p></article>
         <article class="card how-card"><h3>Browser plays</h3><p>Automated tests use real keyboard and pointer input, advance time, reset the game, and inspect rule-relevant state.</p></article>
         <article class="card how-card"><h3>Every game counts equally</h3><p>No favorite game gets a secret bonus. Scores are averaged per game, then per track.</p></article>
@@ -51,8 +51,8 @@ import Layout from "../layouts/Layout.astro";
         <div><span class="eyebrow">Official vs experimental</span><h2>“Published” does not always mean “ranked.”</h2></div>
       </div>
       <div class="grid cols-3">
-        <article class="card"><span class="pill experimental">Experimental</span><h3>Fast, useful evidence</h3><p>May use one seed, stop early, hit a provider limit, or lack independent operator verification. It is public but never mixed into the Official board.</p></article>
-        <article class="card"><span class="pill official">Official</span><h3>The full championship run</h3><p>Every game runs with all three fixed seeds. Clean rebuilds, evidence, environment, and network isolation are verified.</p></article>
+        <article class="card"><span class="pill experimental">Experimental</span><h3>Fast, useful evidence</h3><p>May use one reproducible sample, stop early, hit a provider limit, or lack independent operator verification. It is public but never mixed into the Official board.</p></article>
+        <article class="card"><span class="pill official">Official</span><h3>The full championship run</h3><p>Every game runs under all three fixed random conditions. Clean rebuilds, evidence, environment, and network isolation are verified.</p></article>
         <article class="card"><span class="pill">Human review</span><h3>A second opinion, not hidden weight</h3><p>Human playtesting is shown beside machine scores, not folded into them. You can disagree with either.</p></article>
       </div>
     </section>

@@ -6,10 +6,11 @@ import { translateToZh } from "../src/lib/translations.ts";
 test("primary navigation and public score language have Chinese equivalents", () => {
   const examples = new Map([
     ["Play games", "玩游戏"],
-    ["Results", "结果"],
-    ["How it works", "怎么评"],
-    ["Releases", "版本"],
-    ["Open source", "源码"],
+    ["Rankings", "评测排行"],
+    ["Evaluation rules", "评测规则"],
+    ["Benchmark releases", "测试集版本"],
+    ["Source", "源码"],
+    ["Benchmarking AI coding through games", "用游戏评测 AI 编程能力"],
     ["Core · Build and Reproduce combined", "综合分 · 构建和复刻各占一半"],
     ["The browser can check rules. It cannot tell us whether a game feels clear, polished, or enjoyable.", "自动测试能检查规则是否正确，但判断不了画面是否清楚、完成度够不够、游戏好不好玩。"],
   ]);

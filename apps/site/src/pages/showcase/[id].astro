@@ -1,11 +1,13 @@
 ---
 import Layout from "../../layouts/Layout.astro";
+import UiIcon from "../../components/UiIcon.astro";
 import {
   defaultOfficialSeed,
   releaseCatalogFor,
   resultData,
   type PlayableCandidate,
 } from "../../lib/data";
+import { sampleIndexForRun, sampleLetter } from "../../lib/presentation";
 
 export async function getStaticPaths() {
   const { records } = await resultData();
@@ -72,7 +74,6 @@ const {
   publication,
   run,
   playable,
-  showcase,
   source,
   license,
 } = candidate;
@@ -80,17 +81,26 @@ const catalog = await releaseCatalogFor(entry.benchmark_version);
 const releasedTask = catalog?.tasks.find((task) => task.id === run.task_id);
 const taskTitle = releasedTask?.source?.manifest.title.en ?? run.task_id;
 const taskTitleZh = releasedTask?.source?.manifest.title.zh ?? taskTitle;
+const taskRuns = publication.runs.filter(
+  (candidateRun) => candidateRun.included && candidateRun.task_id === run.task_id,
+);
+const sampleIndex = sampleIndexForRun(taskRuns, run.run_id);
+const sample = sampleLetter(Math.max(0, sampleIndex));
+const isDefaultSample = run.seed === defaultOfficialSeed;
 ---
 
 <Layout
   title={`${entry.agent.model} · ${taskTitle}`}
   titleZh={`${entry.agent.model} · ${taskTitleZh}`}
 >
-  <div class="container">
+  <div class="container showcase-container">
     <div class="output-meta">
       <span class={`pill ${entry.tier}`}>{entry.tier}</span>
       <span class="pill">{entry.status}</span>
-      <span class="pill">seed {run.seed}</span>
+      <span class="pill">
+        <span class="lang-en">Sample {sample}{isDefaultSample ? " · default showcase" : ""}</span>
+        <span class="lang-zh">样本 {sample}{isDefaultSample ? " · 默认展示" : ""}</span>
+      </span>
     </div>
     <h1>
       <span class="lang-en">{taskTitle}</span>
@@ -106,45 +116,45 @@ const taskTitleZh = releasedTask?.source?.manifest.title.zh ?? taskTitle;
       </span>
     </p>
 
-    <section class="section">
-      <div class="player-shell" data-player data-src={playable.url}>
-        {showcase ? (
-          <img
-            class="player-cover"
-            src={showcase.url}
-            alt={`Deterministic showcase for ${run.task_id}`}
-          />
-        ) : (
-          <div class="player-cover placeholder">
-            Deterministic showcase cover was not published.
-          </div>
-        )}
-        <div class="player-placeholder">
-          <strong>Ready player?</strong>
-          <span>
-            This model-made game opens in a locked-down player with outside
-            network access disabled.
-          </span>
-          <button class="button" type="button" data-load>Start game</button>
-        </div>
+    <section class="player-section">
+      <div class="player-shell" data-player>
+        <iframe
+          class="game"
+          src={playable.url}
+          title="Carrick AI GameBench playable"
+          data-title-en="Carrick AI GameBench playable"
+          data-title-zh="Carrick AI GameBench 试玩游戏"
+          sandbox="allow-scripts allow-pointer-lock"
+          referrerpolicy="no-referrer"
+          allowfullscreen
+          loading="eager"
+        ></iframe>
       </div>
-      <div class="actions compact">
-        <button class="button secondary" type="button" data-reload>Reload</button>
-        <button class="button secondary" type="button" data-fullscreen>Fullscreen</button>
-        <a class="button secondary" href={playable.url} target="_blank" rel="noreferrer">
-          Open isolated
-        </a>
-        {source && <a class="button secondary" href={source.url}>Clean source</a>}
-        {license && <a class="button secondary" href={license.url}>License</a>}
+      <div class="player-toolbar" aria-label="Game controls">
+        <button class="button secondary" type="button" data-reload>
+          <UiIcon name="reload" /><span class="lang-en">Reload</span><span class="lang-zh">重新加载</span>
+        </button>
+        <button class="button" type="button" data-fullscreen>
+          <UiIcon name="fullscreen" /><span class="lang-en">Play fullscreen</span><span class="lang-zh">全屏游玩</span>
+        </button>
+        <details class="player-more">
+          <summary class="button secondary">
+            <UiIcon name="more" /><span class="lang-en">More</span><span class="lang-zh">更多</span>
+          </summary>
+          <div class="player-menu">
+            <a href={playable.url} target="_blank" rel="noreferrer"><UiIcon name="external" /><span class="lang-en">Open isolated page</span><span class="lang-zh">在独立页面打开</span></a>
+            {source && <a href={source.url}><UiIcon name="code" /><span class="lang-en">View clean source</span><span class="lang-zh">查看整理后的源码</span></a>}
+            {license && <a href={license.url}><UiIcon name="file" /><span class="lang-en">View license</span><span class="lang-zh">查看许可证</span></a>}
+          </div>
+        </details>
       </div>
     </section>
 
-    <div class="grid cols-4 section">
+    <div class="grid cols-3 section">
       <div class="card metric">
         <strong>{run.score ? run.score.percent.toFixed(1) : "—"}</strong>
         <span>browser test score</span>
       </div>
-      <div class="card metric"><strong>{run.seed}</strong><span>fixed test seed</span></div>
       <div class="card metric"><strong>{run.exit_reason}</strong><span>run finished as</span></div>
       <div class="card metric">
         <strong>{run.verification ? "yes" : "no"}</strong>
@@ -166,6 +176,7 @@ const taskTitleZh = releasedTask?.source?.manifest.title.zh ?? taskTitle;
         <div class="audit-body">
           <p><strong>Playable content</strong><br /><code>{playable.artifact_id}</code></p>
           <p><strong>Run</strong><br /><code>{run.run_id}</code></p>
+          <p><strong>Fixed random condition (seed)</strong><br /><code>{run.seed}</code></p>
           <p><strong>Publication</strong><br /><code>{publication.publication_id}</code></p>
           <p><strong>Publication references</strong><br />{references.length}</p>
         </div>
@@ -175,33 +186,14 @@ const taskTitleZh = releasedTask?.source?.manifest.title.zh ?? taskTitle;
 </Layout>
 
 <script>
-  function loadPlayer(shell: HTMLElement): HTMLIFrameElement {
-    const existing = shell.querySelector("iframe");
-    if (existing instanceof HTMLIFrameElement) {
-      return existing;
-    }
-    const iframe = document.createElement("iframe");
-    iframe.className = "game";
-    iframe.title = document.documentElement.lang === "zh-CN"
-      ? "GameBench 生成游戏"
-      : "Generated GameBench playable";
-    iframe.src = shell.dataset.src ?? "";
-    iframe.sandbox.add("allow-scripts", "allow-pointer-lock");
-    iframe.referrerPolicy = "no-referrer";
-    shell.replaceChildren(iframe);
-    return iframe;
-  }
-
   const shell = document.querySelector<HTMLElement>("[data-player]");
-  document.querySelector("[data-load]")?.addEventListener("click", () => {
-    if (shell) loadPlayer(shell);
-  });
   document.querySelector("[data-reload]")?.addEventListener("click", () => {
     if (!shell) return;
-    const iframe = loadPlayer(shell);
+    const iframe = shell.querySelector("iframe");
+    if (!(iframe instanceof HTMLIFrameElement)) return;
     iframe.src = iframe.src;
   });
   document.querySelector("[data-fullscreen]")?.addEventListener("click", () => {
-    if (shell) void shell.requestFullscreen();
+    if (shell) void shell.requestFullscreen().catch(() => undefined);
   });
 </script>

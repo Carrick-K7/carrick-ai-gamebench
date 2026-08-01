@@ -1,82 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import LeaderboardView from "../components/LeaderboardView.astro";
+import RankingsPage from "../components/RankingsPage.astro";
 import { releaseData, resultData } from "../lib/data";
 
 const [releases, results] = await Promise.all([releaseData(), resultData()]);
 const current = releases[0];
-const latestOfficialVersion = releases.find((release) =>
-  results.index.entries.some(
-    (entry) =>
-      entry.benchmark_version === release.benchmark_version &&
-      entry.tier === "official" &&
-      entry.status === "active",
-  ),
-)?.benchmark_version;
+if (!current) throw new Error("no Benchmark release is available");
 ---
 
-<Layout title="Official leaderboard" description="Verified GameBench results for coding agents.">
-  <div class="container">
-    <span class="eyebrow">Official championship</span>
-    <h1>The podium is not open yet.</h1>
-    <p class="lead">
-      An Official result must finish every game three times and pass independent
-      rebuild checks. Current one-seed runs are already playable in the live lab,
-      but they do not qualify for this board.
-    </p>
-    <div class="actions"><a class="button" href="/experimental">See current lab results</a><a class="button secondary" href="/methodology">What makes a result Official?</a></div>
-
-    <section class="section">
-      <div class="grid cols-3">
-        {releases.map((release) => {
-          const count = results.index.entries.filter(
-            (entry) =>
-              entry.benchmark_version === release.benchmark_version &&
-              entry.tier === "official" &&
-              entry.status === "active",
-          ).length;
-          return (
-            <article class="card">
-              <span class="pill">
-                {release.benchmark_version === current?.benchmark_version
-                  ? "current release"
-                  : release.benchmark_version === latestOfficialVersion
-                    ? "latest ranked"
-                    : "historical"}
-              </span>
-              <h2>v{release.benchmark_version}</h2>
-              <p>{release.task_count} tasks · {count} active Official result{count === 1 ? "" : "s"}</p>
-              <a
-                class="button"
-                href={`/benchmarks/${release.benchmark_version}/leaderboard`}
-              >
-                Open season
-              </a>
-            </article>
-          );
-        })}
-      </div>
-    </section>
-
-    {current && (
-      <section class="section">
-        <div class="section-head">
-          <div>
-            <span class="eyebrow">Current season</span>
-            <h2>v{current.benchmark_version} podium</h2>
-          </div>
-          <a
-            class="button secondary"
-            href={`/releases/${current.benchmark_version}`}
-          >
-            See version rules
-          </a>
-        </div>
-        <LeaderboardView
-          version={current.benchmark_version}
-          records={results.records}
-        />
-      </section>
-    )}
-  </div>
+<Layout title="Evaluation rankings" titleZh="评测排行" description="Playable, version-isolated Carrick AI GameBench model results.">
+  <RankingsPage version={current.benchmark_version} releases={releases} records={results.records} />
 </Layout>

@@ -1,11 +1,14 @@
 ---
 import { translateToZh } from "../lib/translations";
+import UiIcon from "../components/UiIcon.astro";
+import { brandName, brandTagline, brandTaglineZh, githubUrl } from "../lib/brand";
 
 interface Props {
   title: string;
   titleZh?: string;
   description?: string;
   descriptionZh?: string;
+  canonicalPath?: string;
 }
 
 const {
@@ -13,12 +16,15 @@ const {
   titleZh = translateToZh(title),
   description = "GameBench is a game-driven benchmark for coding agents.",
   descriptionZh = translateToZh(description),
+  canonicalPath,
 } = Astro.props;
-const pageTitle = title === "GameBench" ? title : `${title} · GameBench`;
-const pageTitleZh = titleZh === "GameBench" ? titleZh : `${titleZh} · GameBench`;
+const isHome = title === "GameBench" || title === brandName;
+const pageTitle = isHome ? brandName : `${title} · ${brandName}`;
+const pageTitleZh = isHome ? brandName : `${titleZh} · ${brandName}`;
+const canonicalPathname = canonicalPath ?? Astro.url.pathname;
 const canonical = Astro.site
-  ? new URL(Astro.url.pathname, Astro.site)
-  : Astro.url;
+  ? new URL(canonicalPathname, Astro.site)
+  : new URL(canonicalPathname, Astro.url);
 const socialImage = new URL("/og.png", canonical);
 ---
 
@@ -30,7 +36,7 @@ const socialImage = new URL("/og.png", canonical);
     <meta name="description" content={description} data-content-en={description} data-content-zh={descriptionZh} />
     <meta name="generator" content={Astro.generator} />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="GameBench" />
+    <meta property="og:site_name" content={brandName} />
     <meta property="og:title" content={pageTitle} data-content-en={pageTitle} data-content-zh={pageTitleZh} />
     <meta property="og:description" content={description} data-content-en={description} data-content-zh={descriptionZh} />
     <meta property="og:locale" content="en_US" data-content-en="en_US" data-content-zh="zh_CN" />
@@ -43,6 +49,7 @@ const socialImage = new URL("/og.png", canonical);
     <meta name="twitter:image" content={socialImage} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title data-title-en={pageTitle} data-title-zh={pageTitleZh}>{pageTitle}</title>
     <script is:inline>
       try {
@@ -71,16 +78,22 @@ const socialImage = new URL("/og.png", canonical);
   </head>
   <body>
     <header class="topbar">
-      <a class="brand" href="/">
+      <a class="brand" href="/" aria-label={brandName}>
         <span class="brand-mark" aria-hidden="true"><img src="/carrick-logo.svg" alt="" /></span>
-        <span class="brand-copy"><strong>GameBench</strong><small>PLAY THE PROOF</small></span>
+        <span class="brand-copy">
+          <strong><span class="brand-prefix">Carrick AI </span>GameBench</strong>
+          <small><span class="lang-en">{brandTagline}</span><span class="lang-zh">{brandTaglineZh}</span></small>
+        </span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="/games">Play games</a>
-        <a href="/experimental">Results</a>
-        <a href="/methodology">How it works</a>
-        <a href="/releases">Releases</a>
-        <a href="/source">Open source</a>
+        <a href="/games"><span class="lang-en">Play games</span><span class="lang-zh">玩游戏</span></a>
+        <a href="/leaderboard"><span class="lang-en">Rankings</span><span class="lang-zh">评测排行</span></a>
+        <a href="/methodology"><span class="lang-en">Evaluation rules</span><span class="lang-zh">评测规则</span></a>
+        <a href="/releases"><span class="lang-en">Benchmark releases</span><span class="lang-zh">测试集版本</span></a>
+        <a class="nav-external" href={githubUrl} target="_blank" rel="noreferrer">
+          <span class="lang-en">Source</span><span class="lang-zh">源码</span><UiIcon name="external" />
+          <span class="visually-hidden">(opens in a new window)</span>
+        </a>
       </nav>
       <div class="site-controls">
         <div class="mode-switch" role="group" aria-label="Visual style">
@@ -92,22 +105,16 @@ const socialImage = new URL("/og.png", canonical);
         </button>
       </div>
     </header>
-    <div class="status-rail" aria-label="Site status">
-      <span><i></i> Games are live</span>
-      <span>Open scores</span>
-      <span>No login</span>
-      <span>Isolated play</span>
-    </div>
     <main>
       <slot />
     </main>
     <footer>
       <div>
-        <strong>GameBench</strong>
+        <strong>{brandName}</strong>
         <span>Models make the games. Tests keep the score. You decide if they are fun.</span>
       </div>
       <div class="footer-links">
-        <a href="https://github.com/Carrick-K7/carrick-ai-gamebench">GitHub</a>
+        <a href={githubUrl} target="_blank" rel="noreferrer">GitHub</a>
         <a href="/methodology">How scoring works</a>
         <span>Apache-2.0</span>
       </div>
@@ -351,17 +358,19 @@ const socialImage = new URL("/og.png", canonical);
     backdrop-filter: blur(18px) saturate(1.2);
   }
   .brand { align-items: center; display: flex; gap: 11px; text-decoration: none; }
-  .brand-mark { display: inline-flex; height: 38px; width: 58px; }
+  .brand-mark { display: inline-flex; height: 40px; width: 53px; }
   .brand-mark img { display: block; height: 100%; object-fit: contain; width: 100%; }
   html[data-theme="arcade"] .brand-mark { filter: drop-shadow(0 0 8px rgba(0, 255, 255, .38)); }
   .brand-copy { display: grid; gap: 1px; }
-  .brand-copy strong { font-family: var(--display); font-size: 18px; letter-spacing: -.04em; }
-  .brand-copy small { color: var(--muted); font-family: var(--mono); font-size: 8px; font-weight: 800; letter-spacing: .12em; }
-  nav { display: flex; gap: clamp(14px, 2vw, 28px); justify-content: center; }
-  nav a { color: var(--muted); font-size: 13px; font-weight: 750; position: relative; text-decoration: none; }
+  .brand-copy strong { font-family: var(--display); font-size: 17px; letter-spacing: -.035em; }
+  .brand-copy small { color: var(--muted); font-size: 10px; font-weight: 720; letter-spacing: 0; }
+  nav { display: flex; gap: clamp(13px, 1.8vw, 26px); justify-content: center; }
+  nav a { align-items: center; color: var(--muted); display: inline-flex; font-size: 13px; font-weight: 750; gap: 5px; position: relative; text-decoration: none; }
   nav a::after { background: var(--hot); bottom: -8px; content: ""; height: 3px; left: 0; position: absolute; transform: scaleX(0); transform-origin: left; transition: transform .18s ease; width: 100%; }
   nav a:hover, nav a[data-active="true"] { color: var(--ink); }
   nav a:hover::after, nav a[data-active="true"]::after { transform: scaleX(1); }
+  .nav-external .ui-icon { height: 13px; width: 13px; }
+  .visually-hidden { clip: rect(0 0 0 0); clip-path: inset(50%); height: 1px; overflow: hidden; position: absolute; white-space: nowrap; width: 1px; }
   .site-controls { align-items: center; display: flex; gap: 8px; }
   .mode-switch { background: color-mix(in srgb, var(--ink) 7%, transparent); border: 1px solid var(--line); border-radius: 999px; display: flex; padding: 3px; }
   .mode-switch button {
@@ -377,25 +386,19 @@ const socialImage = new URL("/og.png", canonical);
   }
   html[data-theme="arcade"] .language-toggle { background: var(--accent); border-color: var(--accent); border-radius: 0; box-shadow: 3px 3px 0 var(--hot); color: #04060f; }
   .language-toggle:hover { filter: brightness(1.08); transform: translateY(-1px); }
-  .status-rail {
-    align-items: center; background: var(--ink); color: var(--paper); display: flex; font-family: var(--mono);
-    font-size: 9px; font-weight: 800; gap: 36px; justify-content: center; letter-spacing: .1em;
-    min-height: 26px; overflow: hidden; padding: 6px 20px; text-transform: uppercase;
-  }
-  .status-rail span { white-space: nowrap; }
-  .status-rail i { background: var(--lime); border-radius: 50%; box-shadow: 0 0 12px var(--lime); display: inline-block; height: 6px; margin-right: 7px; width: 6px; }
-  main { min-height: calc(100vh - 190px); }
+  main { min-height: calc(100vh - 164px); }
   .container { margin: 0 auto; max-width: 1340px; padding: 64px clamp(18px, 5vw, 72px) 96px; }
   .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 11px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
   h1, h2 { font-family: var(--display); text-wrap: balance; }
-  h1 { font-size: clamp(46px, 7.6vw, 112px); letter-spacing: -.065em; line-height: .88; margin: 20px 0 26px; max-width: 1120px; text-transform: uppercase; }
-  h2 { font-size: clamp(31px, 4.5vw, 62px); letter-spacing: -.055em; line-height: .96; margin: 0 0 17px; }
+  h1 { font-size: clamp(42px, 6vw, 80px); letter-spacing: -.055em; line-height: 1.02; margin: 20px 0 26px; max-width: 1120px; text-transform: uppercase; }
+  h2 { font-size: clamp(31px, 4.5vw, 62px); letter-spacing: -.05em; line-height: 1.08; margin: 0 0 17px; }
   h3 { font-size: 20px; letter-spacing: -.025em; margin: 0 0 10px; }
   html[data-language="zh"] h1,
   html[data-language="zh"] h2,
-  html[data-language="zh"] h3 { letter-spacing: -.025em; text-wrap: pretty; }
+  html[data-language="zh"] h3 { letter-spacing: -.02em; text-transform: none; text-wrap: pretty; }
+  html[data-language="zh"] h1 { line-height: 1.12; }
+  html[data-language="zh"] h2 { line-height: 1.18; }
   html[data-language="zh"] .eyebrow,
-  html[data-language="zh"] .status-rail,
   html[data-language="zh"] th { letter-spacing: .04em; }
   html[data-theme="arcade"] h1,
   html[data-theme="arcade"] h2 { letter-spacing: -.08em; text-shadow: 4px 4px 0 rgba(255, 0, 212, .2); }
@@ -409,9 +412,6 @@ const socialImage = new URL("/og.png", canonical);
     display: inline-flex; font: inherit; font-size: 13px; font-weight: 850; gap: 8px;
     justify-content: center; min-height: 44px; padding: 11px 18px; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
   }
-  .button::after { content: "↗"; font-family: var(--mono); font-size: 12px; }
-  button.button::after { content: ""; }
-  button.button[data-load]::after { content: "▶"; }
   .button.secondary { background: transparent; color: var(--ink); }
   .button:hover { background: var(--accent); border-color: var(--accent); box-shadow: 0 8px 24px color-mix(in srgb, var(--accent) 30%, transparent); color: white; transform: translateY(-2px); }
   html[data-theme="arcade"] .button { border-radius: 0; box-shadow: 5px 5px 0 var(--hot); text-transform: uppercase; }
@@ -437,14 +437,14 @@ const socialImage = new URL("/og.png", canonical);
   .section-head p { margin: 0; max-width: 580px; }
   .pill {
     background: color-mix(in srgb, var(--ink) 7%, transparent); border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
-    border-radius: 999px; color: var(--muted); display: inline-flex; font-family: var(--mono); font-size: 9px;
+    border-radius: 999px; color: var(--muted); display: inline-flex; font-family: var(--mono); font-size: 11px;
     font-weight: 900; letter-spacing: .04em; padding: 6px 9px; text-transform: uppercase;
   }
   html[data-theme="arcade"] .pill { border-radius: 0; }
   .pill.official { background: var(--lime); border-color: var(--lime); color: #172006; }
   .pill.experimental { background: color-mix(in srgb, var(--hot) 14%, var(--panel-solid)); border-color: var(--hot); color: var(--hot); }
   table { border-collapse: collapse; width: 100%; }
-  th { color: var(--muted); font-family: var(--mono); font-size: 9px; letter-spacing: .08em; text-align: left; text-transform: uppercase; }
+  th { color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
   th, td { border-bottom: 1px solid var(--line); padding: 16px 13px; }
   tbody tr { transition: background .15s ease; }
   tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
@@ -505,6 +505,24 @@ const socialImage = new URL("/og.png", canonical);
   .player-placeholder strong { font-family: var(--display); font-size: 25px; letter-spacing: -.04em; }
   .player-placeholder span { color: #cbd2cc; line-height: 1.6; margin: 10px 0 20px; }
   .player-shell iframe.game { height: 100%; position: absolute; width: 100%; }
+  .showcase-container { padding-top: 42px; }
+  .showcase-container > h1 { margin-bottom: 14px; }
+  .showcase-container > .lead { margin-bottom: 28px; }
+  .player-section { margin-top: 28px; }
+  .player-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+  .player-toolbar .button { gap: 8px; }
+  .player-toolbar .ui-icon { height: 17px; width: 17px; }
+  .player-more { margin-left: auto; position: relative; }
+  .player-more > summary { list-style: none; }
+  .player-more > summary::-webkit-details-marker { display: none; }
+  .player-menu {
+    background: var(--panel-solid); border: 1px solid var(--line); border-radius: calc(var(--radius) * .72);
+    box-shadow: var(--shadow); display: grid; min-width: 230px; padding: 7px; position: absolute; right: 0; top: calc(100% + 8px); z-index: 12;
+  }
+  .player-menu a { align-items: center; border-radius: calc(var(--radius) * .45); display: flex; font-size: 13px; font-weight: 750; gap: 10px; padding: 11px 12px; text-decoration: none; }
+  .player-menu a:hover { background: var(--accent-soft); }
+  .player-menu .ui-icon { height: 16px; width: 16px; }
+  html[data-theme="arcade"] .player-menu { border-radius: 0; box-shadow: 5px 5px 0 var(--hot); }
   pre { background: color-mix(in srgb, var(--ink) 7%, transparent); border-radius: var(--radius); overflow-x: auto; padding: 18px; }
   pre code { background: transparent; padding: 0; }
   .identity code { overflow-wrap: anywhere; }
@@ -523,7 +541,8 @@ const socialImage = new URL("/og.png", canonical);
   .score-orb strong { color: var(--ink); font-family: var(--display); font-size: 43px; position: relative; }
   .hero { align-items: center; display: grid; gap: clamp(36px, 7vw, 90px); grid-template-columns: minmax(0, 1.05fr) minmax(330px, .95fr); min-height: min(760px, calc(100vh - 110px)); padding-bottom: 40px; }
   .hero-copy { position: relative; z-index: 2; }
-  .hero h1 em { color: var(--hot); font-style: normal; }
+  .hero h1 { font-size: clamp(48px, 7.2vw, 96px); }
+  .hero h1 em { color: var(--hot); display: block; font-style: normal; margin-top: .12em; }
   .hero-stage { min-height: 520px; position: relative; }
   .hero-stage::before { background: var(--lime); border-radius: 50%; content: ""; filter: blur(1px); height: 300px; opacity: .8; position: absolute; right: 4%; top: 16%; width: 300px; }
   html[data-theme="arcade"] .hero-stage::before { border-radius: 0; box-shadow: 12px 12px 0 var(--hot); opacity: .22; transform: rotate(10deg); }
@@ -565,7 +584,7 @@ const socialImage = new URL("/og.png", canonical);
   footer a:hover { color: var(--lime); }
   @media (max-width: 900px) {
     .topbar { gap: 16px; grid-template-columns: auto 1fr; }
-    nav { grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; overflow-x: auto; padding: 2px 0 8px; }
+    nav { flex-wrap: wrap; grid-column: 1 / -1; grid-row: 2; justify-content: flex-start; padding: 2px 0 8px; }
     .site-controls { justify-self: end; }
     .brand small { display: none; }
     .grid.cols-3, .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -576,12 +595,13 @@ const socialImage = new URL("/og.png", canonical);
   }
   @media (max-width: 620px) {
     .topbar { position: static; }
+    .brand-prefix { display: none; }
+    .brand-mark { height: 36px; width: 48px; }
     .brand-copy small { display: none; }
     .mode-switch button { padding-inline: 7px; }
-    .status-rail { gap: 24px; justify-content: flex-start; overflow-x: auto; }
     .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
     .section-head, footer { align-items: flex-start; flex-direction: column; }
-    h1 { font-size: clamp(44px, 15vw, 68px); }
+    h1 { font-size: clamp(42px, 13vw, 62px); }
     .hero { min-height: auto; }
     .hero-stage { min-height: 370px; }
     .hero-game { width: 78%; }
@@ -589,6 +609,8 @@ const socialImage = new URL("/og.png", canonical);
     .container { padding-top: 44px; }
     .seed-row { grid-template-columns: 1.2fr .45fr .55fr; }
     .seed-row > :last-child { display: none; }
+    .player-more { margin-left: 0; }
+    .player-menu { left: 0; right: auto; }
     .footer-links { flex-wrap: wrap; }
   }
   @media (prefers-reduced-motion: reduce) {

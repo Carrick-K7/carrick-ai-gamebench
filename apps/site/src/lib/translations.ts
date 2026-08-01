@@ -697,6 +697,27 @@ export const zhTranslations: Record<string, string> = {
     "。等价配置与输入具有稳定指纹，但重跑永远不会覆盖历史。",
   ". The operator exports secret-free source, rebuilds in a digest-pinned evaluator image, recomputes the score, verifies the evidence manifest, and records network isolation.":
     "。运营方会导出不含密钥的源码，在固定摘要的评测器镜像中重建，重新计算分数、验证证据清单并记录网络隔离。",
+  Rankings: "评测排行",
+  "Evaluation rankings": "评测排行",
+  "Evaluation rules": "评测规则",
+  "Benchmark releases": "测试集版本",
+  "Benchmarking AI coding through games": "用游戏评测 AI 编程能力",
+  "Carrick AI GameBench playable": "Carrick AI GameBench 试玩游戏",
+  "Play fullscreen": "全屏游玩",
+  More: "更多",
+  "Open isolated page": "在独立页面打开",
+  "View clean source": "查看整理后的源码",
+  "View license": "查看许可证",
+  "These stage results use one reproducible sample. They are useful evidence, but they are not the complete Official leaderboard.":
+    "这些阶段性成绩使用一组可复现样本，能帮助了解模型表现，但还不属于完整的正式排行。",
+  "Each model gets the same starter project, task rules, time budget, fixed random condition (seed), and allowed network policy.":
+    "每个模型拿到相同的起始项目、任务说明、时间限制、固定随机条件（seed）和网络访问规则。",
+  "May use one reproducible sample, stop early, hit a provider limit, or lack independent operator verification. It is public but never mixed into the Official board.":
+    "阶段性结果可能只包含一组可复现样本，也可能因模型服务限制提前停止，或尚未通过独立复核。它们会公开展示，但不会混入正式排行。",
+  "Every game runs under all three fixed random conditions. Clean rebuilds, evidence, environment, and network isolation are verified.":
+    "每个游戏都在三组固定随机条件下运行，并核验无密钥重建、证据、运行环境和网络隔离。",
+  "Playable, version-isolated Carrick AI GameBench model results.":
+    "可直接试玩、按测试集版本独立呈现的 Carrick AI GameBench 模型评测结果。",
 };
 
 type TranslationPattern = readonly [RegExp, (match: RegExpMatchArray) => string];

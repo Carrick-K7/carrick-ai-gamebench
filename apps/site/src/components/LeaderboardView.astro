@@ -4,14 +4,15 @@ import { score, type PublicationRecord } from "../lib/data";
 interface Props {
   version: string;
   records: PublicationRecord[];
+  tier: "official" | "experimental";
 }
 
-const { version, records } = Astro.props;
+const { version, records, tier } = Astro.props;
 const entries = records
   .filter(
     (record) =>
       record.entry.benchmark_version === version &&
-      record.entry.tier === "official" &&
+      record.entry.tier === tier &&
       record.entry.status === "active",
   )
   .sort(
@@ -25,10 +26,14 @@ const entries = records
 <div class="table-wrap">
   {entries.length === 0 ? (
     <div class="empty">
-      <strong>No model has completed the Official v{version} matrix yet.</strong>
-      <span class="muted">
-        The first complete three-seed, independently rebuilt result will take the podium.
-      </span>
+      <strong>{tier === "official"
+        ? `No model has completed the Official v${version} matrix yet.`
+        : `No stage result is available for v${version} yet.`
+      }</strong>
+      <span class="muted">{tier === "official"
+        ? "A complete three-condition, independently rebuilt result is required."
+        : "No active stage result has been published for this version."
+      }</span>
     </div>
   ) : (
     <table>
@@ -41,6 +46,7 @@ const entries = records
           <th>Build</th>
           <th>Reproduce</th>
           <th>Coverage</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody>
@@ -64,6 +70,7 @@ const entries = records
               {entry.aggregate.coverage.core.completed}/
               {entry.aggregate.coverage.core.required}
             </td>
+            <td><span class={`pill ${tier}`}>{tier}</span> <span class="pill">{entry.status}</span></td>
           </tr>
         ))}
       </tbody>

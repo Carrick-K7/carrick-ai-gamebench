@@ -1,0 +1,89 @@
+---
+import LeaderboardView from "./LeaderboardView.astro";
+import type { PublicationRecord } from "../lib/data";
+import { rankingTierOrder } from "../lib/ranking";
+
+interface ReleaseSummary {
+  benchmark_version: string;
+  task_count: number;
+}
+
+interface Props {
+  version: string;
+  releases: ReleaseSummary[];
+  records: PublicationRecord[];
+}
+
+const { version, releases, records } = Astro.props;
+const activeForVersion = records.filter(
+  ({ entry }) => entry.benchmark_version === version && entry.status === "active",
+);
+const officialCount = activeForVersion.filter(({ entry }) => entry.tier === "official").length;
+const experimentalCount = activeForVersion.filter(({ entry }) => entry.tier === "experimental").length;
+const officialRanksFirst = rankingTierOrder(officialCount)[0] === "official";
+---
+
+<div class="container">
+  <span class="eyebrow"><span class="lang-en">Evaluation rankings</span><span class="lang-zh">评测排行</span></span>
+  <h1><span class="lang-en">Scores you can play.</span><span class="lang-zh">分数之外，游戏也能亲手验证。</span></h1>
+  <p class="lead">
+    <span class="lang-en">Every row links to the games, failures, clean source, and exact evaluation record. Results from different benchmark releases are never mixed.</span>
+    <span class="lang-zh">每条成绩都能打开对应游戏、失败项、整理后的源码和完整评测记录。不同测试集版本的结果不会混在一起排名。</span>
+  </p>
+
+  <div class="actions" aria-label="Benchmark release selector">
+    {releases.map((release) => (
+      <a
+        class={`button ${release.benchmark_version === version ? "" : "secondary"}`}
+        href={release.benchmark_version === releases[0]?.benchmark_version
+          ? "/leaderboard"
+          : `/benchmarks/${release.benchmark_version}/leaderboard`}
+        aria-current={release.benchmark_version === version ? "page" : undefined}
+      >
+        v{release.benchmark_version}
+      </a>
+    ))}
+  </div>
+
+  {officialRanksFirst ? (
+    <>
+      <section class="section" id="official">
+        <div class="section-head">
+          <div><span class="pill official">Official</span><h2><span class="lang-en">Official leaderboard</span><span class="lang-zh">正式排行</span></h2></div>
+          <p><span class="lang-en">Complete coverage, three fixed random conditions, clean rebuild, and independent verification.</span><span class="lang-zh">完整覆盖全部游戏和三组固定随机条件，并通过无密钥重建与独立复核。</span></p>
+        </div>
+        <LeaderboardView version={version} records={records} tier="official" />
+      </section>
+      <section class="section" id="experimental">
+        <div class="section-head">
+          <div><span class="pill experimental">Experimental</span><h2><span class="lang-en">Stage results</span><span class="lang-zh">阶段性成绩</span></h2></div>
+          <p><span class="lang-en">Useful measured evidence, kept separate from the Official ranking.</span><span class="lang-zh">可供参考的实测结果，与正式排行分开呈现。</span></p>
+        </div>
+        <div class="callout status-banner"><span class="lang-en">Stage results do not represent an Official ranking.</span><span class="lang-zh">阶段性结果，不代表正式排名。</span></div>
+        <LeaderboardView version={version} records={records} tier="experimental" />
+      </section>
+    </>
+  ) : (
+    <>
+      <section class="section" id="experimental">
+        <div class="section-head">
+          <div><span class="pill experimental">Experimental</span><h2><span class="lang-en">Current measured results</span><span class="lang-zh">当前阶段性成绩</span></h2></div>
+          <p>{experimentalCount} <span class="lang-en">active result{experimentalCount === 1 ? "" : "s"} on this exact ruleset.</span><span class="lang-zh">条结果采用这一版测试规则。</span></p>
+        </div>
+        <div class="callout status-banner"><span class="lang-en">Stage results do not represent an Official ranking.</span><span class="lang-zh">阶段性结果，不代表正式排名。</span></div>
+        <LeaderboardView version={version} records={records} tier="experimental" />
+      </section>
+      <section class="section compact-section" id="official">
+        <div class="section-head">
+          <div><span class="pill official">Official</span><h2><span class="lang-en">Official qualification</span><span class="lang-zh">正式成绩资格</span></h2></div>
+        </div>
+        <div class="callout"><span class="lang-en">No Official result yet. A model must complete every required game under three fixed random conditions, then pass clean rebuild and independent verification.</span><span class="lang-zh">目前还没有正式成绩。参评模型需要在三组固定随机条件下完成全部游戏，并通过无密钥重建与独立复核。</span></div>
+      </section>
+    </>
+  )}
+</div>
+
+<style>
+  .compact-section { max-width: 900px; }
+  h2 { margin-top: 12px; }
+</style>

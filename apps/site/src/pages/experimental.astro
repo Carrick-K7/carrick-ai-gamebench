@@ -1,89 +1,13 @@
 ---
 import Layout from "../layouts/Layout.astro";
-import { resultData, score } from "../lib/data";
+import RankingsPage from "../components/RankingsPage.astro";
+import { releaseData, resultData } from "../lib/data";
 
-const { records } = await resultData();
-const entries = records
-  .filter(({ entry }) => entry.tier === "experimental" && entry.status === "active")
-  .sort(
-    (left, right) =>
-      (right.entry.aggregate.leaderboards.core ?? -1) -
-        (left.entry.aggregate.leaderboards.core ?? -1),
-  );
+const [releases, results] = await Promise.all([releaseData(), resultData()]);
+const current = releases[0];
+if (!current) throw new Error("no Benchmark release is available");
 ---
 
-<Layout title="Experimental results" description="Playable one-seed GameBench results with clear limitations and full score evidence.">
-  <div class="container">
-    <span class="eyebrow">The live lab</span>
-    <h1>Real games. Early scores. Clear limits.</h1>
-    <p class="lead">
-      Every result here comes from an actual model run and links to playable
-      games and clean source. Most use one fixed seed instead of the three
-      required for the Official leaderboard, so treat them as evidence—not a championship.
-    </p>
-
-    <div class="callout section" style="margin-top:42px">
-      <strong>How to read this page:</strong> Core is the average of Build and
-      Reproduce. A dash means the model did not finish enough tasks for a fair
-      combined score. Provider limits and failed builds stay visible as failures.
-    </div>
-
-    <section class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">One-seed scoreboard</span><h2>Pick a model. Then play its work.</h2></div>
-        <p>{entries.length} public model run{entries.length === 1 ? "" : "s"}, all measured on one exact GameBench version.</p>
-      </div>
-      <div class="grid">
-        {entries.map(({ entry, publication }, index) => {
-          const included = publication.runs.filter((run) => run.included);
-          const seeds = new Set(included.map((run) => run.seed)).size;
-          const verified = included.filter((run) => run.verification).length;
-          const complete = entry.aggregate.coverage.core.completed === entry.aggregate.coverage.core.required;
-          const limitation = !complete
-            ? `${entry.aggregate.coverage.core.completed} of ${entry.aggregate.coverage.core.required} games completed`
-            : seeds < 3
-              ? `${seeds} fixed seed instead of 3`
-              : verified < included.length
-                ? "not independently operator verified"
-                : "non-Official execution profile";
-          const limitationZh = !complete
-            ? `只完成 ${entry.aggregate.coverage.core.completed}/${entry.aggregate.coverage.core.required} 个游戏`
-            : seeds < 3
-              ? `${seeds} 个固定种子，而非 3 个`
-              : verified < included.length
-                ? "尚未由运营方独立验证"
-                : "非正式执行配置";
-          return (
-            <a class="card result-card" href={`/results/${entry.publication_id.slice(7)}`} style="text-decoration:none">
-              <span class="result-rank">{String(index + 1).padStart(2, "0")}</span>
-              <span>
-                <span class="output-meta">
-                  <span class="pill experimental">experimental</span>
-                  <span class="pill">{entry.agent.id}</span>
-                </span>
-                <strong style="font-size:clamp(20px,3vw,30px)">{entry.agent.model}</strong>
-                <span class="muted" style="display:block;margin-top:5px">
-                  <span class="lang-en">Build {score(entry.aggregate.leaderboards.build)} · Reproduce {score(entry.aggregate.leaderboards.reproduce)} · {limitation}</span>
-                  <span class="lang-zh">构建 {score(entry.aggregate.leaderboards.build)} · 复刻 {score(entry.aggregate.leaderboards.reproduce)} · {limitationZh}</span>
-                </span>
-              </span>
-              <span class="result-score">
-                {score(entry.aggregate.leaderboards.core)}
-                <small>{complete ? "core score" : "incomplete"}</small>
-              </span>
-            </a>
-          );
-        })}
-      </div>
-    </section>
-
-    <section class="section">
-      <div class="grid cols-3">
-        <article class="card"><span class="pill">Build</span><h3>Can it create a working game?</h3><p>Six original game tasks test mechanics, controls, state, resets, stability, and browser behavior.</p></article>
-        <article class="card"><span class="pill">Reproduce</span><h3>Can it faithfully remake one?</h3><p>Two open-source games test whether the model can recover behavior and visual structure from a reference.</p></article>
-        <article class="card"><span class="pill">Official</span><h3>What changes for the real board?</h3><p>Every task runs three fixed seeds, clean source is rebuilt, and an operator verifies the complete matrix.</p></article>
-      </div>
-      <div class="actions"><a class="button secondary" href="/methodology">Read the scoring rules</a></div>
-    </section>
-  </div>
+<Layout title="Evaluation rankings" titleZh="评测排行" canonicalPath="/leaderboard" description="Playable, version-isolated Carrick AI GameBench model results.">
+  <RankingsPage version={current.benchmark_version} releases={releases} records={results.records} />
 </Layout>

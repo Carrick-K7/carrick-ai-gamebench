@@ -44,16 +44,17 @@ const requirements = [
   },
   {
     valid:
-      showcase.includes('iframe.sandbox.add("allow-scripts", "allow-pointer-lock")') &&
+      showcase.includes('sandbox="allow-scripts allow-pointer-lock"') &&
       !showcase.includes("allow-same-origin"),
     message: "generated games require a sandbox without same-origin access",
   },
   {
     valid:
-      showcase.includes("referrerPolicy = \"no-referrer\"") &&
-      showcase.includes("data-player data-src={playable.url}") &&
-      showcase.includes('querySelector("[data-load]")?.addEventListener'),
-    message: "the player must be explicit, lazy, and referrer-isolated",
+      showcase.includes('src={playable.url}') &&
+      showcase.includes('referrerpolicy="no-referrer"') &&
+      showcase.includes('loading="eager"') &&
+      !showcase.includes("data-load"),
+    message: "the single-game showcase must load immediately and remain referrer-isolated",
   },
 ];
 
