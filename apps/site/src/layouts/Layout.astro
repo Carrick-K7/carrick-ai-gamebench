@@ -262,6 +262,27 @@ const socialImage = new URL("/og.png", canonical);
 </html>
 
 <style is:global>
+  @font-face {
+    font-family: "Oxanium";
+    font-style: normal;
+    font-weight: 200 800;
+    font-display: swap;
+    src: url("/fonts/Oxanium-Variable.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Silkscreen";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/fonts/Silkscreen-Regular.ttf") format("truetype");
+  }
+  @font-face {
+    font-family: "Silkscreen";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("/fonts/Silkscreen-Bold.ttf") format("truetype");
+  }
   :root {
     color-scheme: light;
     --ink: #132321;
@@ -278,7 +299,9 @@ const socialImage = new URL("/og.png", canonical);
     --radius: 18px;
     --mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
     --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    --display: "Arial Black", "Helvetica Neue", var(--sans);
+    --display: "Oxanium", "Arial Black", "Helvetica Neue", var(--sans);
+    --game-ui: "Oxanium", "Trebuchet MS", var(--sans);
+    --pixel: "Silkscreen", var(--mono);
   }
 
   html[data-theme="arcade"] {
@@ -295,12 +318,14 @@ const socialImage = new URL("/og.png", canonical);
     --lime: #00ff88;
     --shadow: 8px 8px 0 #01030a;
     --radius: 2px;
-    --display: var(--mono);
+    --display: var(--pixel);
+    --game-ui: var(--pixel);
   }
 
   html[data-language="zh"] {
     --sans: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
-    --display: "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", var(--sans);
+    --display: "Oxanium", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", var(--sans);
+    --game-ui: "Oxanium", "Noto Sans CJK SC", "PingFang SC", "Microsoft YaHei", var(--sans);
   }
 
   * { box-sizing: border-box; }
@@ -362,10 +387,10 @@ const socialImage = new URL("/og.png", canonical);
   .brand-mark img { display: block; height: 100%; object-fit: contain; width: 100%; }
   html[data-theme="arcade"] .brand-mark { filter: drop-shadow(0 0 8px rgba(0, 255, 255, .38)); }
   .brand-copy { display: grid; gap: 1px; }
-  .brand-copy strong { font-family: var(--display); font-size: 17px; letter-spacing: -.035em; }
-  .brand-copy small { color: var(--muted); font-size: 10px; font-weight: 720; letter-spacing: 0; }
+  .brand-copy strong { font-family: var(--game-ui); font-size: 17px; font-weight: 750; letter-spacing: -.025em; }
+  .brand-copy small { color: var(--muted); font-family: var(--game-ui); font-size: 10px; font-weight: 620; letter-spacing: .01em; }
   nav { display: flex; gap: clamp(13px, 1.8vw, 26px); justify-content: center; }
-  nav a { align-items: center; color: var(--muted); display: inline-flex; font-size: 13px; font-weight: 750; gap: 5px; position: relative; text-decoration: none; }
+  nav a { align-items: center; color: var(--muted); display: inline-flex; font-family: var(--game-ui); font-size: 13px; font-weight: 700; gap: 5px; letter-spacing: .01em; position: relative; text-decoration: none; }
   nav a::after { background: var(--hot); bottom: -8px; content: ""; height: 3px; left: 0; position: absolute; transform: scaleX(0); transform-origin: left; transition: transform .18s ease; width: 100%; }
   nav a:hover, nav a[data-active="true"] { color: var(--ink); }
   nav a:hover::after, nav a[data-active="true"]::after { transform: scaleX(1); }
@@ -375,24 +400,25 @@ const socialImage = new URL("/og.png", canonical);
   .mode-switch { background: color-mix(in srgb, var(--ink) 7%, transparent); border: 1px solid var(--line); border-radius: 999px; display: flex; padding: 3px; }
   .mode-switch button {
     background: transparent; border: 0; border-radius: 999px; color: var(--muted);
-    font-family: var(--mono); font-size: 9px; font-weight: 900; letter-spacing: .05em; padding: 6px 8px; text-transform: uppercase;
+    font-family: var(--game-ui); font-size: 9px; font-weight: 700; letter-spacing: .04em; padding: 6px 8px; text-transform: uppercase;
   }
   .mode-switch button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   html[data-theme="arcade"] .mode-switch,
   html[data-theme="arcade"] .mode-switch button { border-radius: 0; }
   .language-toggle {
     background: #39c5bb; border: 1px solid #39c5bb; border-radius: 999px; color: #071c1a;
-    flex: 0 0 auto; font-family: var(--mono); font-size: 11px; font-weight: 900; padding: 8px 10px;
+    flex: 0 0 auto; font-family: var(--game-ui); font-size: 11px; font-weight: 750; padding: 8px 10px;
   }
   html[data-theme="arcade"] .language-toggle { background: var(--accent); border-color: var(--accent); border-radius: 0; box-shadow: 3px 3px 0 var(--hot); color: #04060f; }
   .language-toggle:hover { filter: brightness(1.08); transform: translateY(-1px); }
   main { min-height: calc(100vh - 164px); }
   .container { margin: 0 auto; max-width: 1340px; padding: 64px clamp(18px, 5vw, 72px) 96px; }
-  .eyebrow { color: var(--accent); font-family: var(--mono); font-size: 11px; font-weight: 900; letter-spacing: .13em; text-transform: uppercase; }
+  .eyebrow { align-items: center; color: var(--accent); display: inline-flex; font-family: var(--game-ui); font-size: 11px; font-weight: 750; gap: 8px; letter-spacing: .09em; text-transform: uppercase; }
+  .eyebrow::before { color: var(--hot); content: "◆"; font-size: 8px; }
   h1, h2 { font-family: var(--display); text-wrap: balance; }
-  h1 { font-size: clamp(42px, 6vw, 80px); letter-spacing: -.055em; line-height: 1.02; margin: 20px 0 26px; max-width: 1120px; text-transform: uppercase; }
-  h2 { font-size: clamp(31px, 4.5vw, 62px); letter-spacing: -.05em; line-height: 1.08; margin: 0 0 17px; }
-  h3 { font-size: 20px; letter-spacing: -.025em; margin: 0 0 10px; }
+  h1 { font-size: clamp(42px, 6vw, 80px); font-weight: 780; letter-spacing: -.038em; line-height: 1.02; margin: 20px 0 26px; max-width: 1120px; text-transform: uppercase; }
+  h2 { font-size: clamp(31px, 4.5vw, 62px); font-weight: 740; letter-spacing: -.032em; line-height: 1.08; margin: 0 0 17px; }
+  h3 { font-family: var(--game-ui); font-size: 20px; font-weight: 700; letter-spacing: -.015em; margin: 0 0 10px; }
   html[data-language="zh"] h1,
   html[data-language="zh"] h2,
   html[data-language="zh"] h3 { letter-spacing: -.02em; text-transform: none; text-wrap: pretty; }
@@ -401,7 +427,7 @@ const socialImage = new URL("/og.png", canonical);
   html[data-language="zh"] .eyebrow,
   html[data-language="zh"] th { letter-spacing: .04em; }
   html[data-theme="arcade"] h1,
-  html[data-theme="arcade"] h2 { letter-spacing: -.08em; text-shadow: 4px 4px 0 rgba(255, 0, 212, .2); }
+  html[data-theme="arcade"] h2 { letter-spacing: -.03em; line-height: 1.15; text-shadow: 4px 4px 0 rgba(255, 0, 212, .2); }
   html[data-language="zh"][data-theme="arcade"] h1,
   html[data-language="zh"][data-theme="arcade"] h2 { letter-spacing: -.025em; }
   p { color: var(--muted); line-height: 1.7; }
@@ -409,7 +435,7 @@ const socialImage = new URL("/og.png", canonical);
   .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 32px; }
   .button {
     align-items: center; background: var(--ink); border: 1px solid var(--ink); border-radius: 999px; color: var(--paper);
-    display: inline-flex; font: inherit; font-size: 13px; font-weight: 850; gap: 8px;
+    display: inline-flex; font-family: var(--game-ui); font-size: 13px; font-weight: 720; gap: 8px; letter-spacing: .01em;
     justify-content: center; min-height: 44px; padding: 11px 18px; text-decoration: none; transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
   }
   .button.secondary { background: transparent; color: var(--ink); }
@@ -430,26 +456,26 @@ const socialImage = new URL("/og.png", canonical);
   .metric { overflow: hidden; position: relative; }
   .metric::after { background: var(--accent); content: ""; height: 4px; inset: auto 0 0; position: absolute; transform: scaleX(.22); transform-origin: left; transition: transform .2s ease; }
   .metric:hover::after { transform: scaleX(1); }
-  .metric strong { display: block; font-family: var(--display); font-size: clamp(31px, 4vw, 48px); letter-spacing: -.06em; line-height: 1; }
+  .metric strong { display: block; font-family: var(--display); font-size: clamp(31px, 4vw, 48px); font-variant-numeric: tabular-nums; font-weight: 760; letter-spacing: -.035em; line-height: 1; }
   .metric span { color: var(--muted); display: block; font-size: 12px; margin-top: 8px; }
   .section { border-top: 1px solid var(--line); margin-top: 84px; padding-top: 54px; }
   .section-head { align-items: end; display: flex; justify-content: space-between; margin-bottom: 28px; gap: 28px; }
   .section-head p { margin: 0; max-width: 580px; }
   .pill {
     background: color-mix(in srgb, var(--ink) 7%, transparent); border: 1px solid color-mix(in srgb, var(--line) 75%, transparent);
-    border-radius: 999px; color: var(--muted); display: inline-flex; font-family: var(--mono); font-size: 11px;
-    font-weight: 900; letter-spacing: .04em; padding: 6px 9px; text-transform: uppercase;
+    border-radius: 999px; color: var(--muted); display: inline-flex; font-family: var(--game-ui); font-size: 10px;
+    font-weight: 720; letter-spacing: .035em; padding: 6px 9px; text-transform: uppercase;
   }
   html[data-theme="arcade"] .pill { border-radius: 0; }
   .pill.official { background: var(--lime); border-color: var(--lime); color: #172006; }
   .pill.experimental { background: color-mix(in srgb, var(--hot) 14%, var(--panel-solid)); border-color: var(--hot); color: var(--hot); }
   table { border-collapse: collapse; width: 100%; }
-  th { color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-align: left; text-transform: uppercase; }
+  th { color: var(--muted); font-family: var(--game-ui); font-size: 10px; font-weight: 700; letter-spacing: .05em; text-align: left; text-transform: uppercase; }
   th, td { border-bottom: 1px solid var(--line); padding: 16px 13px; }
   tbody tr { transition: background .15s ease; }
   tbody tr:hover { background: color-mix(in srgb, var(--accent) 7%, transparent); }
   td { font-size: 13px; }
-  td.score { color: var(--accent); font-family: var(--display); font-size: 21px; font-weight: 900; }
+  td.score { color: var(--accent); font-family: var(--display); font-size: 21px; font-variant-numeric: tabular-nums; font-weight: 760; }
   .table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); overflow-x: auto; }
   html[data-theme="arcade"] .table-wrap { box-shadow: 6px 6px 0 #01030a; }
   .empty { display: grid; gap: 9px; justify-items: center; padding: 64px 24px; text-align: center; }
@@ -462,7 +488,7 @@ const socialImage = new URL("/og.png", canonical);
   html[data-language="zh"] .lang-zh { display: initial; }
   .game-card { min-height: 248px; overflow: hidden; position: relative; }
   .game-card::before { color: color-mix(in srgb, var(--accent) 12%, transparent); content: attr(data-ghost); font-family: var(--display); font-size: 110px; font-weight: 900; line-height: 1; position: absolute; right: -8px; top: 8px; }
-  .game-card .number { color: var(--hot); font-family: var(--mono); font-size: 11px; font-weight: 900; }
+  .game-card .number { color: var(--hot); font-family: var(--game-ui); font-size: 11px; font-weight: 700; }
   .game-card a { text-decoration: none; }
   .game-card a::after { content: ""; inset: 0; position: absolute; }
   .game-card h3 { font-size: 28px; letter-spacing: -.045em; margin-top: 38px; position: relative; }
@@ -564,8 +590,8 @@ const socialImage = new URL("/og.png", canonical);
   .how-card::before { color: var(--accent); content: "0" counter(step); counter-increment: step; font-family: var(--display); font-size: 52px; left: 22px; line-height: 1; position: absolute; top: 22px; }
   .result-card { display: grid; gap: 18px; grid-template-columns: auto 1fr auto; align-items: center; }
   .result-rank { color: var(--hot); font-family: var(--display); font-size: 34px; }
-  .result-score { color: var(--accent); font-family: var(--display); font-size: 34px; text-align: right; }
-  .result-score small { color: var(--muted); display: block; font-family: var(--mono); font-size: 8px; letter-spacing: .08em; text-transform: uppercase; }
+  .result-score { color: var(--accent); font-family: var(--display); font-size: 34px; font-variant-numeric: tabular-nums; font-weight: 760; text-align: right; }
+  .result-score small { color: var(--muted); display: block; font-family: var(--game-ui); font-size: 9px; letter-spacing: .05em; text-transform: uppercase; }
   .cursor-reticle { display: none; }
   html[data-theme="arcade"] .cursor-reticle {
     border: 1px solid var(--accent); border-radius: 50%; display: block; height: 22px; left: -11px; mix-blend-mode: screen;

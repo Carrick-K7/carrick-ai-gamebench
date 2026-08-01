@@ -16,6 +16,11 @@ test("the complete responsive brand asset family is present", async () => {
     access(new URL("../public/favicon.svg", import.meta.url)),
     access(new URL("../public/apple-touch-icon.png", import.meta.url)),
     access(new URL("../public/og.png", import.meta.url)),
+    access(new URL("../public/fonts/Oxanium-Variable.ttf", import.meta.url)),
+    access(new URL("../public/fonts/Silkscreen-Regular.ttf", import.meta.url)),
+    access(new URL("../public/fonts/Silkscreen-Bold.ttf", import.meta.url)),
+    access(new URL("../public/fonts/licenses/Oxanium-OFL.txt", import.meta.url)),
+    access(new URL("../public/fonts/licenses/Silkscreen-OFL.txt", import.meta.url)),
   ]);
   const logo = await readFile(new URL("../public/carrick-logo.svg", import.meta.url), "utf8");
   assert.match(logo, /Carrick AI GameBench/);
