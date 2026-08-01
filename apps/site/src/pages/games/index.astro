@@ -20,16 +20,16 @@ const current = catalogs[0];
       open-source game.
     </p>
 
-    <div class="actions">
-      {catalogs.map(({ release }) => (
-        <a
-          class={`button ${release.benchmark_version === current?.release.benchmark_version ? "" : "secondary"}`}
-          href={`/benchmarks/${release.benchmark_version}/games`}
-        >
-          v{release.benchmark_version}
-        </a>
-      ))}
-    </div>
+    {current && (
+      <div class="version-context">
+        <span class="pill">v{current.release.benchmark_version} · current</span>
+        <p>
+          <span class="lang-en">The test set evolves over time. Games shown here always come from the current release; earlier contracts remain available in the version archive.</span>
+          <span class="lang-zh">测试集会持续迭代。这里默认只展示当前版本；较早的任务规则仍保留在版本档案中，方便审计。</span>
+        </p>
+        <a href="/releases"><span class="lang-en">About versioning</span><span class="lang-zh">了解版本迭代</span></a>
+      </div>
+    )}
 
     {current && (
       <section class="section">
@@ -45,3 +45,9 @@ const current = catalogs[0];
     )}
   </div>
 </Layout>
+
+<style>
+  .version-context { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 30px; }
+  .version-context p { margin: 0; max-width: 760px; }
+  .version-context a { font-size: 13px; font-weight: 800; }
+</style>

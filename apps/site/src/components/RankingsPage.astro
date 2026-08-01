@@ -21,6 +21,8 @@ const activeForVersion = records.filter(
 const officialCount = activeForVersion.filter(({ entry }) => entry.tier === "official").length;
 const experimentalCount = activeForVersion.filter(({ entry }) => entry.tier === "experimental").length;
 const officialRanksFirst = rankingTierOrder(officialCount)[0] === "official";
+const currentVersion = releases[0]?.benchmark_version;
+const isCurrentVersion = version === currentVersion;
 ---
 
 <div class="container">
@@ -31,18 +33,13 @@ const officialRanksFirst = rankingTierOrder(officialCount)[0] === "official";
     <span class="lang-zh">每条成绩都能打开对应游戏、失败项、整理后的源码和完整评测记录。不同测试集版本的结果不会混在一起排名。</span>
   </p>
 
-  <div class="actions" aria-label="Benchmark release selector">
-    {releases.map((release) => (
-      <a
-        class={`button ${release.benchmark_version === version ? "" : "secondary"}`}
-        href={release.benchmark_version === releases[0]?.benchmark_version
-          ? "/leaderboard"
-          : `/benchmarks/${release.benchmark_version}/leaderboard`}
-        aria-current={release.benchmark_version === version ? "page" : undefined}
-      >
-        v{release.benchmark_version}
-      </a>
-    ))}
+  <div class="version-context">
+    <span class="pill">v{version} · {isCurrentVersion ? "current" : "archived"}</span>
+    <p>
+      <span class="lang-en">GameBench improves through versioned releases. This page keeps scores comparable by showing one ruleset at a time.</span>
+      <span class="lang-zh">GameBench 会持续迭代。每个页面只比较同一版测试规则下的成绩，避免不同版本混排。</span>
+    </p>
+    {!isCurrentVersion && <a href="/leaderboard"><span class="lang-en">Return to current rankings</span><span class="lang-zh">返回当前排行</span></a>}
   </div>
 
   {officialRanksFirst ? (
@@ -86,4 +83,7 @@ const officialRanksFirst = rankingTierOrder(officialCount)[0] === "official";
 <style>
   .compact-section { max-width: 900px; }
   h2 { margin-top: 12px; }
+  .version-context { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 30px; }
+  .version-context p { margin: 0; max-width: 720px; }
+  .version-context a { font-size: 13px; font-weight: 800; }
 </style>

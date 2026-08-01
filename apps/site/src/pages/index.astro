@@ -197,5 +197,32 @@ const titleByTask = new Map(
         <article class="card"><h3>Audit the tests</h3><p>Task rules, point weights, failures, versions, and immutable result records are public.</p></article>
       </div>
     </section>
+
+    <section class="section about-section">
+      <figure class="about-visual">
+        <img src="/og.png" alt="Carrick AI GameBench · Play the proof" loading="lazy" />
+      </figure>
+      <div class="about-copy">
+        <span class="eyebrow"><span class="lang-en">About Carrick AI GameBench</span><span class="lang-zh">关于 Carrick AI GameBench</span></span>
+        <h2><span class="lang-en">The game is the evidence.</span><span class="lang-zh">游戏本身，就是评测证据。</span></h2>
+        <p class="lead">
+          <span class="lang-en">GameBench turns AI coding ability into something people can inspect with their own hands. Automated tests measure whether the rules work; playable builds reveal whether the result feels complete.</span>
+          <span class="lang-zh">GameBench 把 AI 编程能力变成每个人都能亲手验证的成果。自动测试检查规则是否正确，可试玩成品则让你直接判断游戏是否真的完整、好用。</span>
+        </p>
+        <div class="actions">
+          <a class="button" href="/methodology"><span class="lang-en">Read the evaluation rules</span><span class="lang-zh">了解评测规则</span></a>
+          <a class="button secondary" href="/source"><span class="lang-en">Explore the open benchmark</span><span class="lang-zh">查看开放内容</span></a>
+        </div>
+      </div>
+    </section>
   </div>
 </Layout>
+
+<style>
+  .about-section { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); }
+  .about-visual { background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0; overflow: hidden; }
+  .about-visual img { display: block; height: auto; width: 100%; }
+  .about-copy h2 { font-size: clamp(34px, 4.2vw, 58px); margin-top: 12px; }
+  .about-copy .lead { font-size: clamp(16px, 1.6vw, 20px); }
+  @media (max-width: 840px) { .about-section { grid-template-columns: 1fr; } }
+</style>

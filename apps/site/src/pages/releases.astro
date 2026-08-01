@@ -3,35 +3,63 @@ import Layout from "../layouts/Layout.astro";
 import { releaseData } from "../lib/data";
 
 const releases = await releaseData();
+const current = releases[0];
+const archived = releases.slice(1);
 ---
 
-<Layout title="Releases">
+<Layout title="Benchmark releases" titleZh="测试集版本">
   <div class="container">
-    <span class="eyebrow">GameBench seasons</span>
-    <h1>Scores only compete under the same rules.</h1>
+    <span class="eyebrow"><span class="lang-en">Versioned by design</span><span class="lang-zh">持续迭代，版本可追溯</span></span>
+    <h1><span class="lang-en">The benchmark evolves. Scores stay comparable.</span><span class="lang-zh">测试集会迭代，成绩仍然可比较。</span></h1>
     <p class="lead">
-      A new version can change games, tests, scoring, or required seeds. We keep
-      every old ruleset available, but never mix its scores into a newer board.
+      <span class="lang-en">Games, tests, and scoring rules can improve over time. Every result names its exact release, and rankings never mix incompatible versions.</span>
+      <span class="lang-zh">游戏任务、测试方法和评分规则都会继续改进。每条成绩都会标明对应版本，不同版本不会混在一起排名。</span>
     </p>
 
-    <section class="section grid">
-      {releases.map((release) => (
-        <article class="card">
-          <div class="section-head">
-            <div>
-              <span class="pill">{release.task_count} game challenges</span>
-              <h2>
-                <a href={`/releases/${release.benchmark_version}`}>
-                  v{release.benchmark_version}
-                </a>
-              </h2>
-            </div>
-            <span class="mono muted">frozen rules</span>
+    {current && (
+      <section class="section">
+        <div class="section-head">
+          <div><span class="pill official"><span class="lang-en">Current release</span><span class="lang-zh">当前版本</span></span><h2>v{current.benchmark_version}</h2></div>
+          <p><span class="lang-en">The public games and rankings use this ruleset by default.</span><span class="lang-zh">公开游戏与评测排行默认使用这一版规则。</span></p>
+        </div>
+        <article class="card release-card">
+          <div>
+            <h3>{current.task_count} <span class="lang-en">game challenges</span><span class="lang-zh">个游戏任务</span></h3>
+            <p>
+              <span class="lang-en">{current.tasks.filter((task) => task.track === "build").length} original-game tasks and {current.tasks.filter((task) => task.track === "reproduce").length} recreation tasks.</span>
+              <span class="lang-zh">包含 {current.tasks.filter((task) => task.track === "build").length} 个原创游戏任务和 {current.tasks.filter((task) => task.track === "reproduce").length} 个复刻任务。</span>
+            </p>
           </div>
-          <p>Contains {release.tasks.filter((task) => task.track === "build").length} make-new challenges and {release.tasks.filter((task) => task.track === "reproduce").length} recreation challenges.</p>
-          <div class="actions"><a class="button" href={`/releases/${release.benchmark_version}`}>See what changed</a><a class="button secondary" href={`/benchmarks/${release.benchmark_version}/games`}>Play this version</a></div>
+          <div class="actions">
+            <a class="button" href={`/releases/${current.benchmark_version}`}><span class="lang-en">See current rules</span><span class="lang-zh">查看当前规则</span></a>
+            <a class="button secondary" href="/games"><span class="lang-en">Play current games</span><span class="lang-zh">玩当前游戏</span></a>
+          </div>
         </article>
-      ))}
-    </section>
+      </section>
+    )}
+
+    {archived.length > 0 && (
+      <section class="section prose">
+        <details class="audit release-archive">
+          <summary><span class="lang-en">Historical release archive · {archived.length} retained</span><span class="lang-zh">历史版本档案 · 已保留 {archived.length} 个版本</span></summary>
+          <div class="audit-body">
+            <p><span class="lang-en">Earlier releases remain available for reproducibility and old result links. Most visitors do not need them.</span><span class="lang-zh">历史版本仅用于复现旧成绩和保持旧链接有效，普通用户通常不需要查看。</span></p>
+            <ul class="archive-list">
+              {archived.map((release) => (
+                <li><a href={`/releases/${release.benchmark_version}`}>v{release.benchmark_version}</a><span>{release.task_count} <span class="lang-en">tasks</span><span class="lang-zh">个任务</span></span></li>
+              ))}
+            </ul>
+          </div>
+        </details>
+      </section>
+    )}
   </div>
 </Layout>
+
+<style>
+  .release-card { align-items: center; display: flex; gap: 30px; justify-content: space-between; }
+  .release-card .actions { flex: 0 0 auto; margin-top: 0; }
+  .archive-list { display: grid; gap: 0; list-style: none; padding: 0; }
+  .archive-list li { align-items: center; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; padding: 12px 0; }
+  @media (max-width: 700px) { .release-card { align-items: flex-start; flex-direction: column; } }
+</style>

@@ -100,18 +100,16 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
       </div>
     </section>
 
-    <section class="section">
-      <div class="section-head">
-        <div><span class="eyebrow">Compared with the prior season</span><h2>What changed?</h2></div>
-        <p>
-          <span class="lang-en">{previous ? `Compared with v${previous.release.benchmark_version}.` : "This is the earliest retained release lock."}</span>
-          <span class="lang-zh">{previous ? `对比 v${previous.release.benchmark_version}。` : "这是目前保留的最早版本。"}</span>
-        </p>
-      </div>
-      {!previous ? (
-        <div class="callout">Initial retained Benchmark release.</div>
-      ) : (
-        <div class="grid cols-3">
+    <section class="section prose">
+      <h2><span class="lang-en">Built to improve without rewriting history.</span><span class="lang-zh">持续改进，也保留每次变化。</span></h2>
+      <p><span class="lang-en">GameBench uses explicit releases whenever tasks, tests, or evaluation rules change. The current page is complete on its own; comparison details are available when needed.</span><span class="lang-zh">任务、测试或评测规则发生变化时，GameBench 会发布新版本。当前页面已经包含使用这一版所需的信息，版本差异可按需展开查看。</span></p>
+      <details class="audit">
+        <summary><span class="lang-en">Changes since the previous release</span><span class="lang-zh">查看相对上一版的变化</span></summary>
+        <div class="audit-body">
+        {!previous ? (
+          <div class="callout">Initial retained Benchmark release.</div>
+        ) : (
+          <div class="grid cols-3">
           <article class="card">
             <h3>Tasks</h3>
             <p>
@@ -140,8 +138,10 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
               <span class="lang-zh">{seedPolicyChanged ? "固定种子或尝试规则已变更。" : "未变更。"}</span>
             </p>
           </article>
+          </div>
+        )}
         </div>
-      )}
+      </details>
     </section>
 
     <section class="section prose">
