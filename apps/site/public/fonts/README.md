@@ -8,3 +8,13 @@ The public site self-hosts these unmodified Google Fonts files:
 Source: `google/fonts` commit `2796410152d4f9524b68ed46e69c1b60f8e0f7c3`.
 Both families are distributed under the SIL Open Font License 1.1. The exact
 license text for each family is retained in `licenses/`.
+
+The Chinese interface also self-hosts:
+
+- Smiley Sans 2.0.1: modern-theme Chinese display face.
+- Fusion Pixel Font 10px proportional SC 2026.07.20: pixel-theme Chinese
+  display face.
+
+Both files are unmodified web-font builds from their upstream GitHub releases
+and are distributed under the SIL Open Font License 1.1. Their exact license
+texts are retained in `licenses/`.
