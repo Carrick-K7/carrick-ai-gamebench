@@ -11,10 +11,11 @@ license text for each family is retained in `licenses/`.
 
 The Chinese interface also self-hosts:
 
-- Smiley Sans 2.0.1: modern-theme Chinese display face.
+- ZCOOL QingKe HuangYou: modern-theme Chinese display face. The complete
+  upstream TTF from commit `c9dac424b0a9f47d3b113cff4a4922f632d82c94`
+  is packaged as a full-glyph WOFF2 web font.
 - Fusion Pixel Font 10px proportional SC 2026.07.20: pixel-theme Chinese
   display face.
 
-Both files are unmodified web-font builds from their upstream GitHub releases
-and are distributed under the SIL Open Font License 1.1. Their exact license
-texts are retained in `licenses/`.
+Both families are distributed under the SIL Open Font License 1.1. Their exact
+license texts are retained in `licenses/`.
