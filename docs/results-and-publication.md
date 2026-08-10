@@ -47,13 +47,13 @@ pnpm cagb run --task build.2048.v2 \
   --series 01K...
 
 # Rebuild and verify an individual v2 run.
-pnpm cagb verify-run --run runs/0.3.0/01K.../01K... \
+pnpm cagb verify-run --run runs/0.4.0/01K.../01K... \
   --verifier-id operator \
   --image-digest sha256:<digest> \
   --network-attestation not-required
 
 # Publish metadata to Git and artifacts to the static object root.
-pnpm cagb publish --series runs/0.3.0/01K... \
+pnpm cagb publish --series runs/0.4.0/01K... \
   --tier experimental \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com

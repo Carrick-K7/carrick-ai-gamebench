@@ -16,6 +16,45 @@ test("task manifests reject unknown keys", () => {
   assert.equal(result.success, false);
 });
 
+test("task manifests reject escaping and non-portable paths", () => {
+  const base = {
+    schema_version: 1,
+    id: "build.example.v1",
+    version: "1.0.0",
+    title: { en: "Example", zh: "示例" },
+    track: "build",
+    level: 1,
+    prompt: { en: "prompt.en.md", zh: "prompt.zh.md" },
+    starter: "vite-ts",
+    budget_seconds: 3600,
+    network_policy: "full",
+    runtime: {
+      node: "22",
+      package_manager: "pnpm",
+      port: 4173,
+      viewport: [1280, 720],
+      device_scale_factor: 1,
+    },
+    test_suite: "tests/cases.json",
+    bridge: { version: "1", state_schema: "state.schema.json" },
+    tests: [{ id: "build", category: "build", points: 100, case: "build" }],
+  };
+  assert.equal(
+    TaskManifestSchema.safeParse({
+      ...base,
+      prompt: { ...base.prompt, en: "../prompt.md" },
+    }).success,
+    false,
+  );
+  assert.equal(
+    TaskManifestSchema.safeParse({
+      ...base,
+      bridge: { ...base.bridge, state_schema: "schema\\state.json" },
+    }).success,
+    false,
+  );
+});
+
 test("public browser cases reject ambiguous runtime operations", () => {
   const suite = (step: object) => ({
     schema_version: 1,

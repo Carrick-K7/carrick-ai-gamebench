@@ -43,7 +43,10 @@ publication manifest → results/index.json → static site
 
 Build workspaces install from their lockfile with the track's declared network
 policy. Reproduce preparation and evaluation use the local pnpm store in
-offline mode. Runtime games must not depend on external network resources.
+offline mode. Evaluator-owned install, build, preview, and browser processes
+receive an explicit non-secret environment. Browser contexts allow requests
+only to the assigned loopback origin and block WebSockets and service workers;
+runtime games must not depend on external network resources.
 The task's declared state schema is copied into the fresh workspace at its
 manifest-relative path. The public test suite and task manifest are copied
 under `gamebench/`. They are exposed through `CAGB_STATE_SCHEMA_PATH`,
@@ -108,7 +111,8 @@ from source browsing, so it deliberately does not claim to enforce
 
 The raw run bundle is private audit material. The publisher exports only
 allowlisted project source, rejects symlinks and credential patterns, rebuilds
-without model credentials, and creates deterministic public artifacts.
+without model credentials, scans both clean source and generated playables, and
+creates deterministic public artifacts.
 During that clean rebuild, the Evaluator resets the public bridge with the
 physical run seed, advances a fixed presentation interval, and captures a
 1280×720 `showcase.png`. Publisher exposes it as the deterministic

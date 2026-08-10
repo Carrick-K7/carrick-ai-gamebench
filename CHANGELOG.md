@@ -5,6 +5,16 @@ machine-readable lock under `benchmark/releases/`.
 
 ## Unreleased
 
+## 0.4.0
+
+- Restricted evaluated games to their assigned loopback origin and blocked
+  runtime WebSocket and service-worker escape paths.
+- Rebuilt and previewed submissions with an explicit environment allowlist so
+  provider credentials and process-injection variables cannot reach untrusted
+  package scripts or generated games.
+- Rejected task paths that escape their versioned package and scanned generated
+  playable bundles for credentials before publication.
+
 - Added semantic-versioned Leaderboard, game-catalog, task, release, immutable
   result, and isolated Showcase pages without changing benchmark scoring.
 - Added exact-hash resolution of retained historical task sources and explicit

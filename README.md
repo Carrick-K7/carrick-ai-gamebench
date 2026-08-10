@@ -45,7 +45,7 @@ Publish a scored v2 series as Experimental:
 
 ```bash
 pnpm cagb publish \
-  --series runs/0.3.0/<series-id> \
+  --series runs/0.4.0/<series-id> \
   --tier experimental \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com

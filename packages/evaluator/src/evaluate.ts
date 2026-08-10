@@ -21,10 +21,12 @@ import {
   type TestOutcome,
 } from "@carrick/gamebench-core";
 import {
+  evaluatorEnvironment,
   findAvailablePort,
   runCommand,
   waitForUrl,
 } from "./process.js";
+import { installRuntimeNetworkGuard } from "./runtime-security.js";
 
 export interface EvaluationOptions {
   submissionDir: string;
@@ -163,7 +165,9 @@ async function preflightBridge(
       height: task.manifest.runtime.viewport[1],
     },
     deviceScaleFactor: task.manifest.runtime.device_scale_factor,
+    serviceWorkers: "block",
   });
+  await installRuntimeNetworkGuard(context, baseUrl);
   try {
     const page = await context.newPage();
     await page.goto(baseUrl, {
@@ -207,7 +211,9 @@ async function captureShowcase(
       height: task.manifest.runtime.viewport[1],
     },
     deviceScaleFactor: task.manifest.runtime.device_scale_factor,
+    serviceWorkers: "block",
   });
+  await installRuntimeNetworkGuard(context, baseUrl);
   try {
     const page = await context.newPage();
     await page.goto(baseUrl, { waitUntil: "networkidle" });
@@ -311,7 +317,9 @@ async function executeBrowserCase(
       height: task.manifest.runtime.viewport[1],
     },
     deviceScaleFactor: 1,
+    serviceWorkers: "block",
   });
+  await installRuntimeNetworkGuard(context, baseUrl);
   await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
   const page = await context.newPage();
   const consoleErrors: string[] = [];
@@ -518,6 +526,7 @@ export async function evaluateSubmission(
       ["install", "--frozen-lockfile", "--offline", "--ignore-workspace"],
       {
         cwd: options.submissionDir,
+        env: evaluatorEnvironment(),
         stdoutPath: buildLog,
         stderrPath: buildErrorLog,
         timeoutMs: 120_000,
@@ -532,6 +541,7 @@ export async function evaluateSubmission(
   if (buildPassed) {
     const build = await runCommand("pnpm", ["build"], {
       cwd: options.submissionDir,
+      env: evaluatorEnvironment(),
       stdoutPath: buildLog,
       stderrPath: buildErrorLog,
       timeoutMs: 120_000,
@@ -568,6 +578,7 @@ export async function evaluateSubmission(
       ],
       {
         cwd: options.submissionDir,
+        env: evaluatorEnvironment(),
         detached: process.platform !== "win32",
         stdio: ["ignore", "pipe", "pipe"],
       },
@@ -590,7 +601,10 @@ export async function evaluateSubmission(
   let browser: Browser | undefined;
   try {
     if (buildPassed && baseUrl) {
-      browser = await chromium.launch({ headless: true });
+      browser = await chromium.launch({
+        headless: true,
+        env: evaluatorEnvironment(),
+      });
       try {
         await preflightBridge(browser, task, validateSnapshot, baseUrl);
       } catch (error) {

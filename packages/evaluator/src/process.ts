@@ -20,6 +20,43 @@ export interface CommandOptions {
   append?: boolean;
 }
 
+const EVALUATOR_ENVIRONMENT_KEYS = [
+  "PATH",
+  "HOME",
+  "TMPDIR",
+  "TMP",
+  "TEMP",
+  "SHELL",
+  "USER",
+  "LOGNAME",
+  "LANG",
+  "LC_ALL",
+  "LC_CTYPE",
+  "CI",
+  "TERM",
+  "NO_COLOR",
+  "FORCE_COLOR",
+  "PNPM_HOME",
+  "COREPACK_HOME",
+  "XDG_CACHE_HOME",
+  "XDG_CONFIG_HOME",
+  "XDG_DATA_HOME",
+  "PLAYWRIGHT_BROWSERS_PATH",
+] as const;
+
+export function evaluatorEnvironment(
+  source: NodeJS.ProcessEnv = process.env,
+): NodeJS.ProcessEnv {
+  const result: NodeJS.ProcessEnv = {};
+  for (const key of EVALUATOR_ENVIRONMENT_KEYS) {
+    const value = source[key];
+    if (value !== undefined) {
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
 export async function runCommand(
   command: string,
   args: string[],
