@@ -39,6 +39,15 @@ export interface ReleasedTask {
   source?: LoadedTask;
 }
 
+export function resolveTaskPath(root: string, relative: string): string {
+  const resolvedRoot = path.resolve(root);
+  const absolute = path.resolve(resolvedRoot, relative);
+  if (!absolute.startsWith(`${resolvedRoot}${path.sep}`)) {
+    throw new Error(`Task file escapes its root: ${relative}`);
+  }
+  return absolute;
+}
+
 async function exists(filePath: string): Promise<boolean> {
   try {
     await access(filePath);
@@ -97,10 +106,7 @@ async function hashFiles(root: string, relativePaths: string[]): Promise<string>
   const hash = createHash("sha256");
   for (const relative of [...new Set(relativePaths)].sort()) {
     const normalized = relative.split(path.sep).join("/");
-    const absolute = path.resolve(root, relative);
-    if (!absolute.startsWith(`${path.resolve(root)}${path.sep}`)) {
-      throw new Error(`Task file escapes its root: ${relative}`);
-    }
+    const absolute = resolveTaskPath(root, relative);
     const fileStat = await stat(absolute);
     if (!fileStat.isFile()) {
       throw new Error(`Task input is not a file: ${relative}`);
@@ -248,7 +254,14 @@ export async function validateTaskManifest(
   }
 
   for (const relative of requiredFiles) {
-    if (!(await exists(path.resolve(root, relative)))) {
+    let absolute: string;
+    try {
+      absolute = resolveTaskPath(root, relative);
+    } catch (error) {
+      errors.push(error instanceof Error ? error.message : String(error));
+      continue;
+    }
+    if (!(await exists(absolute))) {
       errors.push(`missing task file: ${relative}`);
     }
   }
@@ -316,7 +329,7 @@ export async function validateTaskManifest(
     }
   }
 
-  const stateSchemaPath = path.resolve(root, manifest.bridge.state_schema);
+  const stateSchemaPath = resolveTaskPath(root, manifest.bridge.state_schema);
   if (await exists(stateSchemaPath)) {
     try {
       const stateSchema = JSON.parse(
@@ -333,7 +346,7 @@ export async function validateTaskManifest(
   }
 
   let suite: TestSuite | undefined;
-  const suitePath = path.resolve(root, manifest.test_suite);
+  const suitePath = resolveTaskPath(root, manifest.test_suite);
   if (await exists(suitePath)) {
     try {
       const suiteResult = TestSuiteSchema.safeParse(

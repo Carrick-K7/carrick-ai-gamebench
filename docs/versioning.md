@@ -30,6 +30,15 @@ The 0.1.x release locks and run manifests remain readable. Run manifest v2 and
 the publication ledger begin at benchmark v0.2.0; historical tags are never
 rewritten.
 
+Benchmark v0.4.0 keeps the v2 task catalog and scoring rules unchanged while
+hardening the evaluator protocol. Submission install, build, preview, and
+browser processes receive an explicit non-secret environment; browser runtime
+requests are limited to the evaluated loopback origin; generated playables are
+secret-scanned; and task-relative paths cannot escape the frozen task package.
+The task hashes remain identical to v0.3.0, but results are version-separated
+because the stricter runtime policy can change scores for network-dependent
+submissions.
+
 Benchmark v0.3.0 activates the `.v2` task set. It makes the public case suite
 available in the Agent workspace, verifies that games apply the active run
 seed, uses image-area-relative visual tolerances, defines deadline snapshots,

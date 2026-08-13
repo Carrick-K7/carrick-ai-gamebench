@@ -22,9 +22,14 @@ import {
   type RunEnvironmentV2,
   type RunManifestV2,
   type SeriesManifest,
+  resolveTaskPath,
 } from "@carrick/gamebench-core";
 import { evaluateSubmission } from "./evaluate.js";
-import { runCommand, type CommandResult } from "./process.js";
+import {
+  evaluatorEnvironment,
+  runCommand,
+  type CommandResult,
+} from "./process.js";
 
 const OFFICIAL_SEEDS = [104_729, 130_363, 155_921] as const;
 
@@ -131,12 +136,12 @@ export async function prepareSubmissionWorkspace(
     throw new Error(`state schema escapes submission workspace: ${schemaRelative}`);
   }
   await mkdir(path.dirname(schemaDestination), { recursive: true });
-  await copyFile(path.resolve(task.root, schemaRelative), schemaDestination);
+  await copyFile(resolveTaskPath(task.root, schemaRelative), schemaDestination);
   const publicTaskDir = path.join(workspace, "gamebench");
   await mkdir(publicTaskDir, { recursive: true });
   await Promise.all([
     copyFile(
-      path.resolve(task.root, task.manifest.test_suite),
+      resolveTaskPath(task.root, task.manifest.test_suite),
       path.join(publicTaskDir, "public-tests.json"),
     ),
     copyFile(
@@ -309,7 +314,7 @@ async function runAttempt(
     workspace,
   );
 
-  const promptSource = path.join(
+  const promptSource = resolveTaskPath(
     options.task.root,
     options.task.manifest.prompt[options.language],
   );
@@ -382,6 +387,7 @@ async function runAttempt(
   }
   const preparation = await runCommand("pnpm", installArgs, {
     cwd: workspace,
+    env: evaluatorEnvironment(),
     stdoutPath: path.join(runDir, "prepare.log"),
     stderrPath: path.join(runDir, "prepare.stderr.log"),
     timeoutMs: 120_000,
@@ -414,7 +420,6 @@ async function runAttempt(
           "public-tests.json",
         ),
         CAGB_TASK_MANIFEST_PATH: path.join(workspace, "gamebench", "task.yml"),
-        CAGB_RUN_DIR: runDir,
         CAGB_SEED: String(seed),
         CAGB_NETWORK_POLICY: options.task.manifest.network_policy,
         ...(referenceDir ? { CAGB_REFERENCE_DIR: referenceDir } : {}),

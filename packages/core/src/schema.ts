@@ -26,6 +26,23 @@ export const SemverSchema = z
   .string()
   .regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/);
 
+export const TaskRelativePathSchema = z.string().min(1).superRefine(
+  (value, context) => {
+    const segments = value.split("/");
+    if (
+      value.startsWith("/") ||
+      value.includes("\\") ||
+      value.includes("\0") ||
+      segments.some((segment) => segment === "" || segment === "." || segment === "..")
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: "must be a normalized relative path inside the task directory",
+      });
+    }
+  },
+);
+
 export const TestCategorySchema = z.enum([
   "build",
   "mechanics",
@@ -48,7 +65,7 @@ export const ReferenceSchema = z.strictObject({
   repository: z.url(),
   commit: z.string().regex(/^[a-f0-9]{40}$/),
   license: z.string().min(1),
-  capture_pack: z.string().min(1),
+  capture_pack: TaskRelativePathSchema,
   source_release: z.literal("after-retirement"),
 });
 
@@ -87,10 +104,10 @@ export const TaskManifestSchema = z.strictObject({
   track: TrackSchema,
   level: z.number().int().min(1).max(3),
   prompt: z.strictObject({
-    en: z.string().min(1),
-    zh: z.string().min(1),
+    en: TaskRelativePathSchema,
+    zh: TaskRelativePathSchema,
   }),
-  starter: z.string().min(1),
+  starter: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/),
   budget_seconds: z.number().int().positive(),
   network_policy: NetworkPolicySchema,
   runtime: z.strictObject({
@@ -100,10 +117,10 @@ export const TaskManifestSchema = z.strictObject({
     viewport: z.tuple([z.number().int().positive(), z.number().int().positive()]),
     device_scale_factor: z.literal(1),
   }),
-  test_suite: z.string().min(1),
+  test_suite: TaskRelativePathSchema,
   bridge: z.strictObject({
     version: z.literal("1"),
-    state_schema: z.string().min(1),
+    state_schema: TaskRelativePathSchema,
   }),
   reference: ReferenceSchema.optional(),
   tests: z.array(TestDefinitionSchema).min(1),

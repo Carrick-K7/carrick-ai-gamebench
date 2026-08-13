@@ -104,7 +104,7 @@ test("every active v2 task exposes and verifies the applied run seed", async () 
 test("a release lock freezes every task hash", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const lock = createReleaseLock(
-    "0.3.0",
+    "0.4.0",
     await listTasks(repositoryRoot),
   );
   assert.equal(lock.task_count, 8);
@@ -122,7 +122,7 @@ test("release catalogs resolve active and retired task sources by exact hash", a
     true,
   );
 
-  for (const version of ["0.2.0", "0.3.0"]) {
+  for (const version of ["0.2.0", "0.3.0", "0.4.0"]) {
     const release = JSON.parse(
       await readFile(
         path.join(repositoryRoot, "benchmark", "releases", `${version}.json`),

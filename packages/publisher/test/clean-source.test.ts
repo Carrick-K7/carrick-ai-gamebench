@@ -104,6 +104,24 @@ test("secret scanning rejects credentials inside publishable source", async () =
   }
 });
 
+test("secret scanning rejects credentials embedded in the playable build", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-playable-secret-"));
+  try {
+    const workspace = await fixture(root);
+    await writeFile(
+      path.join(workspace, "dist", "index.html"),
+      '<script>window.key="sk-abcdefghijklmnopqrstuvwxyz123456"</script>',
+      "utf8",
+    );
+    await assert.rejects(
+      preparePublicArtifacts(workspace, path.join(root, "public")),
+      /public artifact secret scan failed/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
 test("a failed build can publish clean source without a playable bundle", async () => {
   const root = await mkdtemp(path.join(os.tmpdir(), "cagb-source-only-"));
   try {

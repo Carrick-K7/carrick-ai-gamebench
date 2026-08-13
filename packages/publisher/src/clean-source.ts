@@ -107,6 +107,30 @@ async function scanAndCopyDirectory(
   }
 }
 
+async function scanDirectory(sourceRoot: string, current = sourceRoot): Promise<void> {
+  for (const entry of await readdir(current, { withFileTypes: true })) {
+    rejectName(entry.name);
+    const absolute = path.join(current, entry.name);
+    const relative = path.relative(sourceRoot, absolute);
+    const info = await lstat(absolute);
+    if (info.isSymbolicLink()) {
+      throw new Error(`public artifact contains a symlink: ${relative}`);
+    }
+    if (info.isDirectory()) {
+      await scanDirectory(sourceRoot, absolute);
+    } else if (
+      info.isFile() &&
+      info.size <= 1_000_000 &&
+      TEXT_EXTENSION.has(path.extname(entry.name).toLowerCase())
+    ) {
+      const text = await readFile(absolute, "utf8");
+      if (SECRET_PATTERNS.some((pattern) => pattern.test(text))) {
+        throw new Error(`public artifact secret scan failed: ${relative}`);
+      }
+    }
+  }
+}
+
 export async function exportCleanSource(
   workspace: string,
   destination: string,
@@ -211,6 +235,7 @@ export async function preparePublicArtifacts(
       return { sourceArchive };
     }
     const playable = path.join(outputRoot, "playable");
+    await scanDirectory(dist);
     if (options.replacePlayable) {
       await rm(playable, { recursive: true, force: true });
     }
