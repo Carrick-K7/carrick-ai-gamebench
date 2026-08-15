@@ -62,11 +62,6 @@ jobs:
             sha256sum "gamebench-${version}-release-lock.json" \
               evaluator-image-id.txt > SHA256SUMS
           )
-      - uses: actions/upload-artifact@v6
-        with:
-          name: "gamebench-${{ github.ref_name }}-release-evidence"
-          path: release-artifacts
-          if-no-files-found: error
       - name: Create or update GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
