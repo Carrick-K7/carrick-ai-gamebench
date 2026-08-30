@@ -70,7 +70,7 @@ Official 0.6 means “project-operated canonical run committed by the maintainer
 
 Each active task lives under `benchmark/tasks/build/<game>/vN/` and owns its bilingual prompt, strict state schema, public browser cases, and 100-point manifest. `benchmark/releases/0.6.0.json` freezes the exact four-task catalog.
 
-See [methodology](docs/methodology.md), [architecture](docs/architecture.md), [task authoring](docs/task-authoring.md), [results and publication](docs/results-and-publication.md), [versioning](docs/versioning.md), and the [Chinese README](README.zh-CN.md).
+See [methodology](docs/methodology.md), [architecture](docs/architecture.md), [campaign architecture](docs/campaign-architecture.md), [task authoring](docs/task-authoring.md), [results and publication](docs/results-and-publication.md), [versioning](docs/versioning.md), and the [Chinese README](README.zh-CN.md).
 
 ## Boundaries
 

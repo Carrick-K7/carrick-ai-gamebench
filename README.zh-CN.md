@@ -70,7 +70,7 @@ pnpm cagb publish --run runs/0.6.0/<series-id>
 
 每个 active task 位于 `benchmark/tasks/build/<game>/vN/`，自带中英文 prompt、严格状态 Schema、公开浏览器 cases 和 100 分 manifest。`benchmark/releases/0.6.0.json` 冻结完整四任务目录。
 
-详细说明参见[方法学](docs/methodology.md)、[架构](docs/architecture.md)、[任务编写](docs/task-authoring.md)、[结果发布](docs/results-and-publication.md)和[版本规则](docs/versioning.md)。
+详细说明参见[方法学](docs/methodology.md)、[架构](docs/architecture.md)、[Campaign 与运行目录架构](docs/campaign-architecture.md)、[任务编写](docs/task-authoring.md)、[结果发布](docs/results-and-publication.md)和[版本规则](docs/versioning.md)。
 
 ## 边界
 
