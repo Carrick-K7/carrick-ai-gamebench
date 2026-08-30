@@ -1,6 +1,7 @@
 # Campaign, run, and publication architecture
 
-Status: **Accepted design; implementation pending.**  
+Status: **Accepted and enforced.**
+
 Applies to GameBench 0.6 and later releases.
 
 This document freezes the filesystem vocabulary and the experiment boundary. Changing a canonical path, identity rule, or campaign lifecycle requires a new ADR, a migration plan, and explicit maintainer approval. Display wording and non-authoritative local diagnostics do not.
@@ -60,7 +61,7 @@ runs/
 
 This is the only raw-run namespace. There is no campaign, provider, model, harness, profile, seed, `latest`, `retest`, or `official` directory level.
 
-The CLI default is derived from the loaded release: `runs/<release.benchmark_version>`. Official execution cannot override it. A local developer override, if retained, must still be rooted under a Git-ignored run root and preserve `<version>/<series-id>` below that root; it may never point into tracked repository directories.
+The CLI derives the run root from the loaded release: `runs/<release.benchmark_version>`. Official and local CLI execution cannot override it. Programmatic tests may call lower-level APIs with a temporary root, but the user-facing CLI never writes raw runs elsewhere.
 
 ### 2.3 Tracked public results
 
@@ -132,8 +133,7 @@ A campaign plan is strict, versioned JSON. Its minimal shape is:
     "primary_endpoint": "build.score",
     "comparability": "within-release-only",
     "vary": ["provider", "model"],
-    "order_policy": "preregistered-random",
-    "order_seed": 104729
+    "order_policy": "preregistered"
   },
   "cells": [
     {
@@ -162,7 +162,7 @@ The plan hash is SHA-256 over canonical JSON; it is not stored inside the plan, 
 
 The planned four-model campaign is a **system comparison**, not a pure causal comparison of model weights. Provider transport and model differ across at least one cell. The primary endpoint is the release-defined Build score. Per-task and capability scores are descriptive secondary outcomes and cannot replace the preregistered primary endpoint.
 
-Execution order is fixed before results exist. Randomization reduces obvious time-order bias but does not create repeated-sample uncertainty estimates; the published interpretation must remain one observed canonical run per system.
+Execution order is explicitly fixed before results exist. It is a preregistered order, not a claim of a reproducible randomization algorithm. The published interpretation remains one observed canonical run per system.
 
 ## 5. Series state machine
 

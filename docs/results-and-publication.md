@@ -6,6 +6,7 @@
 
 ```text
 runs/0.6.0/<series-id>/
+  .series.json
   result.json
   tasks/<task-id>/
     source.tar.zst
@@ -43,10 +44,11 @@ The check does not rebuild or re-evaluate source. It is a low-cost integrity ope
 ## Official publication
 
 ```bash
-pnpm cagb publish --run runs/0.6.0/<series-id>
+pnpm cagb campaign check
+pnpm cagb campaign publish --id <campaign-id>
 ```
 
-Publishing requires a clean-tree Official result with four scored tasks. It copies the flat result into `results/lite/0.6.0/` and appends `results/lite/index.json`. Existing IDs cannot be overwritten.
+Official runs are preregistered under `benchmark/campaigns/<version>/`. Each cell owns one preallocated series ID and cannot be developed twice. Publishing requires every planned cell to be a clean-tree Official result with four scored tasks. Campaign publication validates all cells, copies each flat result into `results/lite/0.6.0/`, and atomically appends all rows to `results/lite/index.json` under one lock. Existing IDs cannot be overwritten. Direct `cagb publish --run` rejects Campaign-affiliated results.
 
 Official means project-operated canonical execution accepted through Git review. It does not mean independently reproduced. External or partial runs remain local/experimental data and are not added to the Official index.
 

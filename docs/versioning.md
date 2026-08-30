@@ -31,7 +31,7 @@ Retired task packages are excluded from active discovery. Historical release loc
 
 ## Result schema
 
-Benchmark version and result schema version are independent. GameBench 0.6 uses flat `result.json` schema version 1. A future benchmark release may reuse schema 1 if its result structure is unchanged.
+Benchmark version and result schema version are independent. GameBench 0.6 uses flat `result.json` schema version 2, which adds an optional preregistered Campaign binding. A future benchmark release may reuse schema 2 if its result structure is unchanged; historical result files are never rewritten.
 
 ## Long-term path
 

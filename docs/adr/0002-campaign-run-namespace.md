@@ -1,6 +1,6 @@
 # ADR 0002: Campaign and run namespace
 
-- Status: Accepted design; implementation pending
+- Status: Accepted and implemented
 - Date: 2026-08-30
 - Decision owners: GameBench maintainers
 

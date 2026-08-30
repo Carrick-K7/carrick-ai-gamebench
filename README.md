@@ -24,19 +24,15 @@ pnpm cagb check
 
 `doctor` performs a real temporary-directory install, offline reinstall, build, preview, Chromium launch, and bridge smoke before a paid Agent is called.
 
-Run a complete model benchmark:
+Run one preregistered Official campaign cell:
 
 ```bash
 pnpm cagb bench \
-  --agent-command './my-agent --prompt-file "$CAGB_PROMPT_PATH"' \
-  --agent-id my-agent \
-  --agent-version 1.0.0 \
-  --model my-model \
-  --model-params '{"reasoning_effort":"high"}' \
-  --harness shell
+  --campaign pi-system-baseline-2026-08-30 \
+  --cell gpt-5.6-sol
 ```
 
-Official runs require a clean Git tree. Use `--local` while developing the runner or an Agent adapter.
+Official identity, Pi invocation, model, provider, output path, and preallocated series ID come only from the committed campaign plan. Official runs require a clean Git tree. Free-form Agent commands are accepted only with `--local` while developing the runner or an adapter.
 
 Validate the resulting flat record:
 
@@ -44,10 +40,11 @@ Validate the resulting flat record:
 pnpm cagb check --run runs/0.6.0/<series-id>
 ```
 
-Optionally publish a complete Official result to the Git result index:
+After every campaign cell is complete, validate and publish the campaign as one batch:
 
 ```bash
-pnpm cagb publish --run runs/0.6.0/<series-id>
+pnpm cagb campaign check
+pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
 ```
 
 ## Why each step exists

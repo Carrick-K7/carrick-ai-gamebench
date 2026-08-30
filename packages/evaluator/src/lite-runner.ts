@@ -3,6 +3,7 @@ import {
   access,
   copyFile,
   cp,
+  lstat,
   mkdir,
   mkdtemp,
   readFile,
@@ -43,6 +44,10 @@ import {
   waitForUrl,
   type CommandResult,
 } from "./process.js";
+import {
+  acquirePublicationIndexLock,
+  ensurePublicationDirectory,
+} from "./publication-lock.js";
 import { prepareSubmissionWorkspace } from "./runner.js";
 
 export interface LiteBenchOptions {
@@ -56,6 +61,13 @@ export interface LiteBenchOptions {
   harness: string;
   language: "en" | "zh";
   official: boolean;
+  seriesId?: string;
+  campaign?: {
+    id: string;
+    cell_id: string;
+    plan_hash: `sha256:${string}`;
+    execution_hash: `sha256:${string}`;
+  };
 }
 
 function gitOutput(repositoryRoot: string, args: string[]): string | undefined {
@@ -76,13 +88,17 @@ async function pathExists(filePath: string): Promise<boolean> {
   }
 }
 
-function assertSecretFreePublication(value: unknown): void {
+export function assertSecretFreePublication(value: unknown): void {
   const text = JSON.stringify(value);
   const secretPatterns = [
     /-----BEGIN (?:RSA |EC |OPENSSH |PGP )?PRIVATE KEY-----/,
     /\bsk-[A-Za-z0-9_-]{20,}\b/,
     /\b(?:OPENAI|ANTHROPIC|GOOGLE|DEEPSEEK|KIMI|MOONSHOT)_API_KEY\s*[:=]\s*["']?[^\s"']{8,}/i,
     /\bgh[opusr]_[A-Za-z0-9]{30,}\b/,
+    /\bAIza[0-9A-Za-z_-]{30,}\b/,
+    /\bAKIA[0-9A-Z]{16}\b/,
+    /\bxox[baprs]-[0-9A-Za-z-]{20,}\b/,
+    /\beyJ[A-Za-z0-9_-]{20,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\b/,
   ];
   if (secretPatterns.some((pattern) => pattern.test(text))) {
     throw new Error("published result failed the credential-pattern scan");
@@ -299,7 +315,7 @@ async function runAgent(
   const result = await runCommand("bash", ["-lc", options.agentCommand], {
     cwd: workspace,
     env: {
-      ...process.env,
+      ...evaluatorEnvironment(),
       CAGB_TASK_ID: task.manifest.id,
       CAGB_PROMPT_PATH: promptPath,
       CAGB_STATE_SCHEMA_PATH: stateSchemaPath,
@@ -419,6 +435,32 @@ async function runLiteTask(
   }
 }
 
+export async function createSeriesRunDirectory(
+  outputRoot: string,
+  seriesId: string,
+): Promise<string> {
+  if (!/^[0-9A-HJKMNP-TV-Z]{26}$/.test(seriesId)) {
+    throw new Error("seriesId must be a canonical ULID");
+  }
+  const runDir = path.resolve(outputRoot, seriesId);
+  await mkdir(outputRoot, { recursive: true });
+  for (const directory of [path.dirname(outputRoot), outputRoot]) {
+    const stats = await lstat(directory);
+    if (!stats.isDirectory() || stats.isSymbolicLink()) {
+      throw new Error(`run root component is not a real directory: ${directory}`);
+    }
+  }
+  try {
+    await mkdir(runDir);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "EEXIST") {
+      throw new Error(`series directory already exists and may not be reused: ${seriesId}`);
+    }
+    throw error;
+  }
+  return runDir;
+}
+
 export async function runLiteBenchmark(
   options: LiteBenchOptions,
   tasks: LoadedTask[],
@@ -444,78 +486,129 @@ export async function runLiteBenchmark(
   await runLitePreflight(options.repositoryRoot);
 
   const startedAt = new Date();
-  const seriesId = createUlid();
-  const runDir = path.resolve(options.outputRoot, seriesId);
-  await mkdir(path.join(runDir, "tasks"), { recursive: true });
-  const taskResults: LiteTaskResult[] = [];
-  const taskErrors: Array<{ task_id: string; message: string }> = [];
-  for (const task of selected) {
-    try {
-      taskResults.push(
-        await runLiteTask(options, task, runDir, release.evaluation_seed),
-      );
-    } catch (error) {
-      const failure = {
-        task_id: task.manifest.id,
-        message: error instanceof Error ? error.message : String(error),
-      };
-      taskErrors.push(failure);
-      const taskDir = path.join(
-        runDir,
-        "tasks",
-        task.manifest.id.replaceAll("/", "-"),
-      );
-      await mkdir(taskDir, { recursive: true });
-      await writeJson(path.join(taskDir, "task-error.json"), failure);
-    }
-  }
-  if (taskErrors.length > 0) {
-    await writeJson(path.join(runDir, "benchmark-error.json"), {
-      schema_version: 1,
-      series_id: seriesId,
-      completed_tasks: taskResults,
-      errors: taskErrors,
-    });
-    throw new Error(
-      `benchmark could not produce a complete result: ${taskErrors.map((error) => error.task_id).join(", ")}`,
-    );
-  }
-  const finishedAt = new Date();
-  const finalStatus = gitOutput(options.repositoryRoot, ["status", "--porcelain"]);
-  const finalCommit = gitOutput(options.repositoryRoot, ["rev-parse", "HEAD"]);
-  if (
-    options.official &&
-    (finalStatus !== "" || !initialCommit || finalCommit !== initialCommit)
-  ) {
-    throw new Error("Git commit or working tree changed during the Official benchmark");
-  }
-  const gitCommit = initialCommit ?? finalCommit;
-  const result = LiteSeriesResultSchema.parse({
+  const seriesId = options.seriesId ?? createUlid();
+  const runDir = await createSeriesRunDirectory(options.outputRoot, seriesId);
+  const markerBase = {
     schema_version: 1,
-    benchmark: "carrick-ai-gamebench",
     benchmark_version: release.benchmark_version,
-    release_hash: releaseHash,
     series_id: seriesId,
-    git_commit: gitCommit && /^[a-f0-9]{40}$/.test(gitCommit) ? gitCommit : "unknown",
-    source_tree_clean: sourceTreeClean,
-    profile: options.official ? "official" : "local",
-    configuration: {
-      agent: {
-        id: options.agentId,
-        version: options.agentVersion,
-        model: options.model,
-        harness: options.harness,
-        parameters: options.modelParameters,
-      },
-      prompt_language: options.language,
-    },
+    ...(options.campaign
+      ? {
+          campaign_id: options.campaign.id,
+          plan_hash: options.campaign.plan_hash,
+          cell_id: options.campaign.cell_id,
+        }
+      : {}),
+  };
+  await writeJson(path.join(runDir, ".series.json"), {
+    ...markerBase,
+    status: "prepared",
     started_at: startedAt.toISOString(),
-    finished_at: finishedAt.toISOString(),
-    tasks: taskResults,
-    build: summarizeLiteBuild(taskResults),
   });
-  await writeJson(path.join(runDir, "result.json"), result);
-  return { runDir, result };
+  await mkdir(path.join(runDir, "tasks"));
+
+  try {
+    await writeJson(path.join(runDir, ".series.json"), {
+      ...markerBase,
+      status: "running",
+      started_at: startedAt.toISOString(),
+    });
+    const taskResults: LiteTaskResult[] = [];
+    const taskErrors: Array<{ task_id: string; message: string }> = [];
+    for (const task of selected) {
+      try {
+        taskResults.push(
+          await runLiteTask(options, task, runDir, release.evaluation_seed),
+        );
+      } catch (error) {
+        const failure = {
+          task_id: task.manifest.id,
+          message: error instanceof Error ? error.message : String(error),
+        };
+        taskErrors.push(failure);
+        const taskDir = path.join(
+          runDir,
+          "tasks",
+          task.manifest.id.replaceAll("/", "-"),
+        );
+        await mkdir(taskDir, { recursive: true });
+        await writeJson(path.join(taskDir, "task-error.json"), failure);
+      }
+    }
+    if (taskErrors.length > 0) {
+      await writeJson(path.join(runDir, "benchmark-error.json"), {
+        schema_version: 1,
+        series_id: seriesId,
+        completed_tasks: taskResults,
+        errors: taskErrors,
+      });
+      throw new Error(
+        `benchmark could not produce a complete result: ${taskErrors.map((error) => error.task_id).join(", ")}`,
+      );
+    }
+    const buildSummary = summarizeLiteBuild(taskResults);
+    if (buildSummary.score === undefined) {
+      await writeJson(path.join(runDir, "benchmark-error.json"), {
+        schema_version: 1,
+        series_id: seriesId,
+        completed_tasks: taskResults,
+        errors: [{ message: "one or more evaluations exhausted infrastructure retries" }],
+      });
+      throw new Error("benchmark could not produce a complete scored series");
+    }
+    const finishedAt = new Date();
+    const finalStatus = gitOutput(options.repositoryRoot, ["status", "--porcelain"]);
+    const finalCommit = gitOutput(options.repositoryRoot, ["rev-parse", "HEAD"]);
+    if (
+      options.official &&
+      (finalStatus !== "" || !initialCommit || finalCommit !== initialCommit)
+    ) {
+      throw new Error("Git commit or working tree changed during the Official benchmark");
+    }
+    const gitCommit = initialCommit ?? finalCommit;
+    const result = LiteSeriesResultSchema.parse({
+      schema_version: 2,
+      benchmark: "carrick-ai-gamebench",
+      benchmark_version: release.benchmark_version,
+      release_hash: releaseHash,
+      series_id: seriesId,
+      git_commit: gitCommit && /^[a-f0-9]{40}$/.test(gitCommit) ? gitCommit : "unknown",
+      source_tree_clean: sourceTreeClean,
+      profile: options.official ? "official" : "local",
+      configuration: {
+        agent: {
+          id: options.agentId,
+          version: options.agentVersion,
+          model: options.model,
+          harness: options.harness,
+          parameters: options.modelParameters,
+        },
+        prompt_language: options.language,
+      },
+      campaign: options.campaign,
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+      tasks: taskResults,
+      build: buildSummary,
+    });
+    await writeJson(path.join(runDir, "result.json"), result);
+    await writeJson(path.join(runDir, ".series.json"), {
+      ...markerBase,
+      status: "complete",
+      started_at: startedAt.toISOString(),
+      finished_at: finishedAt.toISOString(),
+    });
+    return { runDir, result };
+  } catch (error) {
+    await writeJson(path.join(runDir, ".series.json"), {
+      ...markerBase,
+      status: "aborted",
+      started_at: startedAt.toISOString(),
+      aborted_at: new Date().toISOString(),
+      error: error instanceof Error ? error.message : String(error),
+    }).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function checkLiteBenchmark(
@@ -658,39 +751,49 @@ export async function publishLiteBenchmark(
   runDir: string,
 ): Promise<string> {
   const result = await checkLiteBenchmark(repositoryRoot, runDir, true);
-  assertSecretFreePublication(result);
-  const resultDir = path.join(repositoryRoot, "results", "lite", result.benchmark_version);
-  await mkdir(resultDir, { recursive: true });
-  const destination = path.join(resultDir, `${result.series_id}.json`);
-  if (await pathExists(destination)) {
-    throw new Error(`published result already exists: ${destination}`);
+  if (result.campaign) {
+    throw new Error("campaign-affiliated results must be published as one campaign batch");
   }
-  const indexPath = path.join(repositoryRoot, "results", "lite", "index.json");
-  const index = LiteResultIndexSchema.parse(
-    JSON.parse(await readFile(indexPath, "utf8")),
+  assertSecretFreePublication(result);
+  const resultDir = await ensurePublicationDirectory(
+    repositoryRoot,
+    result.benchmark_version,
   );
-  const updatedIndex = LiteResultIndexSchema.parse({
-    ...index,
-    results: [
-      ...index.results,
-      {
-        benchmark_version: result.benchmark_version,
-        series_id: result.series_id,
-        path: path.relative(repositoryRoot, destination).split(path.sep).join("/"),
-      },
-    ],
-  });
+  const destination = path.join(resultDir, `${result.series_id}.json`);
+  const indexPath = path.join(repositoryRoot, "results", "lite", "index.json");
+  const releaseLock = await acquirePublicationIndexLock(`${indexPath}.lock`);
   const temporaryIndexPath = `${indexPath}.tmp-${process.pid}`;
+  let copied = false;
   try {
+    if (await pathExists(destination)) {
+      throw new Error(`published result already exists: ${destination}`);
+    }
+    const index = LiteResultIndexSchema.parse(
+      JSON.parse(await readFile(indexPath, "utf8")),
+    );
+    const updatedIndex = LiteResultIndexSchema.parse({
+      ...index,
+      results: [
+        ...index.results,
+        {
+          benchmark_version: result.benchmark_version,
+          series_id: result.series_id,
+          path: path.relative(repositoryRoot, destination).split(path.sep).join("/"),
+        },
+      ],
+    });
     await writeJson(temporaryIndexPath, updatedIndex);
     await copyFile(path.join(runDir, "result.json"), destination);
+    copied = true;
     await rename(temporaryIndexPath, indexPath);
+    return destination;
   } catch (error) {
     await Promise.all([
-      rm(destination, { force: true }),
+      ...(copied ? [rm(destination, { force: true })] : []),
       rm(temporaryIndexPath, { force: true }),
     ]);
     throw error;
+  } finally {
+    await releaseLock();
   }
-  return destination;
 }

@@ -24,19 +24,15 @@ pnpm cagb check
 
 `doctor` 会在正式调用模型前，真实执行临时目录安装、离线重装、构建、预览服务、Chromium 启动和 Bridge smoke test。
 
-运行一个完整模型评测：
+执行一个预注册 Official Campaign cell：
 
 ```bash
 pnpm cagb bench \
-  --agent-command './my-agent --prompt-file "$CAGB_PROMPT_PATH"' \
-  --agent-id my-agent \
-  --agent-version 1.0.0 \
-  --model my-model \
-  --model-params '{"reasoning_effort":"high"}' \
-  --harness shell
+  --campaign pi-system-baseline-2026-08-30 \
+  --cell gpt-5.6-sol
 ```
 
-Official 运行要求 Git 工作树干净。开发 runner 或 Agent adapter 时可加 `--local`。
+Official 身份、Pi 调用、模型、provider、输出路径和预分配 series ID 只能来自已提交的 Campaign Plan。Official 运行要求 Git 工作树干净；自由 Agent 命令仅允许配合 `--local` 用于开发 runner 或 adapter。
 
 检查结果：
 
@@ -44,10 +40,11 @@ Official 运行要求 Git 工作树干净。开发 runner 或 Agent adapter 时�
 pnpm cagb check --run runs/0.6.0/<series-id>
 ```
 
-可选发布完整 Official 结果：
+所有 Campaign cell 完成后，统一校验并批量发布：
 
 ```bash
-pnpm cagb publish --run runs/0.6.0/<series-id>
+pnpm cagb campaign check
+pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
 ```
 
 ## 工作流程为什么必要

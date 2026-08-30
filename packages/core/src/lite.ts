@@ -133,7 +133,7 @@ export const LiteTaskResultSchema = z.strictObject({
 export type LiteTaskResult = z.infer<typeof LiteTaskResultSchema>;
 
 export const LiteSeriesResultSchema = z.strictObject({
-  schema_version: z.literal(1),
+  schema_version: z.literal(2),
   benchmark: z.literal("carrick-ai-gamebench"),
   benchmark_version: SemverSchema,
   release_hash: HashRefSchema,
@@ -145,6 +145,12 @@ export const LiteSeriesResultSchema = z.strictObject({
     agent: AgentIdentityV2Schema,
     prompt_language: z.enum(["en", "zh"]),
   }),
+  campaign: z.strictObject({
+    id: z.string().regex(/^[a-z0-9][a-z0-9._-]*$/),
+    cell_id: z.string().regex(/^[a-z0-9][a-z0-9._-]*$/),
+    plan_hash: HashRefSchema,
+    execution_hash: HashRefSchema,
+  }).optional(),
   started_at: z.iso.datetime(),
   finished_at: z.iso.datetime(),
   tasks: z.array(LiteTaskResultSchema).length(4),

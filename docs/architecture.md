@@ -75,4 +75,4 @@ The generic Agent shell runs on the operator host and does not prove egress isol
 
 After all child processes and log streams close, the runner writes a per-task SHA-256 manifest. `cagb check` verifies those manifests, source archives, release identity, score arithmetic, exact four-task coverage, and the Build mean.
 
-`cagb publish` performs the same check and updates the lightweight Git index. It does not rebuild, re-evaluate, call a verifier, or invoke Docker. Git review and immutable commits are the Official audit boundary.
+`cagb campaign publish` validates every preregistered cell, takes one exclusive index lock, copies the individual flat results, and atomically appends all index rows. Direct single-result publication rejects Campaign-affiliated results. Publication does not rebuild, re-evaluate, call a verifier, or invoke Docker. Git review and immutable commits remain the Official audit boundary.

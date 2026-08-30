@@ -5,25 +5,25 @@
 The Official leaderboard accepts only project-operated canonical runs. A qualifying run must:
 
 1. start from one clean repository commit;
-2. declare the complete Agent, model, harness, and score-relevant parameter configuration;
-3. invoke the Agent once for each of the four release tasks;
+2. bind to one committed Campaign Plan cell that declares the complete Agent, provider, model, adapter, and score-relevant parameters;
+3. use that cell's preallocated series ID and invoke the Agent once for each of the four release tasks;
 4. evaluate the frozen source once at seed `104729`;
 5. contain four scored rows and an equal-weight Build mean;
 6. pass `pnpm cagb check --run <directory>`;
 7. pass the publication credential-pattern scan;
 8. enter the append-only Git result index through review.
 
-External runs and partial local runs are useful calibration evidence, but they are not relabeled Official. Maintainers may rerun the same public configuration with the canonical runner.
+External runs and partial local runs are useful calibration evidence, but they are not relabeled Official. A Campaign cell is single-shot; repeating a configuration requires a newly committed Campaign Plan and new preallocated series IDs.
 
 ## What may be committed
 
 Use:
 
 ```bash
-pnpm cagb publish --run runs/0.6.0/<series-id>
+pnpm cagb campaign publish --id <campaign-id>
 ```
 
-This creates one immutable flat result under `results/lite/0.6.0/` and updates `results/lite/index.json`.
+This validates the complete preregistered Campaign, creates one immutable flat result per cell under `results/lite/0.6.0/`, and atomically updates `results/lite/index.json` once.
 
 Do not commit generated workspaces, source archives, raw provider responses, credentials, private trajectories, complete traces, or temporary logs. Per-task evidence remains in the local run directory unless a later artifact policy explicitly accepts it.
 

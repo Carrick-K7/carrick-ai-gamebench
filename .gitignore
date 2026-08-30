@@ -10,6 +10,8 @@ test-results/
 runs/
 .gamebench/
 results/private/
+results/lite/index.json.lock
+results/lite/index.json.tmp-*
 benchmark/references/private/
 *.log
 .env

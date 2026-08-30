@@ -102,7 +102,7 @@ test("Lite index accepts only canonical unique result paths", () => {
 test("Lite result reports one equal-weight Build score only at four-of-four coverage", () => {
   const tasks = [task(1, 100), task(2, 90), task(3, 80), task(4, 70)];
   const base = {
-    schema_version: 1,
+    schema_version: 2,
     benchmark: "carrick-ai-gamebench",
     benchmark_version: "0.6.0",
     release_hash: hash("c"),
@@ -127,6 +127,30 @@ test("Lite result reports one equal-weight Build score only at four-of-four cove
   };
   const parsed = LiteSeriesResultSchema.parse(base);
   assert.equal(parsed.build.score, 85);
+  assert.equal(
+    LiteSeriesResultSchema.safeParse({
+      ...base,
+      campaign: {
+        id: "pi-baseline",
+        cell_id: "sol",
+        plan_hash: hash("e"),
+        execution_hash: hash("f"),
+      },
+    }).success,
+    true,
+  );
+  assert.equal(
+    LiteSeriesResultSchema.safeParse({
+      ...base,
+      campaign: {
+        id: "../escape",
+        cell_id: "sol",
+        plan_hash: hash("e"),
+        execution_hash: hash("f"),
+      },
+    }).success,
+    false,
+  );
   assert.equal(
     LiteSeriesResultSchema.safeParse({ ...base, build: { ...base.build, score: 90 } }).success,
     false,

@@ -72,7 +72,7 @@ test("Lite check binds result scores to hashed evaluator evidence", async () => 
       rows.push(await makeTaskResult(runDir, task));
     }
     const result = LiteSeriesResultSchema.parse({
-      schema_version: 1,
+      schema_version: 2,
       benchmark: "carrick-ai-gamebench",
       benchmark_version: "0.6.0",
       release_hash: releaseHash,

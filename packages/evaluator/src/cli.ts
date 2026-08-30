@@ -9,6 +9,15 @@ import {
   listTasks,
   type JsonObject,
 } from "@carrick/gamebench-core";
+import {
+  assertCampaignCellMayStart,
+  campaignBenchOptions,
+  checkCampaignPublications,
+  doctorCampaignAgents,
+  findCampaignCell,
+  loadCampaignPlan,
+  publishCampaign,
+} from "./campaign.js";
 import { commandExists } from "./process.js";
 import {
   checkLiteBenchmark,
@@ -17,6 +26,7 @@ import {
   publishLiteBenchmark,
   runLiteBenchmark,
   runLitePreflight,
+  type LiteBenchOptions,
 } from "./lite-runner.js";
 
 const USAGE = `
@@ -24,17 +34,19 @@ Carrick AI GameBench 0.6 Lite
 
 Usage:
   cagb doctor
-  cagb bench --agent-command <command> --agent-id <id> [options]
+  cagb bench --campaign <id> --cell <id>
+  cagb bench --local --agent-command <command> --agent-id <id> [options]
+  cagb campaign check
+  cagb campaign publish --id <campaign-id>
   cagb check [--run <run-directory>]
-  cagb publish --run <run-directory>
+  cagb publish --run <run-directory>   # non-campaign result only
 
-Bench options:
+Local bench options:
   --agent-version <version>   Default: unknown
   --model <model>             Default: unknown
   --model-params <json>       Score-relevant model parameters
   --harness <name>            Default: shell
   --lang <en|zh>              Default: en
-  --output <directory>        Default: runs/0.6.0
   --local                     Allow a dirty tree and mark the result local
 `;
 
@@ -80,6 +92,8 @@ async function commandDoctor(repositoryRoot: string): Promise<void> {
   console.log("PASS  Four-task release catalog");
   await runLitePreflight(repositoryRoot);
   console.log("PASS  Fresh install, offline reinstall, build, preview, Chromium, and bridge smoke");
+  const campaignAgentCount = await doctorCampaignAgents(repositoryRoot);
+  console.log(`PASS  ${campaignAgentCount} planned Pi provider/model configuration${campaignAgentCount === 1 ? "" : "s"}`);
 }
 
 function parseModelParameters(value: string): JsonObject {
@@ -102,6 +116,8 @@ async function commandBench(repositoryRoot: string, args: string[]): Promise<voi
     args,
     strict: true,
     options: {
+      campaign: { type: "string" },
+      cell: { type: "string" },
       "agent-command": { type: "string" },
       "agent-id": { type: "string" },
       "agent-version": { type: "string", default: "unknown" },
@@ -109,25 +125,76 @@ async function commandBench(repositoryRoot: string, args: string[]): Promise<voi
       "model-params": { type: "string", default: "{}" },
       harness: { type: "string", default: "shell" },
       lang: { type: "string", default: "en" },
-      output: { type: "string", default: "runs/0.6.0" },
+      output: { type: "string" },
       local: { type: "boolean", default: false },
     },
   }).values;
-  const language = values.lang === "en" || values.lang === "zh"
-    ? values.lang
-    : fail("--lang must be en or zh");
-  const agentCommand = typeof values["agent-command"] === "string"
-    ? values["agent-command"]
-    : fail("--agent-command is required");
-  const agentId = typeof values["agent-id"] === "string"
-    ? values["agent-id"]
-    : fail("--agent-id is required");
   await validateCatalog(repositoryRoot);
   const tasks = await listTasks(repositoryRoot);
-  const completed = await runLiteBenchmark(
-    {
+  const campaignId = values.campaign;
+  const cellId = values.cell;
+  let options: LiteBenchOptions;
+  if (typeof campaignId === "string" || typeof cellId === "string") {
+    const forbiddenCampaignFlags = [
+      "--agent-command",
+      "--agent-id",
+      "--agent-version",
+      "--model",
+      "--model-params",
+      "--harness",
+      "--lang",
+      "--output",
+      "--local",
+    ];
+    if (
+      args.some((argument) =>
+        forbiddenCampaignFlags.some((flag) => argument === flag || argument.startsWith(`${flag}=`))
+      )
+    ) {
+      fail("campaign runs reject independent Agent, model, language, output, and profile flags");
+    }
+    if (typeof campaignId !== "string" || typeof cellId !== "string") {
+      fail("--campaign and --cell are required together");
+    }
+    if (values.local) {
+      fail("campaign cells are Official single-shot runs and may not use --local");
+    }
+    if (
+      values["agent-command"] !== undefined ||
+      values["agent-id"] !== undefined ||
+      values.output !== undefined
+    ) {
+      fail("campaign runs derive Agent identity, command, and output from the plan");
+    }
+    const { plan } = await loadCampaignPlan(repositoryRoot, campaignId);
+    const cell = findCampaignCell(plan, cellId);
+    await assertCampaignCellMayStart(repositoryRoot, plan, cell);
+    options = {
       repositoryRoot,
-      outputRoot: path.resolve(repositoryRoot, String(values.output)),
+      official: true,
+      ...campaignBenchOptions(repositoryRoot, plan, cell),
+    };
+  } else {
+    if (!values.local) {
+      fail("Official bench requires --campaign and --cell");
+    }
+    const language = values.lang === "en" || values.lang === "zh"
+      ? values.lang
+      : fail("--lang must be en or zh");
+    const agentCommand = typeof values["agent-command"] === "string"
+      ? values["agent-command"]
+      : fail("--agent-command is required");
+    const agentId = typeof values["agent-id"] === "string"
+      ? values["agent-id"]
+      : fail("--agent-id is required");
+    if (values.output !== undefined) {
+      fail("run directories are fixed at runs/<benchmark-version>/<series-id>");
+    }
+    const { release } = await loadLiteRelease(repositoryRoot);
+    const outputRoot = path.join(repositoryRoot, "runs", release.benchmark_version);
+    options = {
+      repositoryRoot,
+      outputRoot,
       agentCommand,
       agentId,
       agentVersion: String(values["agent-version"]),
@@ -135,10 +202,10 @@ async function commandBench(repositoryRoot: string, args: string[]): Promise<voi
       modelParameters: parseModelParameters(String(values["model-params"])),
       harness: String(values.harness),
       language,
-      official: !values.local,
-    },
-    tasks,
-  );
+      official: false,
+    };
+  }
+  const completed = await runLiteBenchmark(options, tasks);
   console.log(`RESULT  ${completed.runDir}`);
   console.log(
     completed.result.build.score === undefined
@@ -157,9 +224,10 @@ async function commandCheck(repositoryRoot: string, args: string[]): Promise<voi
   if (typeof values.run !== "string") {
     const { release } = await loadLiteRelease(repositoryRoot);
     const publicationCount = await checkLitePublishedResults(repositoryRoot);
+    const campaignCount = await checkCampaignPublications(repositoryRoot);
     console.log(
       `PASS  GameBench ${release.benchmark_version}: ${release.tasks.length} Build tasks, ` +
-        `${publicationCount} lightweight publications`,
+        `${publicationCount} lightweight publications, ${campaignCount} campaign plans`,
     );
     return;
   }
@@ -185,6 +253,31 @@ async function commandPublish(repositoryRoot: string, args: string[]): Promise<v
   console.log(`PUBLISHED  ${path.relative(repositoryRoot, destination)}`);
 }
 
+async function commandCampaign(repositoryRoot: string, args: string[]): Promise<void> {
+  const [action, ...rest] = args;
+  if (action === "check") {
+    if (rest.length > 0) {
+      fail("cagb campaign check accepts no additional arguments");
+    }
+    await validateCatalog(repositoryRoot);
+    const count = await checkCampaignPublications(repositoryRoot);
+    console.log(`PASS  ${count} campaign plan${count === 1 ? "" : "s"}`);
+    return;
+  }
+  if (action === "publish") {
+    const values = parseArgs({
+      args: rest,
+      strict: true,
+      options: { id: { type: "string" } },
+    }).values;
+    const campaignId = typeof values.id === "string" ? values.id : fail("--id is required");
+    const destinations = await publishCampaign(repositoryRoot, campaignId);
+    console.log(`PUBLISHED  ${campaignId}: ${destinations.length} series`);
+    return;
+  }
+  fail("campaign command requires check or publish");
+}
+
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === "help" || command === "--help" || command === "-h") {
@@ -196,6 +289,8 @@ async function main(): Promise<void> {
     await commandDoctor(repositoryRoot);
   } else if (command === "bench") {
     await commandBench(repositoryRoot, args);
+  } else if (command === "campaign") {
+    await commandCampaign(repositoryRoot, args);
   } else if (command === "check") {
     await commandCheck(repositoryRoot, args);
   } else if (command === "publish") {

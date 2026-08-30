@@ -64,8 +64,8 @@ No task has a hidden weight. Time, token usage, cost, human review, and model re
 One flat `result.json` binds:
 
 - benchmark release and Git commit;
-- model, harness, and score-relevant parameters;
-- one Agent invocation per task;
+- preregistered Campaign, provider, model, tracked Agent adapter, harness, and score-relevant parameters;
+- one preallocated series identity and one Agent invocation per task;
 - exact task and source hashes;
 - canonical seed and machine score;
 - artifact manifest hashes;
@@ -75,6 +75,6 @@ One flat `result.json` binds:
 
 ## Official meaning
 
-Official 0.6 means that repository maintainers ran the canonical runner from a clean Git commit, completed all four tasks, passed `cagb check`, and committed the result to the repository index.
+Official 0.6 means that repository maintainers preregistered a Campaign Plan, ran each single-shot cell with the canonical runner from one clean Git commit, completed all four tasks per cell, passed `cagb check`, and batch-committed the flat results to the repository index.
 
 It does not claim independent third-party reproduction. GameBench 0.6 has no verifier, Docker image, network attestation, Reproduce board, Core composite, or mandatory human review.

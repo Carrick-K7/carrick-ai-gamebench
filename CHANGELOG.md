@@ -16,6 +16,9 @@ machine-readable lock under `benchmark/releases/`.
 - Added the lightweight `doctor`, `bench`, `check`, and `publish` CLI, flat
   `result.json`, local evidence manifests, score recomputation, and Git result
   index.
+- Added enforced preregistered Campaign Plans, tracked Pi invocation adapters,
+  preallocated single-use series IDs, schema-v2 Campaign bindings, durable series
+  phase markers, and locked atomic batch publication.
 - Removed the Docker evaluator, independent verifier, Reproduce default catalog,
   legacy publisher package, and legacy evaluator CLI workflow.
 - Updated the static site and documentation around the 0.6 trust boundary:

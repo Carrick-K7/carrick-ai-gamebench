@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "campaign_id": "pi-system-baseline-2026-08-30",
+  "benchmark_version": "0.6.0",
+  "release_hash": "sha256:7667642a83d3ac8f5270cd094f25d9d228c686dd7158e9adf2b52313b8e8131b",
+  "comparison": {
+    "unit": "system",
+    "primary_endpoint": "build.score",
+    "comparability": "within-release-only",
+    "vary": ["provider", "model"],
+    "order_policy": "preregistered"
+  },
+  "cells": [
+    {
+      "cell_id": "gpt-5.6-sol",
+      "series_id": "01M197VGHHP8SYRDM8JWM5WV2K",
+      "agent": { "id": "pi", "version": "0.84.3" },
+      "adapter": {
+        "path": "tools/agents/pi-gamebench.sh",
+        "hash": "sha256:6b6a0e13e72db3df0e2bf44414e79ab4b99814fa2f0d1f36b6aef3c66dd845e8"
+      },
+      "provider": "openai-codex",
+      "model": "gpt-5.6-sol",
+      "parameters": { "thinking": "medium" },
+      "prompt_language": "en",
+      "isolation": { "session": false, "context_files": false, "extensions": false, "skills": false }
+    },
+    {
+      "cell_id": "gpt-5.6-luna",
+      "series_id": "01M197VGHJ25MYGNM7DETBRHKC",
+      "agent": { "id": "pi", "version": "0.84.3" },
+      "adapter": {
+        "path": "tools/agents/pi-gamebench.sh",
+        "hash": "sha256:6b6a0e13e72db3df0e2bf44414e79ab4b99814fa2f0d1f36b6aef3c66dd845e8"
+      },
+      "provider": "openai-codex",
+      "model": "gpt-5.6-luna",
+      "parameters": { "thinking": "medium" },
+      "prompt_language": "en",
+      "isolation": { "session": false, "context_files": false, "extensions": false, "skills": false }
+    },
+    {
+      "cell_id": "gpt-5.6-terra",
+      "series_id": "01M197VGHJ2GFFWFFZ5AYF39VK",
+      "agent": { "id": "pi", "version": "0.84.3" },
+      "adapter": {
+        "path": "tools/agents/pi-gamebench.sh",
+        "hash": "sha256:6b6a0e13e72db3df0e2bf44414e79ab4b99814fa2f0d1f36b6aef3c66dd845e8"
+      },
+      "provider": "openai-codex",
+      "model": "gpt-5.6-terra",
+      "parameters": { "thinking": "medium" },
+      "prompt_language": "en",
+      "isolation": { "session": false, "context_files": false, "extensions": false, "skills": false }
+    },
+    {
+      "cell_id": "deepseek-v4-vision",
+      "series_id": "01M197VGHJ2R5P5GVG8E3QH1ZS",
+      "agent": { "id": "pi", "version": "0.84.3" },
+      "adapter": {
+        "path": "tools/agents/pi-gamebench.sh",
+        "hash": "sha256:6b6a0e13e72db3df0e2bf44414e79ab4b99814fa2f0d1f36b6aef3c66dd845e8"
+      },
+      "provider": "deepseek",
+      "model": "deepseek-v4-flash-vision-exp",
+      "parameters": { "thinking": "medium" },
+      "prompt_language": "en",
+      "isolation": { "session": false, "context_files": false, "extensions": false, "skills": false }
+    }
+  ]
+}
