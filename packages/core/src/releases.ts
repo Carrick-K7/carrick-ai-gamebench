@@ -52,13 +52,83 @@ export const ReleaseLockV2Schema = z.strictObject({
   ),
 });
 
+export const ReleaseLockV3Schema = z.strictObject({
+  schema_version: z.literal(3),
+  benchmark: z.literal("carrick-ai-gamebench"),
+  benchmark_version: SemverSchema,
+  protocols: z.strictObject({
+    task_manifest: z.literal(1),
+    bridge: z.literal(1),
+    submission_manifest: z.literal(1),
+    run_manifest: z.literal(3),
+    series_manifest: z.literal(2),
+    publication_manifest: z.literal(2),
+  }),
+  scoring: z.strictObject({
+    score_result: z.literal(1),
+    aggregate: z.literal(3),
+    primary_board: z.literal("build"),
+  }),
+  official: z.strictObject({
+    agent_invocations_per_task: z.literal(1),
+    evaluation_seeds: z.tuple([
+      z.literal(104729),
+      z.literal(130363),
+      z.literal(155921),
+    ]),
+  }),
+  tracks: z.tuple([z.literal("build"), z.literal("reproduce")]),
+  task_count: z.number().int().nonnegative(),
+  tasks: z.array(
+    z.strictObject({
+      id: z.string().min(1),
+      version: z.string().regex(/^\d+\.\d+\.\d+$/),
+      track: TrackSchema,
+      hash: HashRefSchema,
+    }),
+  ),
+}).superRefine((lock, context) => {
+  if (lock.task_count !== lock.tasks.length) {
+    context.addIssue({
+      code: "custom",
+      path: ["task_count"],
+      message: "task_count must equal tasks.length",
+    });
+  }
+  const ids = new Set<string>();
+  for (const [index, task] of lock.tasks.entries()) {
+    if (ids.has(task.id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["tasks", index, "id"],
+        message: `duplicate task id: ${task.id}`,
+      });
+    }
+    ids.add(task.id);
+    if (index > 0 && (lock.tasks[index - 1]?.id ?? "").localeCompare(task.id) >= 0) {
+      context.addIssue({
+        code: "custom",
+        path: ["tasks", index, "id"],
+        message: "tasks must be sorted by unique task id",
+      });
+    }
+  }
+});
+
 export const ReleaseLockSchema = z.discriminatedUnion("schema_version", [
   ReleaseLockV1Schema,
   ReleaseLockV2Schema,
 ]);
+export const AnyReleaseLockSchema = z.discriminatedUnion("schema_version", [
+  ReleaseLockV1Schema,
+  ReleaseLockV2Schema,
+  ReleaseLockV3Schema,
+]);
 
 export type ReleaseLock = z.infer<typeof ReleaseLockSchema>;
+export type AnyReleaseLock = z.infer<typeof AnyReleaseLockSchema>;
 export type ReleaseLockV2 = z.infer<typeof ReleaseLockV2Schema>;
+export type ReleaseLockV3 = z.infer<typeof ReleaseLockV3Schema>;
 
 function semverParts(version: string): {
   core: [number, number, number];
@@ -150,6 +220,47 @@ export function createReleaseLock(
     official: {
       attempts_per_task: 3,
       seeds: [104729, 130363, 155921],
+    },
+    tracks: ["build", "reproduce"],
+    task_count: tasks.length,
+    tasks,
+  });
+}
+
+/** Create the v0.5 protocol lock without changing the legacy v2 generator. */
+export function createReleaseLockV3(
+  benchmarkVersion: string,
+  loadedTasks: LoadedTask[],
+): ReleaseLockV3 {
+  const tasks = loadedTasks
+    .map((task) => ({
+      id: task.manifest.id,
+      version: task.manifest.version,
+      track: task.manifest.track,
+      hash: task.hash,
+    }))
+    .sort((left, right) => left.id.localeCompare(right.id));
+
+  return ReleaseLockV3Schema.parse({
+    schema_version: 3,
+    benchmark: "carrick-ai-gamebench",
+    benchmark_version: benchmarkVersion,
+    protocols: {
+      task_manifest: 1,
+      bridge: 1,
+      submission_manifest: 1,
+      run_manifest: 3,
+      series_manifest: 2,
+      publication_manifest: 2,
+    },
+    scoring: {
+      score_result: 1,
+      aggregate: 3,
+      primary_board: "build",
+    },
+    official: {
+      agent_invocations_per_task: 1,
+      evaluation_seeds: [104729, 130363, 155921],
     },
     tracks: ["build", "reproduce"],
     task_count: tasks.length,

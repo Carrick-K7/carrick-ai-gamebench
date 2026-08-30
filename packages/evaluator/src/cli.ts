@@ -9,32 +9,39 @@ import path from "node:path";
 import { chromium } from "@playwright/test";
 import {
   aggregateAttempts,
-  createReleaseLock,
+  aggregateEvaluationsV3,
+  AnyReleaseLockSchema,
+  AnyRunManifestSchema,
+  AnySeriesManifestSchema,
+  createReleaseLockV3,
   findRepositoryRoot,
   listTasks,
   loadTask,
-  ReleaseLockSchema,
-  RunManifestSchema,
   ScoreResultSchema,
-  SeriesManifestSchema,
+  SubmissionManifestSchema,
   verifyEvidenceManifest,
   writeEvidenceManifest,
   writeJson,
+  type AnyRunManifest,
   type JsonObject,
-  type RunManifest,
 } from "@carrick/gamebench-core";
 import {
   FilesystemArtifactStore,
   publishSeries,
   verifyResultsRepository,
 } from "@carrick/gamebench-publisher";
-import { evaluateSubmission } from "./evaluate.js";
+import {
+  evaluateSubmission,
+  evaluateSubmissionArchive,
+} from "./evaluate.js";
 import { commandExists } from "./process.js";
 import { serveReviewer } from "./reviewer-server.js";
 import { runTask, type RunOptions } from "./runner.js";
 import {
   prepareReproducibleRun,
+  prepareReproducibleSubmission,
   verifyAndReproduceRun,
+  verifyAndReproduceSubmission,
 } from "./verification.js";
 
 const USAGE = `
@@ -49,7 +56,7 @@ Usage:
   cagb evaluate --run <run-dir>
   cagb aggregate (--series <series-dir> | --input <runs-dir>) [--output result.json]
   cagb verify-run --run <run-dir> --verifier-id <id> --image-digest <sha256:...>
-  cagb publish --series <series-dir> --tier <experimental|official>
+  cagb publish --series <series-dir> --tier <experimental|official> [--board <build|reproduce>]
   cagb verify-publication [--results results] [--objects .gamebench]
   cagb verify --run <run-dir>  Legacy evidence-only verification
   cagb review --runs <runs-dir> [--port 4317]
@@ -60,8 +67,8 @@ Run options:
   --model-params <json>       Score-relevant model parameters
   --harness <name>            Default: shell
   --lang <en|zh>              Default: en
-  --repeat <n>                Local default: 1
-  --official                  Force three fresh attempts
+  --repeat <n>                Local development submissions; default: 1
+  --official                  One development, then three fixed-seed evaluations
   --output <directory>        Default: runs
   --series <ulid>             Continue an existing compatible series
   --trajectory <path>         Agent trajectory path inside its workspace
@@ -69,6 +76,15 @@ Run options:
 
 function fail(message: string): never {
   throw new Error(message);
+}
+
+async function pathExists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function benchmarkVersion(repositoryRoot: string): Promise<string> {
@@ -182,16 +198,37 @@ async function commandReleaseLock(
     "releases",
     `${version}.json`,
   );
-  const expected = createReleaseLock(
+  const expected = createReleaseLockV3(
     version,
     await listTasks(repositoryRoot),
   );
 
   if (values.write) {
-    await writeJson(lockPath, expected);
-    console.log(
-      `Wrote ${path.relative(repositoryRoot, lockPath)} (${expected.task_count} tasks).`,
-    );
+    try {
+      const current = AnyReleaseLockSchema.parse(
+        JSON.parse(await readFile(lockPath, "utf8")),
+      );
+      if (JSON.stringify(current) !== JSON.stringify(expected)) {
+        fail(
+          `Refusing to overwrite immutable release lock ${path.relative(repositoryRoot, lockPath)}; bump the benchmark version first.`,
+        );
+      }
+      console.log(
+        `Release lock already exists and matches (${expected.task_count} tasks).`,
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        !error.message.includes("ENOENT") &&
+        !error.message.includes("no such file")
+      ) {
+        throw error;
+      }
+      await writeJson(lockPath, expected);
+      console.log(
+        `Wrote ${path.relative(repositoryRoot, lockPath)} (${expected.task_count} tasks).`,
+      );
+    }
     return;
   }
 
@@ -205,7 +242,7 @@ async function commandReleaseLock(
       }. Run cagb release-lock --write after intentionally versioning the catalog.`,
     );
   }
-  const parsed = ReleaseLockSchema.safeParse(existing);
+  const parsed = AnyReleaseLockSchema.safeParse(existing);
   if (!parsed.success) {
     fail(`Invalid release lock: ${parsed.error.message}`);
   }
@@ -280,8 +317,15 @@ async function commandRun(repositoryRoot: string, args: string[]): Promise<void>
     ...commonRunOptions(repositoryRoot, values),
     task,
   });
-  for (const run of runs) {
-    console.log(`${run.manifest.exit_reason?.toUpperCase()}  ${run.runDir}`);
+  for (const submission of runs) {
+    console.log(
+      `${submission.manifest.development_exit_reason.toUpperCase()}  ${submission.submissionDir}`,
+    );
+    for (const evaluation of submission.evaluations) {
+      console.log(
+        `  ${evaluation.manifest.exit_reason?.toUpperCase()} seed=${evaluation.manifest.evaluation_seed}  ${evaluation.evaluationDir}`,
+      );
+    }
   }
 }
 
@@ -298,22 +342,45 @@ async function commandEvaluate(
     repositoryRoot,
     typeof values.run === "string" ? values.run : fail("--run is required"),
   );
-  const parsedRun = RunManifestSchema.safeParse(
+  const parsedRun = AnyRunManifestSchema.safeParse(
     JSON.parse(await readFile(path.join(runDir, "run.json"), "utf8")),
   );
   if (!parsedRun.success) {
     fail(`Invalid run.json: ${parsedRun.error.message}`);
   }
-  const run: RunManifest = parsedRun.data;
+  const run: AnyRunManifest = parsedRun.data;
   const task = await loadTask(run.task_id, repositoryRoot);
   if (run.task_hash !== task.hash) {
     fail(`Run task hash does not match the current ${run.task_id} task`);
   }
-  const result = await evaluateSubmission(task, {
-    submissionDir: path.join(runDir, "workspace"),
-    runDir,
-    seed: run.seed,
-  });
+  const result = run.schema_version === 3
+    ? await (async () => {
+        const seriesDir = path.dirname(path.dirname(runDir));
+        const submissionDir = path.join(
+          seriesDir,
+          "submissions",
+          run.submission_id,
+        );
+        const submission = SubmissionManifestSchema.parse(
+          JSON.parse(
+            await readFile(path.join(submissionDir, "submission.json"), "utf8"),
+          ),
+        );
+        return await evaluateSubmissionArchive(task, {
+          archivePath: path.join(submissionDir, "source.tar.zst"),
+          sourceSnapshotHash: parseSha256(
+            submission.source_snapshot_hash,
+            "submission source snapshot",
+          ),
+          evaluationDir: runDir,
+          seed: run.evaluation_seed,
+        });
+      })()
+    : await evaluateSubmission(task, {
+        submissionDir: path.join(runDir, "workspace"),
+        runDir,
+        seed: run.seed,
+      });
   await writeJson(path.join(runDir, "tests.json"), result.outcomes);
   await writeJson(path.join(runDir, "score.json"), result.score);
   await writeEvidenceManifest(runDir);
@@ -358,38 +425,99 @@ async function commandAggregate(
   }
   const tasks = await listTasks(repositoryRoot);
   const byId = new Map(tasks.map((task) => [task.manifest.id, task]));
-  const attempts = [];
-  let scorePaths: string[];
+  let aggregate;
   if (typeof values.series === "string") {
     const seriesDir = path.resolve(repositoryRoot, values.series);
-    const series = SeriesManifestSchema.parse(
+    const series = AnySeriesManifestSchema.parse(
       JSON.parse(await readFile(path.join(seriesDir, "series.json"), "utf8")),
     );
-    scorePaths = series.runs
-      .filter((run) => run.included)
-      .map((run) => path.join(seriesDir, run.run_id, "score.json"));
+    if (series.schema_version === 2) {
+      const release = AnyReleaseLockSchema.parse(
+        JSON.parse(
+          await readFile(
+            path.join(
+              repositoryRoot,
+              "benchmark",
+              "releases",
+              `${series.benchmark_version}.json`,
+            ),
+            "utf8",
+          ),
+        ),
+      );
+      if (release.schema_version !== 3) {
+        fail("series v2 requires release lock v3");
+      }
+      const evaluations = [];
+      for (const reference of series.evaluations.filter((item) => item.included)) {
+        const score = ScoreResultSchema.parse(
+          JSON.parse(
+            await readFile(
+              path.join(seriesDir, "evaluations", reference.run_id, "score.json"),
+              "utf8",
+            ),
+          ),
+        );
+        const task = byId.get(reference.task_id);
+        if (!task || task.hash !== reference.task_hash) {
+          fail(`series evaluation uses an unknown task: ${reference.task_id}`);
+        }
+        evaluations.push({
+          task: task.manifest,
+          task_hash: task.hash,
+          submission_id: reference.submission_id,
+          evaluation_seed: reference.evaluation_seed,
+          score,
+        });
+      }
+      aggregate = aggregateEvaluationsV3(
+        evaluations,
+        tasks.map((task) => ({ task: task.manifest, task_hash: task.hash })),
+        release.official.evaluation_seeds,
+      );
+    } else {
+      const attempts = [];
+      for (const reference of series.runs.filter((item) => item.included)) {
+        const score = ScoreResultSchema.parse(
+          JSON.parse(
+            await readFile(
+              path.join(seriesDir, reference.run_id, "score.json"),
+              "utf8",
+            ),
+          ),
+        );
+        const task = byId.get(score.task_id);
+        if (task && task.hash === score.task_hash) {
+          attempts.push({ task: task.manifest, score });
+        }
+      }
+      aggregate = aggregateAttempts(
+        attempts,
+        tasks.map((task) => task.manifest),
+      );
+    }
   } else {
-    scorePaths = await findFiles(
+    const attempts = [];
+    for (const scorePath of await findFiles(
       path.resolve(repositoryRoot, String(values.input)),
       "score.json",
+    )) {
+      const parsed = ScoreResultSchema.safeParse(
+        JSON.parse(await readFile(scorePath, "utf8")),
+      );
+      if (!parsed.success) {
+        continue;
+      }
+      const task = byId.get(parsed.data.task_id);
+      if (task && task.hash === parsed.data.task_hash) {
+        attempts.push({ task: task.manifest, score: parsed.data });
+      }
+    }
+    aggregate = aggregateAttempts(
+      attempts,
+      tasks.map((task) => task.manifest),
     );
   }
-  for (const scorePath of scorePaths) {
-    const scoreResult = ScoreResultSchema.safeParse(
-      JSON.parse(await readFile(scorePath, "utf8")),
-    );
-    if (!scoreResult.success) {
-      continue;
-    }
-    const loadedTask = byId.get(scoreResult.data.task_id);
-    if (loadedTask && scoreResult.data.task_hash === loadedTask.hash) {
-      attempts.push({ task: loadedTask.manifest, score: scoreResult.data });
-    }
-  }
-  const aggregate = aggregateAttempts(
-    attempts,
-    tasks.map((task) => task.manifest),
-  );
   if (typeof values.output === "string") {
     await writeJson(path.resolve(repositoryRoot, values.output), aggregate);
   }
@@ -448,12 +576,12 @@ async function commandVerifyRun(
       "--network-attestation must be not-required, operator-attested-model-api-only, or unverified",
     );
   }
-  const verification = await verifyAndReproduceRun({
+  const targetDir = path.resolve(
     repositoryRoot,
-    runDir: path.resolve(
-      repositoryRoot,
-      typeof values.run === "string" ? values.run : fail("--run is required"),
-    ),
+    typeof values.run === "string" ? values.run : fail("--run is required"),
+  );
+  const common = {
+    repositoryRoot,
     verifierId:
       typeof values["verifier-id"] === "string"
         ? values["verifier-id"]
@@ -465,11 +593,48 @@ async function commandVerifyRun(
       values["image-digest"] ?? process.env.CAGB_EVALUATOR_IMAGE_DIGEST,
       "--image-digest",
     ),
-    networkAttestation,
-  });
-  console.log(
-    `${verification.status.toUpperCase()}  ${verification.recomputed_score_hash}`,
-  );
+    networkAttestation: networkAttestation as
+      | "not-required"
+      | "operator-attested-model-api-only"
+      | "unverified",
+  };
+  if (await pathExists(path.join(targetDir, "submission.json"))) {
+    const submission = SubmissionManifestSchema.parse(
+      JSON.parse(await readFile(path.join(targetDir, "submission.json"), "utf8")),
+    );
+    const seriesDir = path.dirname(path.dirname(targetDir));
+    const series = AnySeriesManifestSchema.parse(
+      JSON.parse(await readFile(path.join(seriesDir, "series.json"), "utf8")),
+    );
+    if (series.schema_version !== 2) {
+      fail("submission verification requires a series v2 manifest");
+    }
+    const evaluationDirs = series.evaluations
+      .filter(
+        (evaluation) =>
+          evaluation.included &&
+          evaluation.submission_id === submission.submission_id,
+      )
+      .map((evaluation) =>
+        path.join(seriesDir, "evaluations", evaluation.run_id)
+      );
+    const verification = await verifyAndReproduceSubmission({
+      ...common,
+      submissionDir: targetDir,
+      evaluationDirs,
+    });
+    console.log(
+      `${verification.status.toUpperCase()}  ${verification.evaluation_set_hash}`,
+    );
+  } else {
+    const verification = await verifyAndReproduceRun({
+      ...common,
+      runDir: targetDir,
+    });
+    console.log(
+      `${verification.status.toUpperCase()}  ${verification.recomputed_score_hash}`,
+    );
+  }
 }
 
 async function commandPublish(
@@ -482,6 +647,7 @@ async function commandPublish(
     options: {
       series: { type: "string" },
       tier: { type: "string" },
+      board: { type: "string", default: "build" },
       objects: { type: "string", default: ".gamebench" },
       results: { type: "string", default: "results" },
       "base-url": { type: "string", default: "/" },
@@ -491,6 +657,10 @@ async function commandPublish(
   if (values.tier !== "experimental" && values.tier !== "official") {
     fail("--tier must be experimental or official");
   }
+  if (values.board !== "build" && values.board !== "reproduce") {
+    fail("--board must be build or reproduce");
+  }
+  const board = values.board;
   const store = new FilesystemArtifactStore(
     path.resolve(repositoryRoot, String(values.objects)),
     String(values["base-url"]),
@@ -501,23 +671,56 @@ async function commandPublish(
       ? values.series
       : fail("--series is required"),
   );
-  const series = SeriesManifestSchema.parse(
+  const series = AnySeriesManifestSchema.parse(
     JSON.parse(await readFile(path.join(seriesDir, "series.json"), "utf8")),
   );
-  for (const run of series.runs) {
-    const runDir = path.join(seriesDir, run.run_id);
-    try {
-      await access(path.join(runDir, "score.json"));
-    } catch {
-      continue;
+  if (series.schema_version === 2) {
+    const taskTracks = new Map(
+      (await listTasks(repositoryRoot)).map((task) => [
+        task.manifest.id,
+        task.manifest.track,
+      ]),
+    );
+    for (const submission of series.submissions.filter(
+      (item) => item.included && taskTracks.get(item.task_id) === board,
+    )) {
+      const submissionDir = path.join(
+        seriesDir,
+        "submissions",
+        submission.submission_id,
+      );
+      const evaluationDirs = series.evaluations
+        .filter(
+          (evaluation) =>
+            evaluation.included &&
+            evaluation.submission_id === submission.submission_id,
+        )
+        .map((evaluation) =>
+          path.join(seriesDir, "evaluations", evaluation.run_id)
+        );
+      await prepareReproducibleSubmission({
+        repositoryRoot,
+        submissionDir,
+        evaluationDirs,
+      });
     }
-    await prepareReproducibleRun({ repositoryRoot, runDir });
+  } else {
+    for (const run of series.runs) {
+      const runDir = path.join(seriesDir, run.run_id);
+      try {
+        await access(path.join(runDir, "score.json"));
+      } catch {
+        continue;
+      }
+      await prepareReproducibleRun({ repositoryRoot, runDir });
+    }
   }
   const publication = await publishSeries({
     repositoryRoot,
     seriesDir,
     resultsRoot: path.resolve(repositoryRoot, String(values.results)),
     tier: values.tier,
+    board,
     store,
     ...(typeof values.supersedes === "string"
       ? { supersedes: parseSha256(values.supersedes, "--supersedes") }

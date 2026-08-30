@@ -1,0 +1,31 @@
+schema_version: 1
+id: build.parking-2d.v1
+version: 1.0.0
+title: { en: "2D Parking", zh: "2D 停车" }
+track: build
+level: 2
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+  scenarios: [motion, reverse-turn, collision, parked, level-2]
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: oriented-motion, category: mechanics, points: 15, case: oriented-motion }
+  - { id: reverse-steering, category: mechanics, points: 15, case: reverse-steering }
+  - { id: collision, category: mechanics, points: 15, case: collision }
+  - { id: parking-criteria, category: mechanics, points: 15, case: parking-criteria }
+  - { id: clean-reset, category: state, points: 10, case: clean-reset }
+  - { id: distinct-levels, category: state, points: 10, case: distinct-levels }
+  - { id: keyboard-input, category: input, points: 10, case: keyboard-input }
+  - { id: pause-stability, category: stability, points: 5, case: pause-stability }

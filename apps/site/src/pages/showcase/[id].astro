@@ -87,6 +87,19 @@ const taskRuns = publication.runs.filter(
 const sampleIndex = sampleIndexForRun(taskRuns, run.run_id);
 const sample = sampleLetter(Math.max(0, sampleIndex));
 const isDefaultSample = run.seed === defaultOfficialSeed;
+const modern = publication.schema_version === 2;
+const submissionEvaluations = references.filter(
+  (reference) =>
+    reference.publication.publication_id === publication.publication_id &&
+    reference.run.submission_id === run.submission_id &&
+    reference.run.included,
+);
+const aggregateTask = publication.aggregate.tasks.find(
+  (task) => task.task_id === run.task_id,
+);
+const verifiedSubmission = modern && submissionEvaluations.some(
+  (reference) => reference.run.verification !== undefined,
+);
 ---
 
 <Layout
@@ -98,8 +111,8 @@ const isDefaultSample = run.seed === defaultOfficialSeed;
       <span class={`pill ${entry.tier}`}>{entry.tier}</span>
       <span class="pill">{entry.status}</span>
       <span class="pill">
-        <span class="lang-en">Sample {sample}{isDefaultSample ? " · default showcase" : ""}</span>
-        <span class="lang-zh">样本 {sample}{isDefaultSample ? " · 默认展示" : ""}</span>
+        <span class="lang-en">{modern ? `Frozen submission · ${submissionEvaluations.length} evaluations` : `Attempt ${sample}${isDefaultSample ? " · default showcase" : ""}`}</span>
+        <span class="lang-zh">{modern ? `冻结提交 · ${submissionEvaluations.length} 次评测` : `尝试 ${sample}${isDefaultSample ? " · 默认展示" : ""}`}</span>
       </span>
     </div>
     <h1>
@@ -108,11 +121,14 @@ const isDefaultSample = run.seed === defaultOfficialSeed;
     </h1>
     <p class="lead">
       <span class="lang-en">
-        Built from scratch by {entry.agent.model}. Play it first, then compare
-        your experience with the browser score below.
+        Built once by {entry.agent.model}. {modern
+          ? "This playable is the frozen development submission shared by every fixed-seed evaluation. Evaluation-specific scores remain on the result page."
+          : "This historical output belongs to one scored attempt."}
       </span>
       <span class="lang-zh">
-        这是 {entry.agent.model} 从零做出的版本。先玩一遍，再看看下面的自动测试给了多少分。
+        这是 {entry.agent.model} 开发出的版本。{modern
+          ? "这个可玩版本就是所有固定种子评测共享的冻结开发提交；每次评测的独立分数保留在结果页。"
+          : "这是一条历史尝试制输出。"}
       </span>
     </p>
 
@@ -151,15 +167,25 @@ const isDefaultSample = run.seed === defaultOfficialSeed;
     </section>
 
     <div class="grid cols-3 section">
-      <div class="card metric">
-        <strong>{run.score ? run.score.percent.toFixed(1) : "—"}</strong>
-        <span>browser test score</span>
-      </div>
-      <div class="card metric"><strong>{run.exit_reason}</strong><span>run finished as</span></div>
-      <div class="card metric">
-        <strong>{run.verification ? "yes" : "no"}</strong>
-        <span>independently verified</span>
-      </div>
+      {modern ? (
+        <>
+          <div class="card metric">
+            <strong>{aggregateTask ? aggregateTask.mean.toFixed(1) : "—"}</strong>
+            <span>mean machine-contract score</span>
+          </div>
+          <div class="card metric"><strong>{submissionEvaluations.length}</strong><span>fixed-seed evaluations</span></div>
+          <div class="card metric">
+            <strong>{verifiedSubmission ? "yes" : "no"}</strong>
+            <span>submission independently verified</span>
+          </div>
+        </>
+      ) : (
+        <>
+          <div class="card metric"><strong>{run.score ? run.score.percent.toFixed(1) : "—"}</strong><span>browser test score</span></div>
+          <div class="card metric"><strong>{run.exit_reason}</strong><span>run finished as</span></div>
+          <div class="card metric"><strong>{run.verification ? "yes" : "no"}</strong><span>independently verified</span></div>
+        </>
+      )}
     </div>
 
     <section class="section prose">
@@ -175,10 +201,23 @@ const isDefaultSample = run.seed === defaultOfficialSeed;
         <summary>Immutable game and run IDs</summary>
         <div class="audit-body">
           <p><strong>Playable content</strong><br /><code>{playable.artifact_id}</code></p>
-          <p><strong>Run</strong><br /><code>{run.run_id}</code></p>
-          <p><strong>Fixed random condition (seed)</strong><br /><code>{run.seed}</code></p>
+          {modern ? (
+            <>
+              <p><strong>Development submission</strong><br /><code>{run.submission_id}</code></p>
+              <p><strong>Evaluation records</strong><br />
+                {submissionEvaluations.map((reference) => (
+                  <><code>{reference.run.run_id}</code> · seed <code>{reference.run.seed}</code><br /></>
+                ))}
+              </p>
+            </>
+          ) : (
+            <>
+              <p><strong>Attempt</strong><br /><code>{run.run_id}</code></p>
+              <p><strong>Fixed random condition (seed)</strong><br /><code>{run.seed}</code></p>
+            </>
+          )}
           <p><strong>Publication</strong><br /><code>{publication.publication_id}</code></p>
-          <p><strong>Publication references</strong><br />{references.length}</p>
+          <p><strong>Artifact references</strong><br />{references.length}</p>
         </div>
       </details>
     </section>

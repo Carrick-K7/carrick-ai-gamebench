@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "cases": [
+    { "id": "build", "kind": "build", "description": "The game builds and serves." },
+    {
+      "id": "projectile-lifecycle",
+      "kind": "browser",
+      "description": "A projectile damages once and is removed.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "projectile-hit" },
+        { "op": "act", "action": "fire" },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "state.enemyCount", "equals": 0 },
+        { "op": "expect", "path": "state.projectileCount", "equals": 0 },
+        { "op": "expect", "path": "score", "greater_than": 0 }
+      ]
+    },
+    {
+      "id": "enemy-variety",
+      "kind": "browser",
+      "description": "Three distinct enemy classes are present.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "enemy-types" },
+        { "op": "expect", "path": "state.enemyTypes", "equals": ["normal", "fast", "tank"] }
+      ]
+    },
+    {
+      "id": "damage-collision",
+      "kind": "browser",
+      "description": "Player damage activates invulnerability.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "player-hit" },
+        { "op": "advance", "ms": 16 },
+        { "op": "expect", "path": "state.health", "equals": 2 },
+        { "op": "expect", "path": "state.invulnerable", "equals": true },
+        { "op": "expect", "path": "status", "equals": "running" }
+      ]
+    },
+    {
+      "id": "wave-progression",
+      "kind": "browser",
+      "description": "Time advances the wave.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "wave" },
+        { "op": "advance", "ms": 100 },
+        { "op": "expect", "path": "state.wave", "equals": 2 }
+      ]
+    },
+    {
+      "id": "boss-terminal",
+      "kind": "browser",
+      "description": "Defeating the boss completes the game.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "boss" },
+        { "op": "act", "action": "fire" },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "status", "equals": "won" }
+      ]
+    },
+    {
+      "id": "pause-reset",
+      "kind": "browser",
+      "description": "Pause freezes simulation and restart clears score.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "enemy-types" },
+        { "op": "act", "action": "pause" },
+        { "op": "advance", "ms": 2000 },
+        { "op": "expect", "path": "tick", "equals": 0 },
+        { "op": "act", "action": "restart" },
+        { "op": "expect", "path": "score", "equals": 0 }
+      ]
+    },
+    {
+      "id": "object-cleanup",
+      "kind": "browser",
+      "description": "Off-screen entities are removed.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "cleanup" },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "state.objectCount", "less_than": 10 }
+      ]
+    },
+    {
+      "id": "keyboard-fire",
+      "kind": "browser",
+      "description": "Real keyboard firing creates a projectile.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "enemy-types" },
+        { "op": "key", "key": "Space" },
+        { "op": "expect", "path": "state.projectileCount", "greater_than": 0 }
+      ]
+    },
+    {
+      "id": "long-run",
+      "kind": "browser",
+      "description": "A 60-second controlled simulation remains bounded.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "enemy-types" },
+        { "op": "advance", "ms": 60000 },
+        { "op": "expect", "path": "state.objectCount", "less_than": 200 },
+        { "op": "expect", "path": "status", "one_of": ["running", "won", "lost"] }
+      ]
+    }
+  ]
+}

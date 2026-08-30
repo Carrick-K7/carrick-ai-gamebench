@@ -2,218 +2,234 @@
 
 ## Scope
 
-The first public GameBench site is a read-only, statically generated view of
-audited benchmark releases and publications. It exists to answer four
-questions:
+The GameBench site is a read-only, statically generated view of audited
+benchmark releases and publications. Its v0.5 priorities are:
 
-1. How well did an exact model and Agent configuration score?
-2. What can a person actually play?
-3. Why did each game receive its score?
-4. Which source, methodology, release, and evidence produced the result?
+1. show how an exact Agent configuration satisfies public machine contracts;
+2. present the Build primary leaderboard without hidden composite weighting;
+3. report Reproduce independently;
+4. connect every score to the exact submission, seed evaluations, source,
+   evidence, release, and playable output.
 
 The site does not execute models, accept submissions, collect votes, or require
-accounts. `gamebench.ai.carrick7.com` remains the trusted presentation origin
-and `play.gamebench.ai.carrick7.com` remains the untrusted playable and object
-origin.
+accounts. `gamebench.ai.carrick7.com` is the trusted presentation origin and
+`play.gamebench.ai.carrick7.com` is the untrusted playable/object origin.
 
 ## Product principles
 
-- Lead with a playable game, a human game title, and a plain-language score.
-  Task IDs, seeds, hashes, schemas, and artifact records remain available but
-  belong in progressive-disclosure audit sections rather than primary page
-  headings.
-- Every public page should answer one ordinary-language question before it
-  explains implementation detail. Prefer “browser check” to “atomic test,”
-  “game challenge” to “task contract,” and “version rules” to “release lock”
-  outside auditor-facing sections.
-- An empty Official leaderboard must direct visitors to playable Experimental
-  evidence and explain the qualification gap; it must not be the main home-page
-  call to action before Official results exist.
-- A model name is not a result. The visible identity is the exact model,
-  reasoning settings, Agent version, harness, Benchmark version, and execution
-  environment.
-- A score should lead to a game, and a game should lead back to its score,
-  clean source, publication, and license.
-- Official and Experimental results are separate products, not filters on one
-  ambiguous leaderboard.
-- Machine score, human review, wall time, token usage, and cost stay separate.
-- Failed and zero-score games remain visible. The gallery must not show only
-  successful outputs.
-- The site never chooses the best seed for display. An Official result defaults
-  to seed `104729` and lets readers select the other fixed seeds.
-- Cross-version history is useful, but scores from different Benchmark
-  versions are not directly ranked together.
-- Public pages use only release locks, publication manifests, and public
-  content-addressed artifacts. They never read `runs/`.
+- Lead with deterministic machine contract results. Human playtesting, when
+  present, is an optional qualitative annotation below the scored evidence.
+- Build is the canonical v0.5 ranking. Reproduce has its own report and never
+  changes Build order, qualification, or tie-breaking.
+- A model name is not a result. Show exact model parameters, Agent and harness,
+  Benchmark version, source snapshot, and execution environment.
+- Explain the v0.5 topology plainly: one Agent invocation creates one submission
+  per task; the same frozen source is evaluated under three fixed seeds in
+  fresh environments.
+- Display each submission once. Seed evaluations are conditions and evidence
+  rows, not three different model-made games.
+- A score leads to its game, clean source, failed checks, publication, and
+  license. Failed and zero-score submissions remain visible.
+- Never choose the highest seed score for display. The release presentation seed
+  may choose the default playable while every included evaluation stays
+  selectable.
+- Keep Official and Experimental evidence visibly distinct.
+- Keep machine score, reliability, wall time, development usage/cost, optional
+  human annotation, and publication trust separate.
+- Never rank different `benchmark_version` values together.
+- Build does not claim creativity, aesthetics, novelty, or fun. Link to any
+  future Creative benchmark as a separate product, not another GameBench track.
+- Public pages read only release locks, publication manifests, active/retired
+  task sources resolved by exact hash, and content-addressed artifacts. They
+  never read `runs/`.
 
 ## Information architecture
 
-| Route | Purpose | Primary content |
+| Route | Purpose | v0.5 primary content |
 | --- | --- | --- |
-| `/` | Current public overview | Current release, latest comparable Official results, featured playable outputs, scope, and trust model |
-| `/benchmarks/<version>/leaderboard` | Canonical Official leaderboard | Core/Build/Reproduce, exact Agent variants, coverage, reliability, and efficiency views |
-| `/experimental` | Non-ranking evidence | Partial, pilot, single-seed, and unverified publications with explicit limitations |
-| `/benchmarks/<version>/games` | Versioned game catalog | Track, level, capability categories, point allocation, and public output count |
-| `/benchmarks/<version>/games/<task-id>` | One game across models | Task contract, reference and license, test map, output gallery, seed selector, and optional side-by-side comparison |
-| `/results/<publication-id>` | Immutable model/series result | Exact configuration, aggregate scores, task and seed breakdown, failures, telemetry, human summaries, and generated-game gallery |
-| `/showcase/<artifact-id>` | Trusted wrapper for one output | Cover image, metadata, isolated on-demand iframe, controls, score, source, and result links |
-| `/methodology` | Public measurement contract | Execution, scoring, aggregation, human review, publication tiers, and limitations |
-| `/releases` | Version ledger | Release list, compatibility status, task/protocol/scoring changes, and content hashes |
-| `/releases/<version>` | One release | Frozen catalog, fixed seeds, change summary, Git tag, and comparison warning |
-| `/source` | Open implementation | Repository, evaluator, task definitions, public result data, licenses, and security boundary |
+| `/` | Current overview | Current release, latest comparable Build results, machine-contract explanation, featured outputs, and Reproduce entry |
+| `/leaderboard` | Current shortcut | Current-version Build leaderboard with canonical versioned URL |
+| `/benchmarks/<version>/leaderboard` | Versioned canonical board | Build score, task and seed coverage, variation, qualification, exact Agent configurations |
+| `/reproduce` | Current shortcut | Current-version Reproduce report |
+| `/benchmarks/<version>/reproduce` | Versioned Reproduce report | Reproduce scores, coverage, reference/license context, visual and behavioral evidence |
+| `/experimental` | Non-ranking evidence | Partial, pilot, missing-seed, and unverified publications with explicit limitations |
+| `/games` | Current task shortcut | Current Build and Reproduce catalog, visibly grouped |
+| `/benchmarks/<version>/games` | Versioned task catalog | Track, contract categories, point allocation, output count |
+| `/benchmarks/<version>/games/<task-id>` | Task across submissions | Contract, exact release identity, one card per submission, seed evaluation selector |
+| `/results/<publication-id>` | Immutable result | Submission gallery, per-seed evidence, board scores, failures, telemetry, optional annotations, identities |
+| `/showcase/<artifact-id>` | Immutable playable wrapper | Cover, isolated iframe, controls, selected evaluation, source/result/license links |
+| `/methodology` | Measurement contract | Machine evaluation, submission/evaluation topology, aggregation, tiers, limitations |
+| `/releases` | Version ledger | Current and archived releases, compatibility, primary board, protocol changes |
+| `/releases/<version>` | One release | Frozen catalog, board policy, Agent invocation count, evaluation seeds, schema generations, comparison warning |
+| `/source` | Open implementation | Repository, evaluator, tasks, result data, licenses, security boundary |
 
-The short routes `/leaderboard` and `/games` may present a current-version
-landing page, but links and canonical URLs should include the Benchmark
-version. `/results/<publication-id>` and `/showcase/<artifact-id>` are already
-immutable by identity and do not need a version segment.
+The short routes `/leaderboard`, `/reproduce`, and `/games` remain stable current-
+version entry points. Their canonical URLs include the selected Benchmark
+version. Immutable `/results/<publication-id>` and `/showcase/<artifact-id>` do
+not need a version segment and must never redirect to a replacement identity.
 
-## Page content
+Existing `/experimental`, `/games`, and `/games/<task-id>` URLs remain valid.
+If a historical short task URL no longer exists in the current release, it
+resolves to the newest release containing that exact task ID rather than 404.
 
-### Home
+## Home
 
-The home page should be useful even when the newest release has no Official
-results yet:
+The home page distinguishes:
 
-- current Benchmark release and release date;
-- latest release that has comparable Official results, if different;
-- top Official configurations with Core, Build, and Reproduce visible
-  together;
-- one featured task and several deterministic output covers;
-- a concise explanation of Build, Reproduce, machine scoring, and human
-  playtesting;
+- the current Benchmark release;
+- the latest release with comparable Build results, when different;
+- the primary Build machine-contract leaderboard;
+- a separate Reproduce summary and link;
+- one featured task and deterministic output covers;
 - counts for active tasks, public publications, and playable artifacts;
 - last publication-ledger refresh and `site_build_id`;
-- direct links to play, inspect methodology, and read source.
+- direct links to methodology, release rules, and source.
 
-### Official leaderboard
+The hero and primary calls to action describe specification compliance and
+browser evidence, not a human verdict. An empty current Build board points to
+Experimental evidence and, if applicable, the latest older release with results
+without presenting that older score as current.
 
-One exact Benchmark version is selected before rows are sorted. The default
-view ranks by Core and always shows Build and Reproduce beside it. Alternate
-views expose:
+## Build leaderboard
 
-- score by track;
-- category evidence derived from atomic tests, such as Mechanics, State,
-  Input, Stability, Feel, and Visual;
-- wall time per task and per complete series;
-- token usage and cost when reported;
-- Agent/harness comparison while holding the model constant.
+One exact Benchmark version is selected before rows are sorted. For v0.5, rows
+rank only by complete Build machine score. Each row represents an exact Agent
+configuration, not a model-family average, and shows:
 
-Missing telemetry is shown as **Not reported**, excluded from efficiency
-aggregates, and never treated as zero. Every row represents an Agent variant,
-not a model family average. A compact “What this metric means” explanation
-travels with each view.
+- Build score and Build task coverage;
+- fixed-seed evaluation coverage;
+- task-level mean and population standard deviation;
+- Official or Experimental qualification and verification;
+- development usage/cost and evaluation wall time when reported;
+- an immutable result link.
 
-### Experimental
+Reproduce, human annotation, cost, and wall time are not Build tie-breaks.
+Missing telemetry is **Not reported**, excluded from efficiency summaries, and
+never converted to zero.
 
-Experimental publications use the same result detail component but never
-appear in the Official rank. Each card names its limitation, for example:
+## Reproduce report
 
-- one seed instead of three;
+The Reproduce page uses the same exact-version isolation but is not the primary
+leaderboard. It shows Reproduce task means, fixed-seed variation, behavior and
+visual categories, reference provenance, and license constraints. Reference and
+generated screenshots may appear side by side only when redistribution is
+permitted.
+
+Reproduce completion does not raise, lower, or qualify a Build row. Build
+completion likewise must not be presented as a Reproduce result.
+
+## Experimental evidence
+
+`/experimental` is an independent non-ranking discovery page, not a duplicate
+of the leaderboard. Every card names its limitation, such as:
+
+- one submission but fewer than three seed evaluations;
 - incomplete task coverage;
-- clean rebuild completed but no independent operator verification;
-- local network attestation only.
+- clean reconstruction completed without independent operator verification;
+- local network attestation only;
+- evaluation error or missing artifact.
 
-### Games and generated outputs
+Experimental result detail uses the same evidence component as Official data,
+but it never receives an Official rank number.
 
-There are two equally important ways to browse generated games:
+## Games and generated outputs
 
-1. Model-first: a result page shows all required games produced by one exact
-   configuration.
-2. Game-first: a game page shows different configurations solving the same
-   task under one Benchmark version and seed.
+There are two browse modes:
 
-An output card contains:
+1. model-first: one result page shows all task submissions from one exact
+   configuration;
+2. task-first: one task page compares submissions from different configurations
+   under the same release contract.
 
-- deterministic 16:9 showcase cover;
-- model, Agent, harness, and reasoning setting;
-- Official or Experimental tier and verification state;
-- task score, selected seed, exit reason, and publication date;
+A v0.5 output card represents one submission and contains:
+
+- deterministic 16:9 cover;
+- model, Agent, harness, and reasoning settings;
+- Official/Experimental state;
+- task mean, seed coverage, and variation;
+- development exit state;
 - **Play**, **Source**, and **Result details** actions;
-- an explicit failure state when no playable artifact exists.
+- explicit failure state when no playable exists.
 
-The Publisher should capture one deterministic showcase screenshot from the
-clean rebuilt playable, using the fixed viewport, seed, and task presentation
-state. It can remain a `screenshot` artifact named
-`<task-id>-showcase.png`; no new result schema is required. Failure screenshots
-must never be selected as the cover.
+Within the card, seeds `104729`, `130363`, and `155921` select evaluations of the
+same source snapshot. The UI names the selected physical `run_id` and score but
+does not imply that the Agent developed the game three times. The presentation
+seed defaults to `104729` unless the selected release declares otherwise.
 
-The iframe loads only after user action so a gallery does not execute many
-untrusted games at once. The trusted wrapper may offer reload, fullscreen, and
-open-in-new-window controls, but it does not inject code into the game. It uses
-the existing sandbox and isolated `play` origin.
+The iframe loads only after user action. The trusted wrapper may offer reload,
+fullscreen, and open-in-new-window controls, but it does not inject code into
+the game and cannot grant access to trusted-origin storage.
 
-For an Official publication:
+## Result detail
 
-- seed `104729` is the default playable;
-- `130363` and `155921` are selectable;
-- the site never selects the highest-scoring attempt;
-- mean and standard deviation describe the task while the player clearly
-  names the physical run being shown.
+A v0.5 result header contains:
 
-For Reproduce tasks, the page may show reference and generated screenshots
-side by side when the upstream license permits redistribution. Visual
-pass/fail and threshold metadata are shown separately from interactive
-playability. Reference material that cannot be redistributed is represented by
-metadata and an upstream link only.
-
-An optional read-only compare mode can place two same-task, same-version,
-same-seed outputs side by side. It does not collect votes in the first phase.
-
-### Result detail
-
-The result header contains:
-
-- exact model and model parameters;
-- Agent and harness versions;
+- exact model parameters, Agent, and harness;
 - Benchmark release and publication tier;
-- Core, Build, and Reproduce;
-- coverage, number of attempts, verification state, and publication status.
+- Build as the primary board score when complete;
+- Reproduce only as an independent report when present;
+- task coverage, evaluation coverage, verification, and publication status.
 
 The body contains:
 
-- a complete generated-game gallery, including failures;
-- per-task mean, deviation, and category contribution;
-- every included seed and physical `run_id`;
-- failed atomic tests with messages and public screenshots;
-- wall time, tokens, and cost as independent metrics;
+- one generated-game card per submission, including failures;
+- `submission_id`, development input identity, and `source_snapshot_hash`;
+- all seed evaluations with `run_id`, score, exit state, and evidence;
+- task mean, population deviation, and category contribution;
+- failed browser checks and public screenshots;
+- development usage/cost once per submission and evaluation timing per seed;
 - clean source, playable, license, and evidence links;
-- public human-review summaries, separated from machine score;
+- optional human annotation in a subordinate, clearly non-scoring section;
 - publication, configuration, release-lock, source-commit, image-digest, and
   artifact identities.
 
-Superseded or withdrawn entries remain addressable and receive a prominent
-status banner linking to the replacement where one exists.
+Superseded and withdrawn publications remain addressable with a prominent status
+banner and replacement link where one exists.
 
-## Version model
+## Historical rendering
 
-The site treats the following versions independently:
+Version-aware presentation is mandatory:
 
-- `benchmark_version` defines score comparability.
-- `task_version` and task hash identify a task contract.
-- result `schema_version` controls JSON parsing.
-- `site_build_id` is the Git commit used to build presentation pages.
+- v0.1-v0.4 leaderboard pages retain their released Core/Build/Reproduce labels
+  and original ranking rule;
+- their fixed seeds remain three fresh Agent development runs, not evaluations
+  of one source snapshot;
+- legacy result pages remain run-oriented and may display historical human
+  summaries;
+- v0.5 pages use submission-oriented galleries, Build-first ranking, and
+  independent Reproduce reporting.
 
-Release selection must use semantic-version ordering, not filename or
-lexicographic ordering. A release page should derive a human-readable diff from
-adjacent locks:
+Do not globally relabel old `attempts` as evaluations or old Core as Build. The
+data layer normalizes legacy and v0.5 manifests into explicit view models while
+preserving their different meanings.
 
-- tasks added or removed;
-- task major/version/hash changes;
-- scoring and aggregation changes;
-- run, bridge, and publication protocol changes;
-- fixed-seed or attempt policy changes.
+## Version and release model
 
-The current active task loader is not sufficient for historical game pages.
-Versioned pages must resolve tasks from the selected release lock and validate
-the matching active or retired task source by content hash.
+The site treats these identities independently:
 
-The generic home page distinguishes “current Benchmark release” from “latest
-release with Official results” so a newly tagged release does not silently show
-an old leaderboard as current.
+- `benchmark_version` defines score comparability;
+- task version and hash identify the task contract;
+- release-lock schema identifies execution and board policy;
+- result schema controls parsing;
+- `site_build_id` identifies presentation code.
 
-## Static data view
+Release pages derive human-readable diffs from adjacent locks, including:
 
-Astro builds a read-only site catalog from:
+- tasks added, removed, or changed;
+- scoring and aggregation generations;
+- primary-board and independent-report policy;
+- Agent invocations per task;
+- evaluation seeds and fresh-environment topology;
+- run, submission, series, publication, and bridge protocol generations;
+- human annotation policy and Creative scope boundary.
+
+Task sources for versioned pages resolve from the selected release lock against
+active or retired content by exact hash. A newer source is never substituted
+for a missing historical version.
+
+## Static data and validation
+
+Astro builds from:
 
 ```text
 benchmark/releases/*.json
@@ -223,125 +239,54 @@ public object references
 active and retired versioned task metadata
 ```
 
-The build validates schemas, publication identities, index-to-publication
-links, release compatibility, task hashes, and object existence before
-rendering pages. Category views and efficiency summaries are derived from
-published runs at build time; they do not create another trusted scoring
-contract.
+The build validates schemas, identities, index links, release compatibility,
+task hashes, object existence, and semantic release order. Derived category or
+efficiency views do not create another scoring contract.
 
-`results/index.json` remains the mutable discovery ledger. Publication
-manifests and content-addressed objects remain immutable facts.
+`results/index.json` is the mutable discovery ledger. Publication manifests and
+content-addressed objects are immutable facts. Corrections create a new
+publication and mark the old entry superseded; withdrawals do not delete pages.
 
-## Refresh and deployment flow
+## Refresh flow
 
-Three changes refresh the public site:
+A new Benchmark release merges validated protocol/task changes, generates an
+append-only release lock, tags the matching version, builds all versioned pages,
+and becomes visible even when its Build board is empty. Only this flow changes
+`benchmark_version`.
 
-### New Benchmark release
+A new result completes the private series, reconstructs clean source, verifies
+all included evaluations, uploads content-addressed objects, generates an
+immutable publication, updates the discovery ledger through review, and then
+rebuilds the static site.
 
-1. Merge validated task and protocol changes.
-2. Generate and commit the new immutable release lock.
-3. Tag the matching Benchmark version.
-4. Build the versioned pages.
-5. Make the new release visible even if its Official leaderboard is empty.
+Copy, accessibility, styling, and other presentation-only changes update
+`site_build_id` without changing benchmark identity.
 
-Only this flow changes `benchmark_version`.
+## Future Creative site boundary
 
-### New or corrected result
-
-1. Complete and score a private run Series.
-2. Export clean source and rebuild it without provider credentials.
-3. Create playable, deterministic cover, public screenshots, and license
-   artifacts.
-4. Upload content-addressed objects before publishing metadata.
-5. Generate and validate the immutable Publication manifest.
-6. Open a PR updating the Publication ledger and `results/index.json`.
-7. CI validates schemas, hashes, licenses, object availability, and version
-   isolation.
-8. After merge, build and deploy a new static site release.
-
-A correction creates a new Publication and marks the old index entry
-`superseded`; a withdrawal changes discovery status but does not delete
-history.
-
-### Site-only change
-
-Copy, accessibility, styling, and presentation changes rebuild the site with a
-new `site_build_id`. They do not create a Benchmark release.
-
-The deployable output is copied to a Git-SHA directory and the trusted site's
-`current` pointer changes atomically. The persistent object root is not
-replaced. HTML and discovery pages use short caching; content-addressed
-playables and objects use long immutable caching.
-
-## Language policy
-
-The first public stage uses one canonical URL per page with an English and
-Simplified Chinese presentation. The selected language follows an explicit
-`?lang=en|zh` handoff, then a device-local preference, then the browser
-language. It is not part of Benchmark identity and never changes a score or
-Publication URL.
-
-Public navigation, explanations, score labels, status, empty states, page
-titles, descriptions, image alternatives, and ARIA labels must switch
-together. Model names, version numbers, task IDs, hashes, filenames, source
-code, and verbatim evaluator failures remain unchanged because translating
-them would damage auditability. Chinese pages use a CJK-first type stack and
-less aggressive letter spacing.
-
-The isolated play origin keeps its own local preference because it cannot read
-the trusted site's storage. Links between the two origins pass the language
-explicitly. Separate `/zh/` URLs should be introduced only when localized
-search indexing or independently shareable Chinese metadata becomes a product
-requirement; until then the single canonical URL avoids doubling every
-immutable result and showcase route.
-
-## Delivery stages
-
-### Stage 1: comparable public data
-
-- semantic release ordering and a version-aware data layer;
-- canonical versioned leaderboard and game routes;
-- correct Official/Experimental/status handling;
-- enriched result detail with failures, telemetry, review summaries, and
-  immutable identity;
-- no arbitrary “first playable” selection.
-
-### Stage 2: playable showcase
-
-- deterministic showcase capture in Publisher;
-- model-first and game-first output galleries;
-- trusted showcase wrapper with on-demand iframe;
-- reference/output visual checkpoints and fixed-seed selector;
-- optional read-only side-by-side comparison.
-
-### Stage 3: publication operations
-
-- result PR validation against the public object root;
-- static build manifest containing `site_build_id`, selected release, and
-  publication IDs;
-- atomic static deployment and cache policy;
-- smoke tests for CSP, iframe isolation, broken objects, superseded banners,
-  and cross-version separation.
-
-No backend is introduced in these stages. An API and PostgreSQL become
-justified only for public submissions, authentication, hosted voting, review
-queues, or asynchronous evaluations. Git publications remain the public source
-of truth even then.
+A future Creative benchmark receives an independent route namespace, benchmark
+identity, release ledger, result index, methodology, qualification, and
+leaderboard. It may be cross-linked from GameBench but is never rendered as a
+third Build/Reproduce track or combined into GameBench scores.
 
 ## Acceptance criteria
 
-- No page ranks results from different `benchmark_version` values together.
-- Every leaderboard score links to an immutable result.
-- Every playable links back to a score, source artifact, publication, and
-  license.
-- Official galleries show the fixed default seed and never cherry-pick the best
-  attempt.
-- Failed tasks remain visible.
-- Missing telemetry is not converted to zero.
-- A missing object, invalid hash, unknown schema, or release mismatch fails the
+- No page ranks different Benchmark versions together.
+- v0.5 Build rank depends only on complete Build machine scores.
+- Reproduce is independent and never used as a Build hidden weight or tie-break.
+- Every v0.5 task card represents one submission and exposes all seed
+  evaluations of the identical snapshot.
+- No gallery cherry-picks the highest seed score.
+- Historical v0.1-v0.4 pages retain their original Core and fresh-run meaning.
+- All legacy short routes and immutable result/showcase URLs remain valid.
+- Every score links to an immutable result; every playable links back to score,
+  source, publication, and license.
+- Failed tasks remain visible and missing telemetry is not zero.
+- Human annotation is optional, subordinate, and explicitly non-scoring.
+- Invalid hashes, unknown schemas, missing objects, or release mismatch fail the
   site build.
-- Superseded and withdrawn results remain accessible with correct status.
-- Untrusted game code cannot reach the trusted origin's DOM, cookies, storage,
-  or network.
-- The primary score and methodology remain readable without client-side
-  JavaScript; only the interactive player requires it.
+- Superseded and withdrawn results remain accessible.
+- Untrusted game code cannot reach trusted-origin DOM, cookies, storage, or
+  network.
+- Primary scores and methodology remain readable without client-side JavaScript;
+  only the interactive player requires it.

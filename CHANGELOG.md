@@ -5,6 +5,29 @@ machine-readable lock under `benchmark/releases/`.
 
 ## Unreleased
 
+## 0.5.0 (Unreleased)
+
+- Changed the Official execution topology from three fresh Agent development
+  attempts per task to one Agent invocation and one sealed submission per task.
+  The identical source snapshot is evaluated under seeds `104729`, `130363`,
+  and `155921` in three freshly materialized, isolated environments.
+- Separated submission identity, development usage, and source snapshot hashes
+  from per-seed evaluation runs, scores, timing, and evidence. Seeds are now
+  evaluation conditions rather than development inputs.
+- Made deterministic machine contract evaluation the primary benchmark product.
+  Build is the canonical leaderboard; Reproduce is reported independently and
+  no longer contributes to a new Core ranking.
+- Made human playtesting an optional, non-scoring qualitative annotation. It
+  does not affect qualification, Build rank, or Reproduce score.
+- Declared creativity, novelty, aesthetics, and fun outside GameBench's trusted
+  score. A future Creative benchmark will use a separate benchmark identity,
+  methodology, release ledger, result index, and leaderboard.
+- Added new release, series, run/evaluation, aggregate, and publication contract
+  generations for v0.5 while retaining v0.1-v0.4 readers and immutable history.
+- Made Build and Reproduce board-scoped publications so each qualifies and is
+  reported independently. Official task development cannot be retried within a
+  series; a retry requires a new series and therefore a new auditable sample.
+
 ## 0.4.0
 
 - Restricted evaluated games to their assigned loopback origin and blocked

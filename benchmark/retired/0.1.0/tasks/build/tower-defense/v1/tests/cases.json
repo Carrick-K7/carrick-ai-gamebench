@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "cases": [
+    { "id": "build", "kind": "build", "description": "The game builds and serves." },
+    {
+      "id": "path-following",
+      "kind": "browser",
+      "description": "Enemies advance along the waypoint path.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "path" },
+        { "op": "advance", "ms": 2000 },
+        { "op": "expect", "path": "state.enemyProgress", "greater_than": 0.1 },
+        { "op": "expect", "path": "state.enemyProgress", "less_than": 1 }
+      ]
+    },
+    {
+      "id": "range-targeting",
+      "kind": "browser",
+      "description": "A tower waits until an enemy enters range.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "range" },
+        { "op": "advance", "ms": 100 },
+        { "op": "expect", "path": "state.shotsFired", "equals": 0 },
+        { "op": "advance", "ms": 3000 },
+        { "op": "expect", "path": "state.shotsFired", "greater_than": 0 }
+      ]
+    },
+    {
+      "id": "economy",
+      "kind": "browser",
+      "description": "Build cost and insufficient funds are enforced.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "economy" },
+        { "op": "act", "action": "build-tower", "payload": { "slot": 0, "type": "area" } },
+        { "op": "expect", "path": "state.gold", "equals": 100 },
+        { "op": "expect", "path": "state.towerCount", "equals": 0 },
+        { "op": "act", "action": "build-tower", "payload": { "slot": 0, "type": "basic" } },
+        { "op": "expect", "path": "state.gold", "equals": 50 },
+        { "op": "expect", "path": "state.towerCount", "equals": 1 }
+      ]
+    },
+    {
+      "id": "wave-progression",
+      "kind": "browser",
+      "description": "Completing a wave advances difficulty.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "wave" },
+        { "op": "advance", "ms": 100 },
+        { "op": "expect", "path": "state.wave", "equals": 2 }
+      ]
+    },
+    {
+      "id": "upgrade-effect",
+      "kind": "browser",
+      "description": "An upgrade spends gold and changes combat stats.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "upgrade" },
+        { "op": "act", "action": "upgrade-tower", "payload": { "slot": 0 } },
+        { "op": "expect", "path": "state.towerDamage", "greater_than": 10 },
+        { "op": "expect", "path": "state.gold", "less_than": 100 }
+      ]
+    },
+    {
+      "id": "pause-reset",
+      "kind": "browser",
+      "description": "Pause freezes the simulation and restart restores resources.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "path" },
+        { "op": "act", "action": "pause" },
+        { "op": "advance", "ms": 2000 },
+        { "op": "expect", "path": "tick", "equals": 0 },
+        { "op": "act", "action": "restart" },
+        { "op": "expect", "path": "state.towerCount", "equals": 0 }
+      ]
+    },
+    {
+      "id": "enemy-lifecycle",
+      "kind": "browser",
+      "description": "A killed enemy rewards once and never leaks.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "lifecycle" },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "state.enemyCount", "equals": 0 },
+        { "op": "expect", "path": "state.gold", "greater_than": 100 },
+        { "op": "expect", "path": "state.leaks", "equals": 0 }
+      ]
+    },
+    {
+      "id": "pointer-input",
+      "kind": "browser",
+      "description": "Real pointer controls can build a tower.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "economy" },
+        { "op": "click", "selector": "[data-tower-type=\"basic\"]" },
+        { "op": "click", "selector": "[data-build-slot=\"0\"]" },
+        { "op": "expect", "path": "state.towerCount", "equals": 1 }
+      ]
+    },
+    {
+      "id": "load-stability",
+      "kind": "browser",
+      "description": "A heavy controlled scene remains bounded.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "load" },
+        { "op": "advance", "ms": 60000 },
+        { "op": "expect", "path": "state.maxObjects", "less_than": 300 },
+        { "op": "expect", "path": "status", "one_of": ["running", "won", "lost"] }
+      ]
+    }
+  ]
+}

@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { createServer } from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -26,6 +26,30 @@ test("runCommand captures stdout and stderr separately", async () => {
   assert.equal(result.exitCode, 0);
   assert.match(await readFile(stdout, "utf8"), /out/);
   assert.match(await readFile(stderr, "utf8"), /err/);
+});
+
+test("runCommand terminates detached descendants before returning", async () => {
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-process-tree-"));
+  try {
+    const result = await runCommand(
+      "bash",
+      [
+        "-lc",
+        "node -e 'setInterval(() => {}, 1000)' >/dev/null 2>&1 & echo $! > child.pid",
+      ],
+      {
+        cwd: root,
+        stdoutPath: path.join(root, "stdout.log"),
+        stderrPath: path.join(root, "stderr.log"),
+        timeoutMs: 5_000,
+      },
+    );
+    assert.equal(result.exitCode, 0);
+    const pid = Number((await readFile(path.join(root, "child.pid"), "utf8")).trim());
+    assert.throws(() => process.kill(pid, 0));
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
 });
 
 test("findAvailablePort returns a bindable loopback port", async () => {

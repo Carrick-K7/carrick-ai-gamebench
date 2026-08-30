@@ -26,6 +26,7 @@ import {
   runCommand,
   waitForUrl,
 } from "./process.js";
+import { withMaterializedSubmission } from "./archive.js";
 import { installRuntimeNetworkGuard } from "./runtime-security.js";
 
 export interface EvaluationOptions {
@@ -39,6 +40,14 @@ export interface EvaluationOptions {
 export interface EvaluationResult {
   outcomes: TestOutcome[];
   score: ScoreResult;
+}
+
+export interface ArchiveEvaluationOptions {
+  archivePath: string;
+  sourceSnapshotHash: `sha256:${string}`;
+  evaluationDir: string;
+  seed: number;
+  showcasePath?: string;
 }
 
 interface CaseResult {
@@ -125,8 +134,33 @@ function assertExpectation(
   }
 }
 
+const BRIDGE_WATCHDOG_MS = 10_000;
+
+async function withWatchdog<T>(
+  operation: Promise<T>,
+  timeoutMs: number,
+  label: string,
+): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  try {
+    return await Promise.race([
+      operation,
+      new Promise<never>((_resolve, reject) => {
+        timer = setTimeout(
+          () => reject(new Error(`${label} timed out after ${timeoutMs} ms`)),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+  }
+}
+
 async function bridgeSnapshot(page: Page): Promise<unknown> {
-  return page.evaluate(async () => {
+  return await withWatchdog(page.evaluate(async () => {
     const bridge = (
       window as typeof window & {
         __CARRICK_GAMEBENCH__?: {
@@ -138,7 +172,7 @@ async function bridgeSnapshot(page: Page): Promise<unknown> {
       throw new Error("window.__CARRICK_GAMEBENCH__ is missing");
     }
     return bridge.snapshot();
-  });
+  }), BRIDGE_WATCHDOG_MS, "bridge.snapshot");
 }
 
 function assertValidSnapshot(
@@ -180,7 +214,7 @@ async function preflightBridge(
       undefined,
       { timeout: 10_000 },
     );
-    await page.evaluate(async () => {
+    await withWatchdog(page.evaluate(async () => {
       const bridge = (window as typeof window & {
         __CARRICK_GAMEBENCH__: {
           version: string;
@@ -191,7 +225,7 @@ async function preflightBridge(
         throw new Error(`unsupported bridge version: ${bridge.version}`);
       }
       await bridge.ready;
-    });
+    }), BRIDGE_WATCHDOG_MS, "bridge.ready");
     assertValidSnapshot(await bridgeSnapshot(page), validateSnapshot);
   } finally {
     await context.close();
@@ -347,18 +381,18 @@ async function executeBrowserCase(
       undefined,
       { timeout: 10_000 },
     );
-    await page.evaluate(async () => {
+    await withWatchdog(page.evaluate(async () => {
       const bridge = (
         window as typeof window & {
           __CARRICK_GAMEBENCH__: { ready: Promise<void> };
         }
       ).__CARRICK_GAMEBENCH__;
       await bridge.ready;
-    });
+    }), BRIDGE_WATCHDOG_MS, "bridge.ready");
 
     for (const step of testCase.steps) {
       if (step.op === "reset") {
-        await page.evaluate(
+        await withWatchdog(page.evaluate(
           async ({ seed, scenario }) => {
             const bridge = (
               window as typeof window & {
@@ -376,13 +410,13 @@ async function executeBrowserCase(
             seed: step.seed ?? options.seed,
             ...(step.scenario ? { scenario: step.scenario } : {}),
           },
-        );
+        ), BRIDGE_WATCHDOG_MS, "bridge.reset");
       } else if (step.op === "act") {
         const actionInput: { action: string; payload?: unknown } = {
           action: step.action,
           ...(step.payload === undefined ? {} : { payload: step.payload }),
         };
-        await page.evaluate(
+        await withWatchdog(page.evaluate(
           async ({ action, payload }: { action: string; payload?: unknown }) => {
             const bridge = (
               window as typeof window & {
@@ -397,16 +431,16 @@ async function executeBrowserCase(
             });
           },
           actionInput,
-        );
+        ), BRIDGE_WATCHDOG_MS, "bridge.act");
       } else if (step.op === "advance") {
-        await page.evaluate(async (ms) => {
+        await withWatchdog(page.evaluate(async (ms) => {
           const bridge = (
             window as typeof window & {
               __CARRICK_GAMEBENCH__: { advance(ms: number): Promise<void> };
             }
           ).__CARRICK_GAMEBENCH__;
           await bridge.advance(ms);
-        }, step.ms);
+        }, step.ms), BRIDGE_WATCHDOG_MS, "bridge.advance");
       } else if (step.op === "key") {
         await page.keyboard.press(step.key);
       } else if (step.op === "click") {
@@ -691,4 +725,21 @@ export async function evaluateSubmission(
       force: true,
     });
   }
+}
+
+export async function evaluateSubmissionArchive(
+  task: LoadedTask,
+  options: ArchiveEvaluationOptions,
+): Promise<EvaluationResult> {
+  return await withMaterializedSubmission(
+    options.archivePath,
+    options.sourceSnapshotHash,
+    path.join(options.evaluationDir, "archive-materialize.log"),
+    async (submissionDir) => await evaluateSubmission(task, {
+      submissionDir,
+      runDir: options.evaluationDir,
+      seed: options.seed,
+      ...(options.showcasePath ? { showcasePath: options.showcasePath } : {}),
+    }),
+  );
 }

@@ -1,0 +1,31 @@
+schema_version: 1
+id: build.2048.v1
+version: 1.0.0
+title: { en: "2048", zh: "2048" }
+track: build
+level: 1
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+  scenarios: [merge-2220, no-op-left, near-win, deterministic]
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: merge-once, category: mechanics, points: 20, case: merge-once }
+  - { id: valid-spawn, category: mechanics, points: 10, case: valid-spawn }
+  - { id: terminal-state, category: mechanics, points: 15, case: terminal-state }
+  - { id: directional-move, category: mechanics, points: 15, case: directional-move }
+  - { id: clean-reset, category: state, points: 10, case: clean-reset }
+  - { id: deterministic-seed, category: state, points: 10, case: deterministic-seed }
+  - { id: keyboard-input, category: input, points: 10, case: keyboard-input }
+  - { id: rapid-input, category: stability, points: 5, case: rapid-input }

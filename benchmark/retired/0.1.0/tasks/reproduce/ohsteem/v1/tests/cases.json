@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "cases": [
+    { "id": "build", "kind": "build", "description": "The reproduction builds and serves." },
+    {
+      "id": "cell-cycle",
+      "kind": "browser",
+      "description": "Editable cells use the reference three-state cycle.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "rule-cycle" },
+        { "op": "act", "action": "cell", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.cells.0.0.value", "equals": "orange" },
+        { "op": "act", "action": "cell", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.cells.0.0.value", "equals": "blue" },
+        { "op": "act", "action": "cell", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.cells.0.0.value", "equals": "empty" }
+      ]
+    },
+    {
+      "id": "no-three",
+      "kind": "browser",
+      "description": "Three adjacent equal colors are flagged.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "triple" },
+        { "op": "act", "action": "cell", "payload": { "row": 0, "col": 2 } },
+        { "op": "expect", "path": "state.valid", "equals": false },
+        { "op": "expect", "path": "state.violations.0", "equals": "triple" }
+      ]
+    },
+    {
+      "id": "balanced-colors",
+      "kind": "browser",
+      "description": "A line cannot contain too many of one color.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "balance" },
+        { "op": "act", "action": "cell", "payload": { "row": 0, "col": 5 } },
+        { "op": "expect", "path": "state.valid", "equals": false },
+        { "op": "expect", "path": "state.violations.0", "equals": "balance" }
+      ]
+    },
+    {
+      "id": "unique-lines",
+      "kind": "browser",
+      "description": "Duplicate completed lines are flagged.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "duplicate" },
+        { "op": "act", "action": "cell", "payload": { "row": 1, "col": 5 } },
+        { "op": "expect", "path": "state.valid", "equals": false },
+        { "op": "expect", "path": "state.violations.0", "equals": "duplicate" }
+      ]
+    },
+    {
+      "id": "completion",
+      "kind": "browser",
+      "description": "The final correct tile wins.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "near-win" },
+        { "op": "act", "action": "cell", "payload": { "row": 3, "col": 3 } },
+        { "op": "act", "action": "cell", "payload": { "row": 3, "col": 3 } },
+        { "op": "expect", "path": "status", "equals": "won" }
+      ]
+    },
+    {
+      "id": "input-feedback",
+      "kind": "browser",
+      "description": "Real pointer input changes a tile with feedback.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "rule-cycle" },
+        { "op": "click", "selector": "[data-cell=\"0-0\"]" },
+        { "op": "expect", "path": "state.cells.0.0.value", "equals": "orange" },
+        { "op": "expect", "path": "state.feedback", "equals": true }
+      ]
+    },
+    {
+      "id": "size-reset",
+      "kind": "browser",
+      "description": "Size selection creates a clean 6×6 game.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "rule-cycle" },
+        { "op": "act", "action": "select-size", "payload": { "size": 6 } },
+        { "op": "expect", "path": "state.boardSize", "equals": 6 },
+        { "op": "expect", "path": "state.moves", "equals": 0 },
+        { "op": "expect", "path": "status", "equals": "running" }
+      ]
+    },
+    {
+      "id": "visual-home",
+      "kind": "browser",
+      "description": "The home composition matches the frozen capture.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "menu" },
+        { "op": "screenshot", "name": "ohsteem-home.png", "selector": "#game-menu", "max_diff_pixels": 180000, "threshold": 0.3 }
+      ]
+    },
+    {
+      "id": "visual-board",
+      "kind": "browser",
+      "description": "The board composition matches the frozen capture.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "visual-board" },
+        { "op": "screenshot", "name": "ohsteem-board.png", "selector": "#game-board", "max_diff_pixels": 180000, "threshold": 0.3 }
+      ]
+    },
+    {
+      "id": "deterministic-puzzle",
+      "kind": "browser",
+      "description": "The frozen puzzle fixture is stable.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "visual-board" },
+        { "op": "expect", "path": "state.puzzleSignature", "equals": "ohsteem-v1-6x6-a" }
+      ]
+    },
+    {
+      "id": "locked-cell",
+      "kind": "browser",
+      "description": "Clue cells reject edits.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "locked" },
+        { "op": "act", "action": "cell", "payload": { "row": 0, "col": 0 } },
+        { "op": "expect", "path": "state.cells.0.0.locked", "equals": true },
+        { "op": "expect", "path": "state.cells.0.0.value", "equals": "orange" },
+        { "op": "expect", "path": "state.moves", "equals": 0 }
+      ]
+    }
+  ]
+}

@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import {
+  cp,
   mkdir,
   mkdtemp,
+  readFile,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -11,8 +13,17 @@ import test from "node:test";
 import {
   PublicationManifestSchema,
   ReleaseLockV2Schema,
+  computeConfigurationId,
+  computeEvaluationInputFingerprint,
+  computeSubmissionInputFingerprint,
+  findRepositoryRoot,
+  loadTask,
   scoreResultIdentity,
+  scoreTask,
+  sha256Buffer,
   sha256Canonical,
+  sha256File,
+  writeEvidenceManifest,
   writeJson,
   type PublicationManifest,
 } from "@carrick/gamebench-core";
@@ -403,6 +414,276 @@ test("a non-empty publication fixture detects missing and tampered objects", asy
   } finally {
     await rm(root, { recursive: true, force: true });
   }
+});
+
+test("series v2 publishes submissions and seed evaluations with aggregate v3", async () => {
+  const repositoryRoot = await findRepositoryRoot();
+  const root = await mkdtemp(path.join(os.tmpdir(), "cagb-publication-v2-"));
+  try {
+    const task = await loadTask("build.2048.v2", repositoryRoot);
+    const releasePath = path.join(repositoryRoot, "benchmark", "releases", "0.5.0.json");
+    const releaseHash = `sha256:${await sha256File(releasePath)}` as const;
+    const seriesId = "01K50000000000000000000000";
+    const submissionId = "01K50000000000000000000001";
+    const runId = "01K50000000000000000000002";
+    const environment = {
+      platform: "linux",
+      architecture: "x64",
+      node: "v22.12.0",
+      runner_protocol: "3" as const,
+      git_commit: "e".repeat(40),
+      source_tree_dirty: false,
+      evaluator_image_digest: hash("f") as `sha256:${string}`,
+    };
+    const agent = {
+      id: "agent",
+      version: "1",
+      model: "model",
+      harness: "shell",
+      parameters: {},
+    };
+    const configurationId = computeConfigurationId({
+      benchmark_version: "0.5.0",
+      benchmark_release_hash: releaseHash,
+      agent,
+      prompt_language: "en",
+      execution_profile: "local",
+      environment,
+    });
+    const commandHash = sha256Buffer(Buffer.from("agent-command", "utf8"));
+    const developmentParameters = { agent_command_hash: commandHash };
+    const developmentFingerprint = computeSubmissionInputFingerprint({
+      configuration_id: configurationId,
+      agent_command_hash: commandHash,
+      task_id: task.manifest.id,
+      task_version: task.manifest.version,
+      task_hash: task.hash as `sha256:${string}`,
+      prompt_language: "en",
+      budget_seconds: task.manifest.budget_seconds,
+      network_policy: task.manifest.network_policy,
+      development_parameters: developmentParameters,
+    });
+    const seriesDir = path.join(root, "series");
+    const submissionDir = path.join(seriesDir, "submissions", submissionId);
+    const evaluationDir = path.join(seriesDir, "evaluations", runId);
+    await mkdir(path.join(submissionDir, "public", "playable"), { recursive: true });
+    await mkdir(path.join(evaluationDir, "public"), { recursive: true });
+    const sourceBytes = "sealed source";
+    await writeFile(path.join(submissionDir, "source.tar.zst"), sourceBytes, "utf8");
+    await writeFile(
+      path.join(submissionDir, "source.sha256"),
+      `${sha256Buffer(Buffer.from(sourceBytes)).slice(7)}  source.tar.zst\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(submissionDir, "trajectory.jsonl"),
+      `${JSON.stringify({ type: "shell-command", command_hash: commandHash })}\n`,
+      "utf8",
+    );
+    await writeFile(
+      path.join(submissionDir, "public", "clean-source.tar.zst"),
+      sourceBytes,
+      "utf8",
+    );
+    await writeFile(
+      path.join(submissionDir, "public", "playable", "index.html"),
+      "<html></html>",
+      "utf8",
+    );
+    const sourceSnapshotHash = sha256Buffer(Buffer.from(sourceBytes));
+    await writeJson(path.join(submissionDir, "submission.json"), {
+      schema_version: 1,
+      benchmark_version: "0.5.0",
+      benchmark_release_hash: releaseHash,
+      series_id: seriesId,
+      submission_id: submissionId,
+      configuration_id: configurationId,
+      development_input_fingerprint: developmentFingerprint,
+      agent_command_hash: commandHash,
+      development_parameters: developmentParameters,
+      task_id: task.manifest.id,
+      task_version: task.manifest.version,
+      task_hash: task.hash,
+      agent_invocation_index: 1,
+      execution_profile: "local",
+      prompt_language: "en",
+      network_policy: task.manifest.network_policy,
+      agent,
+      environment,
+      started_at: "2026-08-12T00:00:00.000Z",
+      finished_at: "2026-08-12T00:01:00.000Z",
+      development_exit_reason: "completed",
+      source_snapshot_hash: sourceSnapshotHash,
+      usage: { source: "not-reported" },
+    });
+    const score = scoreTask(
+      task.manifest,
+      task.hash,
+      task.manifest.tests.map((definition) => ({
+        id: definition.id,
+        passed: true,
+        duration_ms: 1,
+        artifacts: [],
+      })),
+    );
+    const evaluationFingerprint = computeEvaluationInputFingerprint({
+      benchmark_release_hash: releaseHash,
+      configuration_id: configurationId,
+      submission_id: submissionId,
+      source_snapshot_hash: sourceSnapshotHash,
+      task_id: task.manifest.id,
+      task_version: task.manifest.version,
+      task_hash: task.hash as `sha256:${string}`,
+      evaluation_seed: 104729,
+      evaluator_image_digest: environment.evaluator_image_digest,
+    });
+    await writeJson(path.join(evaluationDir, "run.json"), {
+      schema_version: 3,
+      benchmark_version: "0.5.0",
+      benchmark_release_hash: releaseHash,
+      series_id: seriesId,
+      run_id: runId,
+      submission_id: submissionId,
+      configuration_id: configurationId,
+      input_fingerprint: evaluationFingerprint,
+      task_id: task.manifest.id,
+      task_version: task.manifest.version,
+      task_hash: task.hash,
+      evaluation_seed: 104729,
+      environment,
+      started_at: "2026-08-12T00:02:00.000Z",
+      finished_at: "2026-08-12T00:03:00.000Z",
+      exit_reason: "completed",
+      wall_time_ms: 60000,
+    });
+    await writeJson(path.join(evaluationDir, "score.json"), score);
+    await writeJson(path.join(evaluationDir, "evaluation-result.json"), {
+      schema_version: 1,
+      run_id: runId,
+      submission_id: submissionId,
+      evaluation_seed: 104729,
+      score,
+    });
+    await writeFile(path.join(evaluationDir, "public", "showcase.png"), "png", "utf8");
+    await writeEvidenceManifest(evaluationDir);
+    const evaluationSetHash = sha256Canonical([{
+      evaluation_seed: 104729,
+      score_hash: sha256Canonical(scoreResultIdentity(score)),
+    }]);
+    await writeJson(path.join(submissionDir, "reproduction.json"), {
+      schema_version: 2,
+      prepared_at: "2026-08-12T00:04:00.000Z",
+      benchmark_release_hash: releaseHash,
+      submission_id: submissionId,
+      clean_source_artifact_id: sourceSnapshotHash,
+      evaluation_set_hash: evaluationSetHash,
+    });
+    await writeEvidenceManifest(submissionDir);
+    await writeJson(path.join(seriesDir, "series.json"), {
+      schema_version: 2,
+      series_id: seriesId,
+      benchmark_version: "0.5.0",
+      benchmark_release_hash: releaseHash,
+      git_commit: environment.git_commit,
+      configuration_id: configurationId,
+      configuration: {
+        agent,
+        prompt_language: "en",
+        execution_profile: "local",
+        environment,
+      },
+      created_at: "2026-08-12T00:00:00.000Z",
+      submissions: [{
+        submission_id: submissionId,
+        task_id: task.manifest.id,
+        task_hash: task.hash,
+        agent_invocation_index: 1,
+        included: true,
+      }],
+      evaluations: [{
+        run_id: runId,
+        submission_id: submissionId,
+        task_id: task.manifest.id,
+        task_hash: task.hash,
+        evaluation_seed: 104729,
+        included: true,
+      }],
+    });
+    const resultsRoot = path.join(root, "results");
+    await cp(path.join(repositoryRoot, "results"), resultsRoot, { recursive: true });
+    const store = new FilesystemArtifactStore(path.join(root, "objects"), "/");
+    const { publishSeries } = await import("../src/index.js");
+    const publication = await publishSeries({
+      repositoryRoot,
+      seriesDir,
+      resultsRoot,
+      tier: "experimental",
+      store,
+    });
+    assert.equal(publication.schema_version, 2);
+    if (publication.schema_version !== 2) throw new Error("expected publication v2");
+    assert.equal(publication.submissions.length, 1);
+    assert.equal(publication.submissions[0]?.evaluations.length, 1);
+    assert.equal(publication.aggregate.schema_version, 3);
+    assert.deepEqual(
+      await verifyResultsRepository(resultsRoot, undefined, repositoryRoot),
+      { publications: 6, artifacts: 152 },
+    );
+
+    const tamperedPayload = {
+      ...publication,
+      submissions: publication.submissions.map((submission, index) =>
+        index === 0
+          ? {
+              ...submission,
+              evaluations: submission.evaluations.map((evaluation, evaluationIndex) =>
+                evaluationIndex === 0
+                  ? { ...evaluation, input_fingerprint: hash("9") }
+                  : evaluation),
+            }
+          : submission),
+    };
+    const { publication_id: _oldId, ...tamperedWithoutId } = tamperedPayload;
+    const tamperedId = computePublicationId(tamperedWithoutId);
+    const oldPublicationPath = path.join(
+      resultsRoot,
+      "publications",
+      `${publication.publication_id.slice(7)}.json`,
+    );
+    const newPublicationPath = path.join(
+      resultsRoot,
+      "publications",
+      `${tamperedId.slice(7)}.json`,
+    );
+    await writeJson(newPublicationPath, {
+      ...tamperedWithoutId,
+      publication_id: tamperedId,
+    });
+    await rm(oldPublicationPath);
+    const index = JSON.parse(
+      await readFile(path.join(resultsRoot, "index.json"), "utf8"),
+    ) as { entries: Array<{ publication_id: string }> };
+    index.entries[0]!.publication_id = tamperedId;
+    await writeJson(path.join(resultsRoot, "index.json"), index);
+    await assert.rejects(
+      verifyResultsRepository(resultsRoot, undefined, repositoryRoot),
+      /evaluation input fingerprint mismatch/,
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("the five v0.3 publications remain semantically verifiable", async () => {
+  const repositoryRoot = await findRepositoryRoot();
+  assert.deepEqual(
+    await verifyResultsRepository(
+      path.join(repositoryRoot, "results"),
+      undefined,
+      repositoryRoot,
+    ),
+    { publications: 5, artifacts: 148 },
+  );
 });
 
 test("publication verification rejects a cross-release hash mismatch", async () => {

@@ -8,16 +8,26 @@ const [catalogs, results] = await Promise.all([
   resultData(),
 ]);
 const current = catalogs[0];
+const currentResultCount = current
+  ? results.records.filter(
+      ({ entry }) =>
+        entry.status === "active" &&
+        entry.benchmark_version === current.release.benchmark_version,
+    ).length
+  : 0;
 ---
 
-<Layout title="Games" description="Versioned game tasks and generated outputs in GameBench.">
+<Layout
+  title="Games"
+  canonicalPath={current ? `/benchmarks/${current.release.benchmark_version}/games` : "/games"}
+  description="Versioned game tasks and generated outputs in GameBench."
+>
   <div class="container">
     <span class="eyebrow">Choose your game</span>
-    <h1>Eight challenges. Dozens of model-made versions.</h1>
+    <h1>{current?.release.task_count ?? 0} machine-contract game challenges.</h1>
     <p class="lead">
-      Open a challenge to play different models solving the same brief. Six
-      games are made from scratch; two ask the model to recreate an existing
-      open-source game.
+      Open a challenge to inspect the frozen browser-test contract and any
+      published model output for this exact release.
     </p>
 
     {current && (
@@ -28,6 +38,14 @@ const current = catalogs[0];
           <span class="lang-zh">测试集会持续迭代。这里默认只展示当前版本；较早的任务规则仍保留在版本档案中，方便审计。</span>
         </p>
         <a href="/releases"><span class="lang-en">About versioning</span><span class="lang-zh">了解版本迭代</span></a>
+      </div>
+    )}
+
+    {current && currentResultCount === 0 && (
+      <div class="callout status-banner">
+        <strong>v{current.release.benchmark_version} is the current release.</strong>
+        {" "}Its task contracts are public, but no result has been published for this release yet.
+        Historical playables remain available from the release archive.
       </div>
     )}
 

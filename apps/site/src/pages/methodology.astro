@@ -5,11 +5,11 @@ import Layout from "../layouts/Layout.astro";
 <Layout title="How scoring works" description="A plain-language guide to how GameBench builds, tests, verifies, and publishes model-made games.">
   <div class="container">
     <span class="eyebrow">Scoring without magic</span>
-    <h1>We test the rules. Humans judge the fun.</h1>
+    <h1>The published score comes from the machine contract.</h1>
     <p class="lead">
-      A game can be technically correct and still feel awful. It can also look
-      great while breaking its own rules. GameBench keeps those judgments
-      separate so every number means one understandable thing.
+      Deterministic browser checks measure whether the delivered game follows
+      its public rules. Optional human-review summaries appear only when data is
+      attached, and never change the machine score.
     </p>
 
     <section class="section">
@@ -25,9 +25,9 @@ import Layout from "../layouts/Layout.astro";
           <p>Two reference-game challenges test behavioral fidelity and visual structure under the original license.</p>
         </article>
         <article class="card">
-          <span class="pill">Core score</span>
-          <h3>One balanced headline number</h3>
-          <p>Build contributes 50%. Reproduce contributes 50%. Missing a whole track means no Core score—not a convenient zero-filled average.</p>
+          <span class="pill">Compatibility metric</span>
+          <h3>Core is no longer the primary board</h3>
+          <p>From v0.5, Build is the headline ranking and Reproduce is reported separately. Core remains visible only for schema and historical compatibility.</p>
         </article>
       </div>
     </section>
@@ -37,12 +37,12 @@ import Layout from "../layouts/Layout.astro";
         <div><span class="eyebrow">From prompt to score</span><h2>Five steps, all inspectable.</h2></div>
       </div>
       <div class="grid cols-3 how-grid">
-        <article class="card how-card"><h3>Same starting line</h3><p>Each model gets the same starter project, task rules, time budget, fixed random condition (seed), and allowed network policy.</p></article>
-        <article class="card how-card"><h3>Real build</h3><p>The submission must install, compile, start, and expose a valid game state. If that foundation fails, the task scores zero.</p></article>
-        <article class="card how-card"><h3>Browser plays</h3><p>Automated tests use real keyboard and pointer input, advance time, reset the game, and inspect rule-relevant state.</p></article>
+        <article class="card how-card"><h3>One development invocation</h3><p>Each model gets the same starter project, public task contract, time budget, and allowed network policy, then submits source once.</p></article>
+        <article class="card how-card"><h3>Frozen submission</h3><p>The delivered source is archived before evaluation. No new agent attempt is made for a different evaluation seed.</p></article>
+        <article class="card how-card"><h3>Three seed evaluations</h3><p>The browser evaluates that same submission under three fixed seeds using real keyboard, pointer, bridge, and state checks.</p></article>
         <article class="card how-card"><h3>Every game counts equally</h3><p>No favorite game gets a secret bonus. Scores are averaged per game, then per track.</p></article>
         <article class="card how-card"><h3>Clean rebuild</h3><p>Before publication, private logs and credentials are removed. The clean source must rebuild and produce the same score.</p></article>
-        <article class="card how-card"><h3>People play separately</h3><p>Blind human review can judge clarity, polish, controls, and feel, but it never changes the automatic mechanics score.</p></article>
+        <article class="card how-card"><h3>Versioned interpretation</h3><p>v0.5 ranks Build first and reports Reproduce separately. Historical v0.3 pages retain their original Core and three-attempt meaning.</p></article>
       </div>
     </section>
 
@@ -51,9 +51,9 @@ import Layout from "../layouts/Layout.astro";
         <div><span class="eyebrow">Official vs experimental</span><h2>“Published” does not always mean “ranked.”</h2></div>
       </div>
       <div class="grid cols-3">
-        <article class="card"><span class="pill experimental">Experimental</span><h3>Fast, useful evidence</h3><p>May use one reproducible sample, stop early, hit a provider limit, or lack independent operator verification. It is public but never mixed into the Official board.</p></article>
-        <article class="card"><span class="pill official">Official</span><h3>The full championship run</h3><p>Every game runs under all three fixed random conditions. Clean rebuilds, evidence, environment, and network isolation are verified.</p></article>
-        <article class="card"><span class="pill">Human review</span><h3>A second opinion, not hidden weight</h3><p>Human playtesting is shown beside machine scores, not folded into them. You can disagree with either.</p></article>
+        <article class="card"><span class="pill experimental">Experimental</span><h3>Useful measured evidence</h3><p>May have partial task or seed coverage, or lack independent operator verification. It is public but never mixed into the Official board.</p></article>
+        <article class="card"><span class="pill official">Official</span><h3>One build, complete evaluation</h3><p>Each task is developed once and the frozen submission is evaluated under all three fixed seeds. Rebuild, evidence, environment, and network isolation are verified.</p></article>
+        <article class="card"><span class="pill">Separate tracks</span><h3>Build leads; Reproduce stands alone</h3><p>The v0.5 leaderboard sorts by Build. Reproduce remains visible as its own capability instead of being hidden inside a headline Core score.</p></article>
       </div>
     </section>
 
@@ -65,7 +65,7 @@ import Layout from "../layouts/Layout.astro";
         <summary>Version and identity rules</summary>
         <div class="audit-body">
           <p>A Benchmark release freezes every task version and content hash, browser bridge protocol, scoring contract, seed policy, and aggregation rule. Scores from different releases are never ranked together.</p>
-          <p>Every physical execution has a unique <code>run_id</code>. Equivalent configurations and inputs have stable fingerprints, but reruns never overwrite history.</p>
+          <p>From v0.5, each development invocation has a <code>submission_id</code>; each seed evaluation has its own <code>run_id</code>. Historical pages preserve the earlier attempt-based identity model.</p>
         </div>
       </details>
 
@@ -81,7 +81,7 @@ import Layout from "../layouts/Layout.astro";
         <summary>Official publication checklist</summary>
         <div class="audit-body">
           <p>Official seeds are <code>104729</code>, <code>130363</code>, and <code>155921</code>. The operator exports secret-free source, rebuilds in a digest-pinned evaluator image, recomputes the score, verifies the evidence manifest, and records network isolation.</p>
-          <p>A coding timeout is evaluated at the deadline snapshot. Agent and evaluator errors cannot fill an Official result cell.</p>
+          <p>The development deadline freezes the submitted source. Its three seed evaluations run afterward without invoking the coding agent again; evaluation errors cannot fill an Official result cell.</p>
         </div>
       </details>
     </section>

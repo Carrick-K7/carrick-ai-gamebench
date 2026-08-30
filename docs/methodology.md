@@ -1,25 +1,27 @@
 # Methodology
 
-## What CAGB measures
+## What CAGB v0.5 measures
 
-Carrick AI GameBench evaluates delivered, playable browser games rather than
-source patches in isolation.
+Carrick AI GameBench evaluates delivered, playable browser games against public,
+machine-checkable contracts rather than judging source patches in isolation.
 
-- Build measures requirement-to-game delivery.
-- Reproduce measures mechanics, timing, interaction, and visual fidelity to a
-  licensed reference.
+- **Build** measures specification-to-game delivery. It is the primary v0.5
+  leaderboard.
+- **Reproduce** measures mechanics, timing, interaction, and visual fidelity to
+  a licensed reference. It is reported independently and never contributes to
+  Build rank.
 
-The benchmark borrows containerized execution and per-instance logs from
-[SWE-bench](https://www.swebench.com/SWE-bench/guides/evaluation/), cumulative
-stages from [CyberGym-E2E](https://www.cybergym.io/cybergym-e2e/), hashed audit
-bundles from [ExploitBench](https://github.com/exploitbench/exploitbench), and
-browser-delivered application evaluation from
-[WebGameBench](https://arxiv.org/abs/2605.17637).
+The trusted score does not measure creativity, novelty, aesthetics, or fun.
+Human playtesting may be attached as an optional qualitative annotation, but it
+is not a scoring stage. A future Creative benchmark will define those constructs
+under a separate benchmark identity, methodology, release ledger, and board.
 
-## Machine evaluation
+## Machine contract evaluation
 
-Every task declares atomic public tests totalling 100 points. A build/serve/
-bridge failure is a hard gate and produces a zero for the task.
+Every task declares atomic public browser checks totalling 100 points. A
+submission must install, build, serve, expose the bridge, and return a valid
+initial snapshot. A hard-gate failure produces zero for that seed evaluation.
+No LLM or VLM contributes to the trusted score.
 
 Build task budgets:
 
@@ -41,96 +43,130 @@ Reproduce task budgets:
 | Visual checkpoints | 20 |
 | Stability | 10 |
 
-## Leaderboards and repeats
+The complete scored manifest and public cases are inspectable. Public tests make
+the contract auditable but permit test-specific hardcoding, so Official
+publication also requires clean-source reconstruction, evidence validation, and
+independent reproduction.
 
-- Build is the macro mean of all six Build tasks.
-- Reproduce is the macro mean of both Reproduce tasks.
-- Core gives Build and Reproduce equal 50% weight by averaging the two track
-  scores. Tasks remain equally weighted within their own track.
+## One development, three seed evaluations
 
-A score is omitted until all tasks required by that board are present. The
-aggregate output always reports coverage so a partial run cannot appear to be
-a complete leaderboard entry.
+For every task, v0.5 performs exactly one Agent invocation and creates one
+submission:
 
-Official candidates use three fresh attempts with seeds `104729`, `130363`,
-and `155921`. The benchmark reports the task mean and population standard
-deviation; it never selects the best attempt. Agent, model, harness, prompt
-language, time, tokens, and cost are recorded independently. This follows the
-agent-configuration and repeated-run distinction used by
-[Artificial Analysis](https://artificialanalysis.ai/methodology/coding-agents-benchmarking).
+1. prepare one fresh development workspace;
+2. invoke the Agent once with the frozen prompt, budget, and network policy;
+3. stop the Agent at completion or at the coding deadline;
+4. remove evaluator-owned transient files and seal an immutable source snapshot;
+5. materialize that same snapshot separately for seeds `104729`, `130363`, and
+   `155921`;
+6. install, build, serve, and evaluate each materialization in a fresh isolated
+   environment.
 
-An Official publication contains exactly one included run for every
-release-task and fixed-seed cell. Failed and retried executions remain in the
-series but are never overwritten; the series explicitly records which run is
-included in aggregation.
+The source snapshot hash must be identical for all three evaluations. A seed is
+an evaluation condition, not another Agent attempt. State written by one seed
+evaluation cannot be reused by another. The benchmark reports every seed,
+their arithmetic mean, and population standard deviation; it never selects the
+best result.
 
-Each ordinary bridge reset receives the active run seed. A small number of
-declared deterministic reference cases may override it with an explicit seed.
-Every v2 game must report the applied integer in the top-level snapshot
-`seed`, so the evaluator can verify that the three runs are genuinely distinct
-inputs rather than metadata-only repeats.
+A `submission_id` identifies the one frozen task delivery. Each physical seed
+evaluation has its own `run_id`, evidence, score, timing, and evaluation input
+fingerprint linked back to that submission. Development usage and cost belong
+to the submission and are counted once, not once per seed.
+
+A development timeout is a snapshot boundary: the Agent process tree is stopped
+and the delivered workspace is sealed. A completed or timed-out submission may
+be evaluated. Preparation or Agent errors remain in audit history but cannot
+qualify as an Official submission. An evaluation error remains visible and
+cannot fill an Official seed cell.
+
+## Boards and aggregation
+
+### Build primary leaderboard
+
+A Build task score is the mean of its three seed evaluations. The Build board is
+the macro mean of all required Build task scores, with every Build task weighted
+equally. A Build leaderboard score is omitted until all required Build tasks and
+all required seed evaluations are present.
+
+Build is the only canonical v0.5 ranking. Reproduce scores, human annotations,
+wall time, token usage, and cost cannot be used as hidden weights or tie-breaks.
+
+### Reproduce independent report
+
+A Reproduce task uses the same one-submission, three-evaluation protocol. The
+Reproduce score is the macro mean of all required Reproduce task scores. It has
+its own coverage, evidence, reliability statistics, and qualification state.
+It is shown on an independent report and does not create or modify a Build
+leaderboard score.
+
+v0.5 does not publish a new Core score. Any `core` fields retained by compatible
+readers are legacy data surfaces and must not be presented as v0.5 ranking
+metrics.
 
 ## Browser protocol
 
 The evaluator fixes Chromium, fonts through the evaluator image, a 1280×720
-viewport, and device scale factor 1. It:
+viewport, and device scale factor 1. For each seed materialization it:
 
-1. installs from a frozen pnpm lockfile;
-2. builds the submission;
-3. starts the preview server on a dynamically allocated loopback port;
-4. verifies bridge version 1 and validates the first snapshot;
-5. executes real keyboard/pointer operations and controlled bridge actions;
-6. validates snapshots against the task JSON Schema;
-7. captures traces, failure screenshots, and declared visual checkpoints.
+1. verifies the frozen source snapshot hash;
+2. installs from the frozen pnpm lockfile;
+3. builds the submission;
+4. starts preview on a dynamically allocated loopback port;
+5. verifies bridge version 1 and validates the first snapshot;
+6. executes real keyboard/pointer operations and controlled bridge actions;
+7. validates snapshots against the task JSON Schema;
+8. captures traces, failure screenshots, and declared visual checkpoints.
 
-Reproduce screenshots use deterministic scenarios and explicit pixel
-tolerances normalized by image area. Thresholds are calibrated against the
-reference implementation, blank pages, and deliberately deficient outputs.
-No LLM or VLM contributes to the trusted machine score.
+Every ordinary bridge reset receives that evaluation's seed. Declared reference
+fixtures may use an explicit seed. Every v2 game reports the applied integer in
+the top-level snapshot `seed`, allowing the evaluator to verify that each
+condition was actually applied.
 
-## Human playtesting
-
-The local reviewer compares two candidates only when task ID, task version, and
-prompt language match. Candidate identity and machine score remain hidden.
-Reviewers can choose A, B, tie, or both bad and attach reason tags. Votes are
-exported as JSONL with candidate hashes and randomized left-side assignment.
-
-Human votes are not added to the machine score. A future hosted Arena can reuse
-the same records for Bradley–Terry/Elo aggregation and confidence intervals,
-following the pairwise, playable-output approach of
-[Code Arena](https://arena.ai/blog/code-arena/).
-
-The public site does not collect votes. It publishes only aggregate review
-summaries with opaque artifact hashes, sample counts, outcomes, and issue tags.
+Reproduce screenshots use deterministic scenarios and explicit image-area-
+relative tolerances. Thresholds are calibrated against the reference,
+blank pages, and deliberately deficient outputs.
 
 ## Publication tiers
 
-- Experimental accepts partial coverage and may be unverified. It is useful
-  evidence but never appears in the Official leaderboard.
-- Official requires full release coverage, a clean benchmark checkout,
-  per-run evidence validation, clean-source reconstruction, a rebuild and
-  score reproduction in a digest-pinned evaluator image, and operator network
-  attestation.
+- **Experimental** may be partial, missing seed evaluations, locally attested,
+  or awaiting independent verification. It is evidence, not an Official rank.
+- **Official Build** requires one included submission for every required Build
+  task, all three fixed seed evaluations of each exact source snapshot, a clean
+  benchmark checkout, clean-source reproduction, digest-pinned evaluation,
+  evidence verification, and applicable network attestation.
+- **Official Reproduce** applies the same requirements to the Reproduce task
+  set and is reported separately. It is not required to produce a Build score.
 
-The coding deadline is a snapshot boundary, not an automatic zero: when the
-budget expires, the runner terminates the Agent process tree and evaluates the
-workspace as delivered. `completed` and `timeout` snapshots may be included in
-Official aggregation. `agent-error` and `evaluation-error` runs remain in the
-audit history but cannot be selected for Official publication.
+Failed and excluded submissions and evaluations remain in immutable audit
+history. Coverage is always reported so partial data cannot appear complete.
 
-Machine score, human review, execution time, token usage, and cost remain
-separate fields. Missing token or cost data is shown as unreported, not zero.
+## Optional human annotation
 
-## Public-test and contamination limits
+Blinded pairwise playtesting may record controls, clarity, polish, visual
+quality, and game feel. Public summaries may report sample counts, outcomes,
+and issue tags. They are optional qualitative annotations only: they do not
+change machine scores, qualification, Build rank, Reproduce score, or
+publication trust.
 
-The complete scored manifest and case suite are copied into the Agent
-workspace and exposed through `CAGB_TASK_MANIFEST_PATH` and
-`CAGB_PUBLIC_TESTS_PATH`. Public tests make the benchmark inspectable and
-easier to extend, but allow test-specific hardcoding. Source review, full run
-evidence, task rotation, and independent reruns are therefore required for
-Official publication.
+The public site does not collect votes. Existing local reviewer and historical
+review records remain available for research and v0.1-v0.4 compatibility, but
+human review is not a required v0.5 workflow stage.
 
-Reproduce tasks use licensed open-source games and cannot eliminate pretraining
-or prior-source exposure. During a controlled run, the agent receives the
-prompt and reference captures but not the upstream source. Reference task
-variants are released after retirement.
+## Historical semantics
+
+v0.1-v0.4 results are not recomputed under this methodology. Their release
+locks and manifests retain their original meanings:
+
+- each fixed seed represented a fresh Agent development run;
+- aggregate schemas could expose Build, Reproduce, and a combined Core score;
+- from v0.3, Core weighted Build and Reproduce equally.
+
+Versioned pages must explain and render those historical contracts as released.
+No v0.5 result is ranked with an earlier benchmark version.
+
+## Limitations
+
+Public tests allow test-specific hardcoding. Reproduce tasks cannot eliminate
+pretraining or prior-source exposure. Deterministic contract compliance also
+does not establish creative quality or player preference. These limitations
+are reported directly rather than hidden inside a composite score.

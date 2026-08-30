@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": ["status", "tick", "state", "events"],
+  "properties": {
+    "status": { "enum": ["menu", "running", "won", "lost"] },
+    "tick": { "type": "number", "minimum": 0 },
+    "score": { "type": "number" },
+    "state": {
+      "type": "object",
+      "required": ["cells", "mineCount", "revealedSafe", "flags", "mineSignature", "inputLocked"],
+      "properties": {
+        "cells": { "type": "array" },
+        "mineCount": { "type": "integer", "minimum": 1 },
+        "revealedSafe": { "type": "integer", "minimum": 0 },
+        "flags": { "type": "integer", "minimum": 0 },
+        "mineSignature": { "type": "string" },
+        "inputLocked": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "events": { "type": "array" }
+  },
+  "additionalProperties": false
+}

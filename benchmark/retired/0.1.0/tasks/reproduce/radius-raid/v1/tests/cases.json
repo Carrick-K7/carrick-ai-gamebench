@@ -1,0 +1,126 @@
+{
+  "schema_version": 1,
+  "cases": [
+    { "id": "build", "kind": "build", "description": "The reproduction builds and serves." },
+    {
+      "id": "start-controls",
+      "kind": "browser",
+      "description": "The title screen enters a running game.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "menu" },
+        { "op": "act", "action": "start" },
+        { "op": "expect", "path": "status", "equals": "running" },
+        { "op": "expect", "path": "state.life", "equals": 3 }
+      ]
+    },
+    {
+      "id": "shooting",
+      "kind": "browser",
+      "description": "A projectile kills and scores once.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "projectile-hit" },
+        { "op": "act", "action": "aim", "payload": { "x": 700, "y": 300 } },
+        { "op": "act", "action": "fire" },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "state.enemyCount", "equals": 0 },
+        { "op": "expect", "path": "score", "greater_than": 0 }
+      ]
+    },
+    {
+      "id": "enemy-variety",
+      "kind": "browser",
+      "description": "The scoped three behaviors exist.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "enemy-types" },
+        { "op": "expect", "path": "state.enemyTypes", "equals": ["straight", "diagonal", "pursuit"] }
+      ]
+    },
+    {
+      "id": "powerup",
+      "kind": "browser",
+      "description": "Collecting the scoped powerup enables a shield.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "powerup" },
+        { "op": "advance", "ms": 100 },
+        { "op": "expect", "path": "state.shield", "equals": true }
+      ]
+    },
+    {
+      "id": "damage-score",
+      "kind": "browser",
+      "description": "Player contact removes one life and emits feedback.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "player-hit" },
+        { "op": "advance", "ms": 16 },
+        { "op": "expect", "path": "state.life", "equals": 2 },
+        { "op": "expect", "path": "state.particleCount", "greater_than": 0 }
+      ]
+    },
+    {
+      "id": "movement-feel",
+      "kind": "browser",
+      "description": "Input produces bounded inertial motion.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "movement" },
+        { "op": "act", "action": "move", "payload": { "up": true, "down": false, "left": false, "right": false } },
+        { "op": "advance", "ms": 500 },
+        { "op": "expect", "path": "state.hero.y", "less_than": 300 },
+        { "op": "expect", "path": "state.hero.vy", "less_than": 0 }
+      ]
+    },
+    {
+      "id": "fire-cadence",
+      "kind": "browser",
+      "description": "Continuous fire respects the 100 ms cadence.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "cadence" },
+        { "op": "act", "action": "hold-fire" },
+        { "op": "advance", "ms": 1000 },
+        { "op": "act", "action": "release-fire" },
+        { "op": "expect", "path": "state.bulletsFired", "approximately": { "value": 10, "tolerance": 1 } }
+      ]
+    },
+    {
+      "id": "visual-menu",
+      "kind": "browser",
+      "description": "The menu matches the frozen upstream capture.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "menu" },
+        { "op": "screenshot", "name": "radius-menu.png", "selector": "canvas[data-game-canvas]", "max_diff_pixels": 150000, "threshold": 0.3 }
+      ]
+    },
+    {
+      "id": "visual-combat",
+      "kind": "browser",
+      "description": "The combat scene matches the frozen upstream capture.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "visual-combat" },
+        { "op": "screenshot", "name": "radius-combat.png", "selector": "canvas[data-game-canvas]", "max_diff_pixels": 150000, "threshold": 0.3 }
+      ]
+    },
+    {
+      "id": "pause",
+      "kind": "browser",
+      "description": "Pause freezes controlled time.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "enemy-types" },
+        { "op": "act", "action": "pause" },
+        { "op": "advance", "ms": 2000 },
+        { "op": "expect", "path": "status", "equals": "paused" },
+        { "op": "expect", "path": "tick", "equals": 0 }
+      ]
+    },
+    {
+      "id": "restart-cleanup",
+      "kind": "browser",
+      "description": "Restart removes transient combat objects.",
+      "steps": [
+        { "op": "reset", "seed": 104729, "scenario": "cleanup" },
+        { "op": "act", "action": "restart" },
+        { "op": "expect", "path": "state.enemyCount", "equals": 0 },
+        { "op": "expect", "path": "state.bulletCount", "equals": 0 },
+        { "op": "expect", "path": "score", "equals": 0 }
+      ]
+    }
+  ]
+}

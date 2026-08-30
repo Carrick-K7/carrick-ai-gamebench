@@ -57,6 +57,43 @@ export function evaluatorEnvironment(
   return result;
 }
 
+function processTreeExists(pid: number | undefined): boolean {
+  if (!pid || process.platform === "win32") {
+    return false;
+  }
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function waitForProcessTreeExit(
+  pid: number | undefined,
+  timeoutMs = 5_000,
+): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (processTreeExists(pid) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+}
+
+function signalProcessTree(
+  child: ReturnType<typeof spawn>,
+  signal: NodeJS.Signals,
+): void {
+  try {
+    if (process.platform === "win32") {
+      child.kill(signal);
+    } else if (child.pid) {
+      process.kill(-child.pid, signal);
+    }
+  } catch {
+    // The process group has already exited.
+  }
+}
+
 export async function runCommand(
   command: string,
   args: string[],
@@ -85,32 +122,38 @@ export async function runCommand(
     child.stderr.pipe(stderr);
 
     let timedOut = false;
-    const timer =
-      options.timeoutMs === undefined
-        ? undefined
-        : setTimeout(() => {
-            timedOut = true;
-            if (process.platform === "win32") {
-              child.kill("SIGTERM");
-            } else if (child.pid) {
-              process.kill(-child.pid, "SIGTERM");
-              setTimeout(() => {
-                if (child.pid) {
-                  try {
-                    process.kill(-child.pid, "SIGKILL");
-                  } catch {
-                    // The process group has already exited.
-                  }
-                }
-              }, 5_000).unref();
-            }
-          }, options.timeoutMs);
+    let killTimer: NodeJS.Timeout | undefined;
+    const terminateTree = (): void => {
+      signalProcessTree(child, "SIGTERM");
+      killTimer ??= setTimeout(() => signalProcessTree(child, "SIGKILL"), 5_000);
+      killTimer.unref();
+    };
+    const timer = options.timeoutMs === undefined
+      ? undefined
+      : setTimeout(() => {
+          timedOut = true;
+          terminateTree();
+        }, options.timeoutMs);
 
     timer?.unref();
     child.once("error", reject);
-    child.once("close", (code, signal) => {
+    child.once("exit", () => {
+      // A shell may exit while detached descendants remain alive. Always close
+      // the process group before the immutable submission snapshot is sealed.
+      terminateTree();
+    });
+    child.once("close", async (code, signal) => {
       if (timer) {
         clearTimeout(timer);
+      }
+      terminateTree();
+      await waitForProcessTreeExit(child.pid);
+      if (processTreeExists(child.pid)) {
+        signalProcessTree(child, "SIGKILL");
+        await waitForProcessTreeExit(child.pid, 1_000);
+      }
+      if (killTimer) {
+        clearTimeout(killTimer);
       }
       stdout.end();
       stderr.end();

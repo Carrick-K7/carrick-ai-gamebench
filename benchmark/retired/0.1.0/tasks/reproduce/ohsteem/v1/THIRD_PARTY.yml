@@ -1,0 +1,20 @@
+schema_version: 1
+project: OhSteem
+upstream: https://gitlab.com/alaskalinuxuser/OhSteem
+commit: 61bb4e5c3b9d2e5704b805edb994de66214ed1b0
+license: MIT
+copyright:
+  - "Original 0h h1 game by Q42 and Martin Kool"
+  - "OhSteem design and fork by Deveerei, Precise, and Eastmael"
+  - "2025 maintenance by AlaskaLinuxUser"
+distributed_material:
+  - path: references/ohsteem-home.png
+    source: www/concept/home proposed.png
+    sha256: 53f3549a5c68ef412eadbef5648331902d73436459820a67ffef60f460a64e00
+  - path: references/ohsteem-board.png
+    source: www/concept/in game choice proposal.png
+    sha256: 8f3b71af4daa7f564f030d24dfe532d3ef056de8a3d2977dfac82edeb04b7c14
+notes:
+  - "Only reference captures are distributed in the active task."
+  - "No font or executable upstream asset is included in an agent workspace."
+  - "The benchmark-specific reference source is released after task retirement."

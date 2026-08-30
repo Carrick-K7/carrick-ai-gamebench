@@ -4,7 +4,11 @@ import {
   type PublicationRecord,
   type ReleaseCatalog,
 } from "../lib/data";
-import { sampleIndexForRun, sampleLetter } from "../lib/presentation";
+import {
+  sampleIndexForRun,
+  sampleLetter,
+  sortRunsForPresentation,
+} from "../lib/presentation";
 
 interface Props {
   catalog: ReleaseCatalog;
@@ -26,16 +30,30 @@ const candidateByRun = new Map(
 const outputRuns = records
   .filter((record) => record.publication.benchmark.version === version)
   .flatMap((record) =>
-    record.publication.runs
-      .filter((run) => run.included && run.task_id === taskId)
-      .map((run) => ({ record, run, candidate: candidateByRun.get(run.run_id) })),
+    record.publication.submissions
+      .filter((submission) => submission.included && submission.task_id === taskId)
+      .flatMap((submission) => {
+        const evaluations = sortRunsForPresentation(
+          submission.evaluations.filter((evaluation) => evaluation.included),
+        );
+        const run = evaluations[0];
+        return run
+          ? [{
+              record,
+              submission,
+              evaluations,
+              run,
+              candidate: candidateByRun.get(run.run_id),
+            }]
+          : [];
+      }),
   )
   .sort(
     (left, right) =>
       Number(right.record.entry.tier === "official") -
         Number(left.record.entry.tier === "official") ||
       right.record.entry.created_at.localeCompare(left.record.entry.created_at) ||
-      left.run.seed - right.run.seed,
+      left.submission.agent_invocation_index - right.submission.agent_invocation_index,
   );
 const categories = source
   ? [...new Set(source.manifest.tests.map((test) => test.category))]
@@ -50,6 +68,12 @@ const sampleFor = (record: PublicationRecord, runId: string) => {
   );
   return sampleLetter(Math.max(sampleIndexForRun(runs, runId), 0));
 };
+const scoreForSubmission = (record: PublicationRecord, submissionId: string) =>
+  record.publication.aggregate.tasks.find(
+    (task) =>
+      task.task_id === taskId &&
+      (task.submission_id === undefined || task.submission_id === submissionId),
+  )?.mean;
 ---
 
 <span class="eyebrow">
@@ -84,7 +108,7 @@ const sampleFor = (record: PublicationRecord, runId: string) => {
     <span>time allowed</span>
   </div>
   <div class="card metric">
-    <strong>{outputRuns.length}</strong><span>model attempts published</span>
+    <strong>{outputRuns.length}</strong><span>development submissions published</span>
   </div>
 </div>
 
@@ -106,7 +130,7 @@ const sampleFor = (record: PublicationRecord, runId: string) => {
     </div>
   ) : (
     <div class="grid cols-3">
-      {outputRuns.map(({ record, run, candidate }) => (
+      {outputRuns.map(({ record, submission, evaluations, run, candidate }) => (
         <article class="card output-card">
           {candidate?.showcase ? (
             <img
@@ -124,14 +148,23 @@ const sampleFor = (record: PublicationRecord, runId: string) => {
             <span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span>
             <span class="pill">{record.entry.status}</span>
             <span class="pill">
-              <span class="lang-en">Sample {sampleFor(record, run.run_id)}</span>
-              <span class="lang-zh">样本 {sampleFor(record, run.run_id)}</span>
+              {record.publication.schema_version === 2 ? (
+                <>
+                  <span class="lang-en">one submission · {evaluations.length} evaluations</span>
+                  <span class="lang-zh">开发一次 · {evaluations.length} 次评测</span>
+                </>
+              ) : (
+                <>
+                  <span class="lang-en">Attempt {sampleFor(record, run.run_id)}</span>
+                  <span class="lang-zh">尝试 {sampleFor(record, run.run_id)}</span>
+                </>
+              )}
             </span>
           </div>
           <h3>{record.entry.agent.model}</h3>
           <p>
             {record.entry.agent.id} · {record.entry.agent.harness}<br />
-            Score {run.score ? run.score.percent.toFixed(1) : "—"} · {humanize(run.exit_reason)}
+            Score {scoreForSubmission(record, submission.submission_id)?.toFixed(1) ?? "—"} · {humanize(submission.development_exit_reason)}
           </p>
           <div class="actions compact">
             {candidate && (

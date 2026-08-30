@@ -1,13 +1,18 @@
 # Carrick AI GameBench
 
-Carrick AI GameBench (CAGB) is a reproducible benchmark for coding agents
-building playable browser games. It measures two capabilities:
+Carrick AI GameBench (CAGB) is a reproducible benchmark for coding agents that
+deliver playable browser games against public machine-checkable contracts.
 
-- **Build** a game from a frozen specification.
-- **Reproduce** the mechanics, feel, and visuals of a licensed reference game.
+- **Build** measures specification-to-game delivery and is the primary v0.5
+  leaderboard.
+- **Reproduce** measures mechanics, timing, interaction, and visual fidelity to
+  licensed reference games. It is reported independently and does not affect
+  Build rank.
 
-The trusted machine score is based only on public, deterministic browser tests.
-Human playtesting is reported separately through a blinded pairwise reviewer.
+The trusted score comes only from deterministic browser evaluation. Human
+playtesting is an optional, non-scoring annotation. GameBench does not treat
+Build as a creativity or fun score; a future Creative benchmark will have a
+separate identity, methodology, release ledger, and leaderboard.
 
 ## Quick start
 
@@ -33,20 +38,29 @@ pnpm cagb run \
   --agent-id my-agent
 ```
 
-Local runs default to one attempt. Add `--official` for three fresh attempts and
-an audit-ready `official-candidate` series. This is not a self-attestation:
-Official status is granted only when the publisher finds complete release
-coverage and independent per-run verification.
+Under the v0.5 protocol, one task receives exactly one Agent invocation and
+produces one immutable submission source snapshot. After development stops,
+the evaluator materializes that same snapshot into three fresh, isolated
+environments and evaluates seeds `104729`, `130363`, and `155921`. Seeds are
+evaluation conditions, not three development attempts, and the best seed is
+never selected.
 
-Continue multiple tasks in the same series with `--series <ulid>`. The runner
-stores immutable executions under `runs/<benchmark>/<series>/<run>/`.
+`--official` requests this complete fixed-seed evaluation and creates an
+audit-ready `official-candidate` series. It is not self-attestation: Official
+status still requires complete board coverage, clean-source reproduction, and
+independent verification.
 
-Publish a scored v2 series as Experimental:
+Continue multiple tasks in the same series with `--series <ulid>`. v0.5 keeps
+the submission identity separate from each physical seed-evaluation `run_id`.
+Local data remains under `runs/<benchmark>/<series>/`.
+
+Publish a scored series as Experimental:
 
 ```bash
 pnpm cagb publish \
-  --series runs/0.4.0/<series-id> \
+  --series runs/0.5.0/<series-id> \
   --tier experimental \
+  --board build \
   --objects .gamebench \
   --base-url https://play.gamebench.ai.carrick7.com
 
@@ -60,10 +74,13 @@ Build the pinned evaluator environment with:
 pnpm docker:build
 ```
 
-## Benchmark tracks
+## Benchmark surfaces
 
-- Build: 2048, Minesweeper, 2D Parking, Tetris, Side-scroller Shooter, Tower Defense.
-- Reproduce: OhSteem and Radius Raid.
+- Build: 2048, Minesweeper, 2D Parking, Tetris, Side-scroller Shooter, and
+  Tower Defense. Complete Build coverage produces the primary leaderboard
+  score.
+- Reproduce: OhSteem and Radius Raid. Reproduce has its own coverage and score,
+  shown separately from Build.
 
 See [methodology](docs/methodology.md), [architecture](docs/architecture.md),
 [task authoring](docs/task-authoring.md), [versioning](docs/versioning.md),
@@ -71,41 +88,56 @@ See [methodology](docs/methodology.md), [architecture](docs/architecture.md),
 [result submission policy](docs/result-submissions.md),
 [public site product design](docs/public-site.md),
 [repository boundary ADR](docs/adr/0001-repository-boundaries.md),
-[deployment](docs/deployment.md),
-[contributing](CONTRIBUTING.md), and the [Chinese README](README.zh-CN.md).
+[deployment](docs/deployment.md), [contributing](CONTRIBUTING.md), and the
+[Chinese README](README.zh-CN.md).
 
 ## Adding games
 
 Each game is an independent directory under
 `benchmark/tasks/<build|reproduce>/<game-slug>/vN/`. It owns its prompts,
 state schema, test cases, and any licensed reference material, so adding a game
-or version does not require modifying the evaluator.
+or version does not require embedding game-specific logic in the evaluator.
 
-The runner places the complete public case suite and scored manifest in each
-fresh workspace. Their paths are exposed as `CAGB_PUBLIC_TESTS_PATH` and
-`CAGB_TASK_MANIFEST_PATH`; the active run seed is exposed as `CAGB_SEED`.
+The Agent receives the public case suite, scored manifest, and state contract.
+The frozen submission must support arbitrary bridge reset seeds. Official
+seeds are applied only after the source snapshot is sealed, while each fresh
+evaluation environment runs the same public contract against the same bytes.
 
-Every benchmark release freezes the exact task IDs, semantic versions, and
-content hashes in `benchmark/releases/<benchmark-version>.json`. Run
-`pnpm cagb release-lock` to verify the current release or use `--write` only
-after intentionally changing the benchmark version.
+Every benchmark release freezes exact task IDs, semantic versions, content
+hashes, protocol versions, board policy, and evaluation seeds in
+`benchmark/releases/<benchmark-version>.json`. Run `pnpm cagb release-lock` to
+verify the current lock or use `--write` only after intentionally changing the
+benchmark version.
 
 ## Deliberate boundaries
 
 - Tests are public. Official status comes from reproducible evidence and audit,
-  not hidden tests.
-- The shell adapter is provider-neutral and executes on the operator's host.
-  It records the task network policy but does not itself provide an egress
-  firewall. Reproduce runs must be performed by an operator-controlled harness
-  that allows only the declared model API hosts.
-- Machine scores use deterministic checks only. Human preference remains a
-  separate blinded playtest result.
+  not hidden tests, LLM judges, or VLM judges.
+- Machine contract evaluation is authoritative. Human preference may be
+  attached as an optional qualitative annotation and never changes rank.
+- Build is the v0.5 primary board. Reproduce remains independently inspectable
+  and cannot raise, lower, or break a Build leaderboard score.
+- One Agent invocation creates one submission per task. All three seed scores
+  come from fresh evaluations of the identical frozen source snapshot.
+- The shell adapter is provider-neutral and executes on the operator's host. It
+  records network policy but does not itself provide an egress firewall.
 - The public site is static. Git stores audited result metadata and a
   content-addressed object root stores larger source, playable, and evidence
   artifacts. There is no database or public submission API.
-- Every published playable is rebuilt from clean source and receives a
-  deterministic fixed-seed showcase cover; galleries expose every included
-  seed and never select the best-scoring attempt.
+- Public galleries expose every included seed evaluation and never cherry-pick
+  the highest-scoring condition.
+- Creativity, novelty, aesthetics, and fun are outside this benchmark's trusted
+  score. A future Creative benchmark will be released separately rather than
+  added as another GameBench track.
+
+## Historical compatibility
+
+v0.1-v0.4 remain immutable and retain their original meaning. In those
+releases, an Official candidate used three fresh Agent development runs per
+task, and historical aggregate schemas could publish a Core score combining
+Build and Reproduce. Readers, release locks, result pages, and immutable
+publication IDs for those versions remain valid; v0.5 does not reinterpret or
+rerank them.
 
 ## Licenses
 

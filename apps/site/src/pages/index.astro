@@ -7,28 +7,41 @@ import {
   resultData,
   score,
 } from "../lib/data";
+import {
+  latestResultBearingVersion,
+  rankingMetricForVersion,
+} from "../lib/ranking";
 
 const [games, releases, results] = await Promise.all([
   gameData(),
   releaseData(),
   resultData(),
 ]);
-const latest = releases[0];
+const currentRelease = releases[0];
+const resultVersion = latestResultBearingVersion(releases, results.records) ??
+  currentRelease?.benchmark_version;
 const activeRecords = results.records.filter(
   ({ entry }) =>
     entry.status === "active" &&
-    entry.benchmark_version === latest?.benchmark_version,
+    entry.benchmark_version === resultVersion,
+);
+const usingHistoricalResults =
+  currentRelease !== undefined && resultVersion !== currentRelease.benchmark_version;
+const resultBuildPrimary = activeRecords.some(
+  ({ entry }) => entry.aggregate.primary_board === "build",
 );
 const experimental = activeRecords
   .filter(({ entry }) => entry.tier === "experimental")
   .sort(
     (left, right) =>
-      (right.entry.aggregate.leaderboards.core ?? -1) -
-        (left.entry.aggregate.leaderboards.core ?? -1),
+      (rankingMetricForVersion(right.entry.aggregate) ?? -1) -
+        (rankingMetricForVersion(left.entry.aggregate) ?? -1),
   );
-const publicArtifacts = activeRecords.flatMap(({ publication }) =>
-  publication.runs.flatMap((run) => run.artifacts),
-);
+const publicArtifacts = [...new Map(
+  activeRecords
+    .flatMap(({ publication }) => publication.runs.flatMap((run) => run.artifacts))
+    .map((artifact) => [artifact.artifact_id, artifact]),
+).values()];
 const showcasePool = activeRecords.flatMap((record) =>
   record.publication.runs
     .filter((run) => run.included && run.seed === defaultOfficialSeed)
@@ -69,9 +82,9 @@ const titleByTask = new Map(
         <span class="eyebrow">The coding benchmark you can actually play</span>
         <h1>Models made the games. <em>You get the controller.</em></h1>
         <p class="lead">
-          GameBench asks coding agents to build real browser games. We test the
-          rules and controls, then let people play the result. No demo video.
-          No hidden judge. The game is the proof.
+          GameBench asks coding agents to build real browser games, then checks
+          the published machine contract with deterministic browser actions.
+          Every score links back to the exact playable output and evidence.
         </p>
         <div class="actions">
           <a class="button" href="/games">Play the games</a>
@@ -96,15 +109,23 @@ const titleByTask = new Map(
       </div>
     </section>
 
+    {usingHistoricalResults && (
+      <div class="callout status-banner">
+        <strong>GameBench v{currentRelease.benchmark_version} is the current release.</strong>
+        {" "}It has no published result yet, so this overview shows the latest
+        result-bearing release, v{resultVersion}. Results are never mixed across versions.
+      </div>
+    )}
+
     <section class="section">
       <div class="grid cols-4">
         <div class="card metric"><strong>{games.length}</strong><span>different game challenges</span></div>
-        <div class="card metric"><strong>{experimental.length}</strong><span>public model runs</span></div>
+        <div class="card metric"><strong>{experimental.length}</strong><span>public results · v{resultVersion ?? "—"}</span></div>
         <div class="card metric">
           <strong>{publicArtifacts.filter((artifact) => artifact.role === "playable").length}</strong>
           <span>games ready to play</span>
         </div>
-        <div class="card metric"><strong>v{latest?.benchmark_version ?? "—"}</strong><span>current ruleset</span></div>
+        <div class="card metric"><strong>v{currentRelease?.benchmark_version ?? "—"}</strong><span>current release</span></div>
       </div>
     </section>
 
@@ -136,13 +157,13 @@ const titleByTask = new Map(
           </article>
         ))}
       </div>
-      <div class="actions"><a class="button secondary" href="/games">Browse all eight challenges</a></div>
+      <div class="actions"><a class="button secondary" href="/games">Browse all {games.length} challenges</a></div>
     </section>
 
     <section class="section">
       <div class="section-head">
         <div><span class="eyebrow">How a score is earned</span><h2>Build it. Test it. Play it.</h2></div>
-        <p>The machine score and the human verdict answer different questions, so GameBench never blends them into a mystery number.</p>
+        <p>The public score comes from deterministic machine-contract checks. Optional human summaries never change it.</p>
       </div>
       <div class="grid cols-3 how-grid">
         <article class="card how-card">
@@ -154,8 +175,8 @@ const titleByTask = new Map(
           <p>Real keyboard and pointer actions check controls, game state, reset behavior, stability, and winning rules.</p>
         </article>
         <article class="card how-card">
-          <h3>People play</h3>
-          <p>Humans judge clarity, polish, feel, and fun separately from the automatic score.</p>
+          <h3>The frozen build is re-evaluated</h3>
+          <p>In v0.5, the agent develops each task once. The same submitted source is then checked under three fixed seeds.</p>
         </article>
       </div>
       <div class="actions"><a class="button secondary" href="/methodology">See exactly how scoring works</a></div>
@@ -164,7 +185,9 @@ const titleByTask = new Map(
     <section class="section">
       <div class="section-head">
         <div><span class="eyebrow">Current lab results</span><h2>No champion yet. Plenty to play.</h2></div>
-        <p>These stage results use one reproducible sample. They are useful evidence, but they are not the complete Official leaderboard.</p>
+        <p>{resultBuildPrimary
+          ? "Each task is developed once and the frozen submission is evaluated under three fixed seeds. Stage results remain separate from Official qualification."
+          : "These historical stage results use the earlier attempt-based protocol. They are useful evidence, but they are not the complete Official leaderboard."}</p>
       </div>
       <div class="grid">
         {experimental.slice(0, 5).map(({ entry }, index) => (
@@ -175,8 +198,10 @@ const titleByTask = new Map(
               <span class="muted"> · {entry.agent.id} · GameBench {entry.benchmark_version}</span>
             </span>
             <span class="result-score">
-              {score(entry.aggregate.leaderboards.core)}
-              <small>{entry.aggregate.leaderboards.core === undefined ? "incomplete run" : "core score"}</small>
+              {score(rankingMetricForVersion(entry.aggregate))}
+              <small>{rankingMetricForVersion(entry.aggregate) === undefined
+                ? "incomplete result"
+                : entry.aggregate.primary_board === "build" ? "build score" : "historical core score"}</small>
             </span>
           </a>
         ))}

@@ -1,7 +1,7 @@
 import {
-  PublicationManifestSchema,
-  ReleaseLockSchema,
-  ResultIndexSchema,
+  AnyPublicationManifestSchema,
+  AnyReleaseLockSchema,
+  AnyResultIndexSchema,
   compareSemanticVersions,
   findRepositoryRoot,
   listTasks,
@@ -9,13 +9,19 @@ import {
   sha256Canonical,
   sha256File,
   type JsonValue,
-  type PublicationManifest,
-  type ReleaseLock,
+  type AnyReleaseLock,
   type ReleasedTask,
-  type ResultIndex,
+  type AnyResultIndex,
 } from "@carrick/gamebench-core";
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
+import {
+  normalizePublication,
+  normalizeResultEntry,
+  type NormalizedEvaluation,
+  type NormalizedPublication,
+  type NormalizedResultEntry,
+} from "./normalize.ts";
 
 export const repositoryRoot = await findRepositoryRoot();
 export const defaultOfficialSeed = 104729;
@@ -24,42 +30,40 @@ export const siteBuildId =
   process.env.GITHUB_SHA ??
   "local";
 
-type ResultEntry = ResultIndex["entries"][number];
-
 export interface PublicationRecord {
-  entry: ResultEntry;
-  publication: PublicationManifest;
+  entry: NormalizedResultEntry;
+  publication: NormalizedPublication;
 }
 
 export interface ReleaseCatalog {
-  release: ReleaseLock;
+  release: AnyReleaseLock;
   tasks: ReleasedTask[];
 }
 
 export interface PlayableCandidate {
-  entry: ResultEntry;
-  publication: PublicationManifest;
-  run: PublicationManifest["runs"][number];
-  playable: PublicationManifest["runs"][number]["artifacts"][number];
-  showcase?: PublicationManifest["runs"][number]["artifacts"][number];
-  source?: PublicationManifest["runs"][number]["artifacts"][number];
-  license?: PublicationManifest["runs"][number]["artifacts"][number];
+  entry: NormalizedResultEntry;
+  publication: NormalizedPublication;
+  run: NormalizedEvaluation;
+  playable: NormalizedEvaluation["artifacts"][number];
+  showcase?: NormalizedEvaluation["artifacts"][number];
+  source?: NormalizedEvaluation["artifacts"][number];
+  license?: NormalizedEvaluation["artifacts"][number];
 }
 
 async function readJson(filePath: string): Promise<unknown> {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
 
-let releasesPromise: Promise<ReleaseLock[]> | undefined;
+let releasesPromise: Promise<AnyReleaseLock[]> | undefined;
 
-async function loadReleases(): Promise<ReleaseLock[]> {
+async function loadReleases(): Promise<AnyReleaseLock[]> {
   releasesPromise ??= (async () => {
     const releasesRoot = path.join(repositoryRoot, "benchmark", "releases");
     const files = (await readdir(releasesRoot))
       .filter((file) => file.endsWith(".json"));
     const releases = await Promise.all(
       files.map(async (file) =>
-        ReleaseLockSchema.parse(await readJson(path.join(releasesRoot, file))),
+        AnyReleaseLockSchema.parse(await readJson(path.join(releasesRoot, file))),
       ),
     );
     return releases.sort((left, right) =>
@@ -69,7 +73,7 @@ async function loadReleases(): Promise<ReleaseLock[]> {
   return releasesPromise;
 }
 
-export async function releaseData(): Promise<ReleaseLock[]> {
+export async function releaseData(): Promise<AnyReleaseLock[]> {
   return loadReleases();
 }
 
@@ -98,14 +102,14 @@ export async function releaseCatalogFor(
 }
 
 export async function resultData(): Promise<{
-  index: ResultIndex;
-  publications: PublicationManifest[];
+  index: AnyResultIndex;
+  publications: NormalizedPublication[];
   records: PublicationRecord[];
 }> {
   const resultsRoot = process.env.GAMEBENCH_RESULTS_ROOT
     ? path.resolve(process.env.GAMEBENCH_RESULTS_ROOT)
     : path.join(repositoryRoot, "results");
-  const index = ResultIndexSchema.parse(
+  const index = AnyResultIndexSchema.parse(
     await readJson(path.join(resultsRoot, "index.json")),
   );
   const releases = await loadReleases();
@@ -114,41 +118,51 @@ export async function resultData(): Promise<{
   );
 
   const records = await Promise.all(
-    index.entries.map(async (entry) => {
-      const publication = PublicationManifestSchema.parse(
+    index.entries.map(async (rawEntry) => {
+      const rawPublication = AnyPublicationManifestSchema.parse(
         await readJson(
           path.join(
             resultsRoot,
             "publications",
-            `${entry.publication_id.slice("sha256:".length)}.json`,
+            `${rawEntry.publication_id.slice("sha256:".length)}.json`,
           ),
         ),
       );
-      const { publication_id: claimed, ...payload } = publication;
+      const { publication_id: claimed, ...payload } = rawPublication;
       const actual = sha256Canonical(
         JSON.parse(JSON.stringify(payload)) as JsonValue,
       );
-      if (actual !== claimed || claimed !== entry.publication_id) {
-        throw new Error(`invalid publication identity: ${entry.publication_id}`);
+      if (actual !== claimed || claimed !== rawEntry.publication_id) {
+        throw new Error(`invalid publication identity: ${rawEntry.publication_id}`);
       }
+      const indexedPublicationSchema = "publication_schema_version" in rawEntry
+        ? rawEntry.publication_schema_version
+        : 1;
+      const boardMismatch =
+        "publication_schema_version" in rawEntry &&
+        rawEntry.publication_schema_version === 2 &&
+        rawPublication.schema_version === 2 &&
+        rawEntry.board !== rawPublication.board;
       if (
-        publication.benchmark.version !== entry.benchmark_version ||
-        publication.series_id !== entry.series_id ||
-        publication.configuration.configuration_id !== entry.configuration_id ||
-        publication.tier !== entry.tier ||
+        rawPublication.schema_version !== indexedPublicationSchema ||
+        boardMismatch ||
+        rawPublication.benchmark.version !== rawEntry.benchmark_version ||
+        rawPublication.series_id !== rawEntry.series_id ||
+        rawPublication.configuration.configuration_id !== rawEntry.configuration_id ||
+        rawPublication.tier !== rawEntry.tier ||
         sha256Canonical(
-          JSON.parse(JSON.stringify(publication.aggregate)) as JsonValue,
+          JSON.parse(JSON.stringify(rawPublication.aggregate)) as JsonValue,
         ) !==
           sha256Canonical(
-            JSON.parse(JSON.stringify(entry.aggregate)) as JsonValue,
+            JSON.parse(JSON.stringify(rawEntry.aggregate)) as JsonValue,
           )
       ) {
-        throw new Error(`publication index mismatch: ${entry.publication_id}`);
+        throw new Error(`publication index mismatch: ${rawEntry.publication_id}`);
       }
-      const release = releaseByVersion.get(publication.benchmark.version);
+      const release = releaseByVersion.get(rawPublication.benchmark.version);
       if (!release) {
         throw new Error(
-          `publication references unknown release ${publication.benchmark.version}`,
+          `publication references unknown release ${rawPublication.benchmark.version}`,
         );
       }
       const lockPath = path.join(
@@ -158,26 +172,34 @@ export async function resultData(): Promise<{
         `${release.benchmark_version}.json`,
       );
       if (
-        publication.benchmark.release_hash !==
+        rawPublication.benchmark.release_hash !==
         `sha256:${await sha256File(lockPath)}`
       ) {
-        throw new Error(`publication release mismatch: ${entry.publication_id}`);
+        throw new Error(`publication release mismatch: ${rawEntry.publication_id}`);
       }
       const releaseTasks = new Map(
         release.tasks.map((task) => [task.id, task]),
       );
-      for (const run of publication.runs) {
-        const task = releaseTasks.get(run.task_id);
+      const publishedTasks = rawPublication.schema_version === 1
+        ? rawPublication.runs
+        : rawPublication.submissions;
+      for (const publishedTask of publishedTasks) {
+        const task = releaseTasks.get(publishedTask.task_id);
         if (
           !task ||
-          task.hash !== run.task_hash ||
-          task.version !== run.task_version
+          task.hash !== publishedTask.task_hash ||
+          task.version !== publishedTask.task_version
         ) {
+          const identity = "run_id" in publishedTask
+            ? publishedTask.run_id
+            : publishedTask.submission_id;
           throw new Error(
-            `publication run is outside release ${release.benchmark_version}: ${run.run_id}`,
+            `publication result is outside release ${release.benchmark_version}: ${identity}`,
           );
         }
       }
+      const publication = normalizePublication(rawPublication);
+      const entry = normalizeResultEntry(rawEntry, publication);
       return { entry, publication };
     }),
   );
@@ -285,7 +307,19 @@ export function playableCandidatesForTask(
       });
     }
   }
-  return candidates.sort(candidateOrder);
+  const ordered = candidates.sort(candidateOrder);
+  const unique = new Map<string, PlayableCandidate>();
+  for (const candidate of ordered) {
+    const key = [
+      candidate.entry.publication_id,
+      candidate.run.submission_id,
+      candidate.playable.artifact_id,
+    ].join("\0");
+    if (!unique.has(key)) {
+      unique.set(key, candidate);
+    }
+  }
+  return [...unique.values()];
 }
 
 export function defaultPlayableCandidate(

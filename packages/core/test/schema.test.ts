@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
+  AggregateResultV3Schema,
   TaskManifestSchema,
   TestSuiteSchema,
   TrackSchema,
   RunManifestV2Schema,
+  RunManifestV3Schema,
+  PublicationManifestV2Schema,
+  SeriesManifestV2Schema,
+  SubmissionManifestV1Schema,
   VoteSchema,
 } from "../src/index.js";
 
@@ -130,6 +135,411 @@ test("run manifest v2 has immutable identity and no self-verified flag", () => {
   assert.equal(RunManifestV2Schema.safeParse(run).success, true);
   assert.equal(
     RunManifestV2Schema.safeParse({ ...run, verified: true }).success,
+    false,
+  );
+});
+
+test("v0.5 submission and evaluation manifests keep seed out of development", () => {
+  const hash = (character: string) => `sha256:${character.repeat(64)}`;
+  const submission = {
+    schema_version: 1,
+    benchmark_version: "0.5.0",
+    benchmark_release_hash: hash("a"),
+    series_id: "01K00000000000000000000000",
+    submission_id: "01K00000000000000000000001",
+    configuration_id: hash("b"),
+    development_input_fingerprint: hash("c"),
+    agent_command_hash: hash("1"),
+    development_parameters: { agent_command_hash: hash("1") },
+    task_id: "build.sample.v1",
+    task_version: "1.0.0",
+    task_hash: hash("d"),
+    agent_invocation_index: 1,
+    execution_profile: "official-candidate",
+    prompt_language: "en",
+    network_policy: "full",
+    agent: {
+      id: "agent",
+      version: "1",
+      model: "model",
+      harness: "cli",
+      parameters: {},
+    },
+    environment: {
+      platform: "linux",
+      architecture: "x64",
+      node: "v22.12.0",
+      runner_protocol: "3",
+      git_commit: "e".repeat(40),
+      source_tree_dirty: false,
+    },
+    started_at: "2026-07-19T00:00:00.000Z",
+    finished_at: "2026-07-19T01:00:00.000Z",
+    development_exit_reason: "completed",
+    source_snapshot_hash: hash("f"),
+  };
+  assert.equal(SubmissionManifestV1Schema.safeParse(submission).success, true);
+  const { agent_command_hash: _commandHash, ...withoutCommandHash } = submission;
+  assert.equal(SubmissionManifestV1Schema.safeParse(withoutCommandHash).success, false);
+  assert.equal(
+    SubmissionManifestV1Schema.safeParse({
+      ...submission,
+      agent_command_hash: "./agent --secret",
+    }).success,
+    false,
+  );
+  assert.equal(
+    SubmissionManifestV1Schema.safeParse({
+      ...submission,
+      development_parameters: { agent_command_hash: hash("2") },
+    }).success,
+    false,
+  );
+  assert.equal(
+    SubmissionManifestV1Schema.safeParse({ ...submission, evaluation_seed: 104729 }).success,
+    false,
+  );
+
+  const evaluation = {
+    schema_version: 3,
+    benchmark_version: "0.5.0",
+    benchmark_release_hash: hash("a"),
+    series_id: submission.series_id,
+    run_id: "01K00000000000000000000002",
+    submission_id: submission.submission_id,
+    configuration_id: hash("b"),
+    input_fingerprint: hash("1"),
+    task_id: submission.task_id,
+    task_version: submission.task_version,
+    task_hash: hash("d"),
+    evaluation_seed: 104729,
+    environment: {
+      platform: "linux",
+      architecture: "x64",
+      node: "v22.12.0",
+      runner_protocol: "3",
+      git_commit: "e".repeat(40),
+      source_tree_dirty: false,
+    },
+    started_at: "2026-07-19T01:00:00.000Z",
+  };
+  assert.equal(RunManifestV3Schema.safeParse(evaluation).success, true);
+});
+
+test("run manifest v2 remains strict and rejects v0.5 identity fields", () => {
+  const legacy = {
+    schema_version: 2,
+    benchmark_version: "0.4.0",
+    benchmark_release_hash: `sha256:${"a".repeat(64)}`,
+    series_id: "01K00000000000000000000000",
+    run_id: "01K00000000000000000000001",
+    configuration_id: `sha256:${"b".repeat(64)}`,
+    input_fingerprint: `sha256:${"c".repeat(64)}`,
+    task_id: "build.sample.v1",
+    task_version: "1.0.0",
+    task_hash: `sha256:${"d".repeat(64)}`,
+    attempt: 1,
+    seed: 104729,
+    execution_profile: "local",
+    prompt_language: "en",
+    network_policy: "full",
+    agent: { id: "agent", version: "1", model: "model", harness: "cli", parameters: {} },
+    environment: {
+      platform: "linux",
+      architecture: "x64",
+      node: "v22.12.0",
+      runner_protocol: "2",
+      git_commit: "e".repeat(40),
+      source_tree_dirty: false,
+    },
+    started_at: "2026-07-19T00:00:00.000Z",
+  };
+  assert.equal(RunManifestV2Schema.safeParse(legacy).success, true);
+  assert.equal(
+    RunManifestV2Schema.safeParse({
+      ...legacy,
+      submission_id: "01K00000000000000000000002",
+      evaluation_seed: 104729,
+    }).success,
+    false,
+  );
+});
+
+test("series v2 validates submission/evaluation references and seed cells", () => {
+  const hash = (character: string) => `sha256:${character.repeat(64)}`;
+  const series = {
+    schema_version: 2,
+    series_id: "01K00000000000000000000000",
+    benchmark_version: "0.5.0",
+    benchmark_release_hash: hash("a"),
+    git_commit: "e".repeat(40),
+    configuration_id: hash("b"),
+    configuration: {
+      agent: { id: "agent", version: "1", model: "model", harness: "cli", parameters: {} },
+      prompt_language: "en",
+      execution_profile: "official-candidate",
+      environment: {
+        platform: "linux",
+        architecture: "x64",
+        node: "v22.12.0",
+        runner_protocol: "3",
+        git_commit: "e".repeat(40),
+        source_tree_dirty: false,
+      },
+    },
+    created_at: "2026-07-19T00:00:00.000Z",
+    submissions: [{
+      submission_id: "01K00000000000000000000001",
+      task_id: "build.sample.v1",
+      task_hash: hash("c"),
+      agent_invocation_index: 1,
+      included: true,
+    }],
+    evaluations: [{
+      run_id: "01K00000000000000000000002",
+      submission_id: "01K00000000000000000000001",
+      task_id: "build.sample.v1",
+      task_hash: hash("c"),
+      evaluation_seed: 104729,
+      included: true,
+    }],
+  };
+  assert.equal(SeriesManifestV2Schema.safeParse(series).success, true);
+  assert.equal(
+    SeriesManifestV2Schema.safeParse({
+      ...series,
+      evaluations: [{ ...series.evaluations[0], task_id: "build.other.v1" }],
+    }).success,
+    false,
+  );
+  assert.equal(
+    SeriesManifestV2Schema.safeParse({
+      ...series,
+      evaluations: [...series.evaluations, {
+        ...series.evaluations[0],
+        run_id: "01K00000000000000000000003",
+      }],
+    }).success,
+    false,
+  );
+});
+
+test("publication v2 groups seed evaluations under one submission", () => {
+  const hash = (character: string) => `sha256:${character.repeat(64)}`;
+  const taskHash = hash("c");
+  const score = {
+    schema_version: 1,
+    task_id: "build.sample.v1",
+    task_hash: taskHash,
+    earned: 100,
+    available: 100,
+    percent: 100,
+    hard_gate_failed: false,
+    categories: { build: { earned: 100, available: 100 } },
+    tests: [{
+      id: "build",
+      category: "build",
+      points: 100,
+      passed: true,
+      duration_ms: 1,
+      artifacts: [],
+    }],
+  };
+  const submissionId = "01K00000000000000000000001";
+  const evaluation = {
+    run_id: "01K00000000000000000000002",
+    input_fingerprint: hash("d"),
+    evaluation_seed: 104729,
+    included: true,
+    exit_reason: "completed",
+    score,
+    artifacts: [],
+  };
+  const publication = {
+    schema_version: 2,
+    publication_id: hash("1"),
+    created_at: "2026-07-19T00:00:00.000Z",
+    tier: "experimental",
+    board: "build",
+    series_id: "01K00000000000000000000000",
+    benchmark: {
+      version: "0.5.0",
+      release_hash: hash("a"),
+      git_commit: "e".repeat(40),
+    },
+    configuration: {
+      configuration_id: hash("b"),
+      agent: { id: "agent", version: "1", model: "model", harness: "cli", parameters: {} },
+      prompt_language: "en",
+      execution_profile: "local",
+      environment: {
+        platform: "linux",
+        architecture: "x64",
+        node: "v22.12.0",
+        runner_protocol: "3",
+        git_commit: "e".repeat(40),
+        source_tree_dirty: false,
+      },
+    },
+    aggregate: {
+      schema_version: 3,
+      primary_board: "build",
+      tasks: [{
+        task_id: "build.sample.v1",
+        track: "build",
+        submission_id: submissionId,
+        evaluation_count: 1,
+        required_evaluation_count: 1,
+        mean: 100,
+        standard_deviation: 0,
+      }],
+      coverage: {
+        build: { completed: 1, required: 1 },
+        reproduce: { completed: 0, required: 0 },
+      },
+      evaluation_coverage: {
+        build: { completed: 1, required: 1 },
+        reproduce: { completed: 0, required: 0 },
+      },
+      leaderboards: { build: 100 },
+    },
+    submissions: [{
+      submission_id: submissionId,
+      development_input_fingerprint: hash("f"),
+      agent_command_hash: hash("3"),
+      development_parameters: { agent_command_hash: hash("3") },
+      source_snapshot_hash: hash("2"),
+      task_id: "build.sample.v1",
+      task_version: "1.0.0",
+      task_hash: taskHash,
+      agent_invocation_index: 1,
+      included: true,
+      network_policy: "full",
+      development_exit_reason: "completed",
+      artifacts: [],
+      evaluations: [evaluation],
+    }],
+    review_summaries: [],
+  };
+  assert.equal(PublicationManifestV2Schema.safeParse(publication).success, true);
+  const reproduceTaskId = "reproduce.sample.v1";
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      board: "reproduce",
+      aggregate: {
+        ...publication.aggregate,
+        tasks: publication.aggregate.tasks.map((task) => ({
+          ...task,
+          task_id: reproduceTaskId,
+          track: "reproduce",
+        })),
+        coverage: {
+          build: { completed: 0, required: 0 },
+          reproduce: { completed: 1, required: 1 },
+        },
+        evaluation_coverage: {
+          build: { completed: 0, required: 0 },
+          reproduce: { completed: 1, required: 1 },
+        },
+        leaderboards: { reproduce: 100 },
+      },
+      submissions: publication.submissions.map((submission) => ({
+        ...submission,
+        task_id: reproduceTaskId,
+        evaluations: submission.evaluations.map((publishedEvaluation) => ({
+          ...publishedEvaluation,
+          score: publishedEvaluation.score
+            ? { ...publishedEvaluation.score, task_id: reproduceTaskId }
+            : undefined,
+        })),
+      })),
+    }).success,
+    true,
+  );
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      board: "reproduce",
+    }).success,
+    false,
+  );
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      aggregate: {
+        ...publication.aggregate,
+        coverage: {
+          ...publication.aggregate.coverage,
+          reproduce: { completed: 0, required: 1 },
+        },
+        evaluation_coverage: {
+          ...publication.aggregate.evaluation_coverage,
+          reproduce: { completed: 0, required: 3 },
+        },
+      },
+    }).success,
+    false,
+  );
+  assert.equal(
+    AggregateResultV3Schema.safeParse({
+      ...publication.aggregate,
+      coverage: {
+        ...publication.aggregate.coverage,
+        core: { completed: 1, required: 1 },
+      },
+    }).success,
+    false,
+  );
+  assert.equal(
+    AggregateResultV3Schema.safeParse({
+      ...publication.aggregate,
+      leaderboards: { ...publication.aggregate.leaderboards, core: 100 },
+    }).success,
+    false,
+  );
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      submissions: [{
+        ...publication.submissions[0],
+        agent_command_hash: "bash -lc ./agent",
+      }],
+    }).success,
+    false,
+  );
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      submissions: [{
+        ...publication.submissions[0],
+        development_parameters: { agent_command_hash: hash("4") },
+      }],
+    }).success,
+    false,
+  );
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      aggregate: {
+        ...publication.aggregate,
+        tasks: [{ ...publication.aggregate.tasks[0], mean: 0 }],
+        leaderboards: { build: 0 },
+      },
+    }).success,
+    false,
+  );
+  assert.equal(
+    PublicationManifestV2Schema.safeParse({
+      ...publication,
+      submissions: [{
+        ...publication.submissions[0],
+        evaluations: [evaluation, {
+          ...evaluation,
+          run_id: "01K00000000000000000000003",
+        }],
+      }],
+    }).success,
     false,
   );
 });

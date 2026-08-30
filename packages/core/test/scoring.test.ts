@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import {
   aggregateAttempts,
+  aggregateEvaluationsV3,
+  assertScoreResult,
   scoreTask,
   type TaskManifest,
 } from "../src/index.js";
@@ -136,4 +138,100 @@ test("Core gives Build and Reproduce equal weight regardless of task count", () 
   assert.equal(result.leaderboards.build, 100);
   assert.equal(result.leaderboards.reproduce, 0);
   assert.equal(result.leaderboards.core, 50);
+});
+
+test("score arithmetic assertion rejects internally consistent-looking tampering", () => {
+  const taskHash = `sha256:${"a".repeat(64)}`;
+  const score = scoreTask(buildTask, taskHash, [
+    { id: "build", passed: true, duration_ms: 1, artifacts: [] },
+    { id: "mechanics", passed: false, duration_ms: 1, artifacts: [] },
+  ]);
+  assert.doesNotThrow(() => assertScoreResult(buildTask, taskHash, score));
+  assert.throws(
+    () => assertScoreResult(buildTask, taskHash, { ...score, percent: 99 }),
+    /score percent mismatch/,
+  );
+  assert.throws(
+    () => assertScoreResult(buildTask, taskHash, { ...score, percent: 5.00001 }),
+    /score percent mismatch/,
+  );
+  assert.throws(
+    () => assertScoreResult(buildTask, taskHash, {
+      ...score,
+      categories: {
+        ...score.categories,
+        mechanics: { earned: 95, available: 95 },
+      },
+    }),
+    /mechanics earned mismatch/,
+  );
+});
+
+test("aggregate v3 averages three seeds from one submission", () => {
+  const taskHash = `sha256:${"a".repeat(64)}`;
+  const submissionId = "01K00000000000000000000000";
+  const scoreFor = (build: boolean, mechanics: boolean) =>
+    scoreTask(buildTask, taskHash, [
+      { id: "build", passed: build, duration_ms: 1, artifacts: [] },
+      { id: "mechanics", passed: mechanics, duration_ms: 1, artifacts: [] },
+    ]);
+  const result = aggregateEvaluationsV3(
+    [
+      { task: buildTask, task_hash: taskHash, submission_id: submissionId, evaluation_seed: 104729, score: scoreFor(true, true) },
+      { task: buildTask, task_hash: taskHash, submission_id: submissionId, evaluation_seed: 130363, score: scoreFor(true, false) },
+      { task: buildTask, task_hash: taskHash, submission_id: submissionId, evaluation_seed: 155921, score: scoreFor(false, true) },
+    ],
+    [{ task: buildTask, task_hash: taskHash }],
+    [104729, 130363, 155921],
+  );
+  assert.equal(result.schema_version, 3);
+  assert.equal(result.primary_board, "build");
+  assert.equal(result.tasks[0]?.evaluation_count, 3);
+  assert.equal(result.tasks[0]?.mean, 35);
+  assert.equal(result.leaderboards.build, 35);
+  assert.deepEqual(result.evaluation_coverage.build, { completed: 3, required: 3 });
+});
+
+test("aggregate v3 rejects duplicate seeds and mixed submissions", () => {
+  const taskHash = `sha256:${"a".repeat(64)}`;
+  const score = scoreTask(buildTask, taskHash, [
+    { id: "build", passed: true, duration_ms: 1, artifacts: [] },
+    { id: "mechanics", passed: true, duration_ms: 1, artifacts: [] },
+  ]);
+  const base = {
+    task: buildTask,
+    task_hash: taskHash,
+    submission_id: "01K00000000000000000000000",
+    evaluation_seed: 104729,
+    score,
+  };
+  assert.throws(
+    () => aggregateEvaluationsV3([base, base], [{ task: buildTask, task_hash: taskHash }], [104729, 130363, 155921]),
+    /duplicate evaluation cell/,
+  );
+  assert.throws(
+    () => aggregateEvaluationsV3([
+      base,
+      { ...base, submission_id: "01K00000000000000000000001", evaluation_seed: 130363 },
+    ], [{ task: buildTask, task_hash: taskHash }], [104729, 130363, 155921]),
+    /multiple submissions/,
+  );
+});
+
+test("aggregate v3 withholds boards for incomplete seed coverage", () => {
+  const taskHash = `sha256:${"a".repeat(64)}`;
+  const score = scoreTask(buildTask, taskHash, [
+    { id: "build", passed: true, duration_ms: 1, artifacts: [] },
+    { id: "mechanics", passed: true, duration_ms: 1, artifacts: [] },
+  ]);
+  const result = aggregateEvaluationsV3([{
+    task: buildTask,
+    task_hash: taskHash,
+    submission_id: "01K00000000000000000000000",
+    evaluation_seed: 104729,
+    score,
+  }], [{ task: buildTask, task_hash: taskHash }], [104729, 130363, 155921]);
+  assert.equal(result.leaderboards.build, undefined);
+  assert.deepEqual(result.coverage.build, { completed: 0, required: 1 });
+  assert.deepEqual(result.evaluation_coverage.build, { completed: 1, required: 3 });
 });

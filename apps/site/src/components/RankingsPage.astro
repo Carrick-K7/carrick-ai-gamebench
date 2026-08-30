@@ -1,4 +1,5 @@
 ---
+import { compareSemanticVersions } from "@carrick/gamebench-core";
 import LeaderboardView from "./LeaderboardView.astro";
 import type { PublicationRecord } from "../lib/data";
 import { rankingTierOrder } from "../lib/ranking";
@@ -12,9 +13,11 @@ interface Props {
   version: string;
   releases: ReleaseSummary[];
   records: PublicationRecord[];
+  isShortcut?: boolean;
 }
 
-const { version, releases, records } = Astro.props;
+const { version, releases, records, isShortcut = false } = Astro.props;
+const buildPrimary = compareSemanticVersions(version, "0.5.0") >= 0;
 const activeForVersion = records.filter(
   ({ entry }) => entry.benchmark_version === version && entry.status === "active",
 );
@@ -23,33 +26,60 @@ const experimentalCount = activeForVersion.filter(({ entry }) => entry.tier === 
 const officialRanksFirst = rankingTierOrder(officialCount)[0] === "official";
 const currentVersion = releases[0]?.benchmark_version;
 const isCurrentVersion = version === currentVersion;
+const isLatestResultFallback =
+  isShortcut && !isCurrentVersion && currentVersion !== undefined;
 ---
 
 <div class="container">
   <span class="eyebrow"><span class="lang-en">Evaluation rankings</span><span class="lang-zh">评测排行</span></span>
   <h1><span class="lang-en">Scores you can play.</span><span class="lang-zh">分数之外，游戏也能亲手验证。</span></h1>
   <p class="lead">
-    <span class="lang-en">Every row links to the games, failures, clean source, and exact evaluation record. Results from different benchmark releases are never mixed.</span>
-    <span class="lang-zh">每条成绩都能打开对应游戏、失败项、整理后的源码和完整评测记录。不同测试集版本的结果不会混在一起排名。</span>
+    <span class="lang-en">Every row links to the machine-contract checks, clean source, playable output, and exact evaluation record. Results from different benchmark releases are never mixed.</span>
+    <span class="lang-zh">每条成绩都能追溯到机器契约检查、整理后的源码、可玩成品和完整评测记录。不同测试集版本不会混排。</span>
   </p>
 
   <div class="version-context">
-    <span class="pill">v{version} · {isCurrentVersion ? "current" : "archived"}</span>
+    <span class="pill">v{version} · {isCurrentVersion ? "current release" : "historical ruleset"}</span>
     <p>
-      <span class="lang-en">GameBench improves through versioned releases. This page keeps scores comparable by showing one ruleset at a time.</span>
-      <span class="lang-zh">GameBench 会持续迭代。每个页面只比较同一版测试规则下的成绩，避免不同版本混排。</span>
+      {isLatestResultFallback ? (
+        <>
+          <span class="lang-en">The current release is v{currentVersion}, but it has no published result yet. This shortcut shows the newest release that has measured results: v{version}.</span>
+          <span class="lang-zh">当前版本是 v{currentVersion}，但还没有公开成绩。此短链接展示最近一个已有实测结果的版本：v{version}。</span>
+        </>
+      ) : (
+        <>
+          <span class="lang-en">GameBench improves through versioned releases. This page keeps scores comparable by showing one ruleset at a time.</span>
+          <span class="lang-zh">GameBench 会持续迭代。每个页面只比较同一版测试规则下的成绩，避免不同版本混排。</span>
+        </>
+      )}
     </p>
-    {!isCurrentVersion && <a href="/leaderboard"><span class="lang-en">Return to current rankings</span><span class="lang-zh">返回当前排行</span></a>}
+    {!isCurrentVersion && <a href={`/benchmarks/${currentVersion}/leaderboard`}><span class="lang-en">Open the current release</span><span class="lang-zh">查看当前版本</span></a>}
   </div>
+
+  {buildPrimary && (
+    <div class="callout status-banner">
+      <span class="lang-en"><strong>Build is the primary board.</strong> One development submission is evaluated under three fixed seeds. Reproduce is reported separately; Core is retained only as a secondary compatibility field.</span>
+      <span class="lang-zh"><strong>Build 是主榜。</strong>每个任务只开发一次，再用三组固定种子独立评测。Reproduce 单独展示；Core 仅作为兼容字段保留。</span>
+    </div>
+  )}
 
   {officialRanksFirst ? (
     <>
       <section class="section" id="official">
         <div class="section-head">
           <div><span class="pill official">Official</span><h2><span class="lang-en">Official leaderboard</span><span class="lang-zh">正式排行</span></h2></div>
-          <p><span class="lang-en">Complete coverage, three fixed random conditions, clean rebuild, and independent verification.</span><span class="lang-zh">完整覆盖全部游戏和三组固定随机条件，并通过无密钥重建与独立复核。</span></p>
+          <p>
+            <span class="lang-en">{buildPrimary ? "One development submission per task, three fixed-seed evaluations, clean rebuild, and independent verification." : "Complete coverage, three fixed attempts, clean rebuild, and independent verification."}</span>
+            <span class="lang-zh">{buildPrimary ? "每个任务开发一次，使用三组固定种子评测，并通过无密钥重建与独立复核。" : "完整覆盖全部游戏和三次固定尝试，并通过无密钥重建与独立复核。"}</span>
+          </p>
         </div>
-        <LeaderboardView version={version} records={records} tier="official" />
+        <LeaderboardView version={version} records={records} tier="official" board="build" />
+        {buildPrimary && (
+          <details class="callout">
+            <summary><strong>Independent Reproduce report</strong></summary>
+            <LeaderboardView version={version} records={records} tier="official" board="reproduce" />
+          </details>
+        )}
       </section>
       <section class="section" id="experimental">
         <div class="section-head">
@@ -57,7 +87,13 @@ const isCurrentVersion = version === currentVersion;
           <p><span class="lang-en">Useful measured evidence, kept separate from the Official ranking.</span><span class="lang-zh">可供参考的实测结果，与正式排行分开呈现。</span></p>
         </div>
         <div class="callout status-banner"><span class="lang-en">Stage results do not represent an Official ranking.</span><span class="lang-zh">阶段性结果，不代表正式排名。</span></div>
-        <LeaderboardView version={version} records={records} tier="experimental" />
+        <LeaderboardView version={version} records={records} tier="experimental" board="build" />
+        {buildPrimary && (
+          <details class="callout">
+            <summary><strong>Independent Reproduce report</strong></summary>
+            <LeaderboardView version={version} records={records} tier="experimental" board="reproduce" />
+          </details>
+        )}
       </section>
     </>
   ) : (
@@ -68,13 +104,22 @@ const isCurrentVersion = version === currentVersion;
           <p>{experimentalCount} <span class="lang-en">active result{experimentalCount === 1 ? "" : "s"} on this exact ruleset.</span><span class="lang-zh">条结果采用这一版测试规则。</span></p>
         </div>
         <div class="callout status-banner"><span class="lang-en">Stage results do not represent an Official ranking.</span><span class="lang-zh">阶段性结果，不代表正式排名。</span></div>
-        <LeaderboardView version={version} records={records} tier="experimental" />
+        <LeaderboardView version={version} records={records} tier="experimental" board="build" />
+        {buildPrimary && (
+          <details class="callout">
+            <summary><strong>Independent Reproduce report</strong></summary>
+            <LeaderboardView version={version} records={records} tier="experimental" board="reproduce" />
+          </details>
+        )}
       </section>
       <section class="section compact-section" id="official">
         <div class="section-head">
           <div><span class="pill official">Official</span><h2><span class="lang-en">Official qualification</span><span class="lang-zh">正式成绩资格</span></h2></div>
         </div>
-        <div class="callout"><span class="lang-en">No Official result yet. A model must complete every required game under three fixed random conditions, then pass clean rebuild and independent verification.</span><span class="lang-zh">目前还没有正式成绩。参评模型需要在三组固定随机条件下完成全部游戏，并通过无密钥重建与独立复核。</span></div>
+        <div class="callout">
+          <span class="lang-en">No Official result yet for v{version}. {buildPrimary ? "A qualifying result develops each task once, evaluates that frozen submission under all three fixed seeds, then passes clean rebuild and independent verification." : "A qualifying historical result completes all three fixed attempts for every task, then passes clean rebuild and independent verification."}</span>
+          <span class="lang-zh">v{version} 目前还没有正式成绩。{buildPrimary ? "合格结果需要每个任务只开发一次，再对冻结提交进行三组固定种子评测，并通过无密钥重建与独立复核。" : "历史规则要求每个任务完成三次固定尝试，并通过无密钥重建与独立复核。"}</span>
+        </div>
       </section>
     </>
   )}

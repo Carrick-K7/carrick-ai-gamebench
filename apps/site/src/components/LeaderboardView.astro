@@ -1,24 +1,29 @@
 ---
+import { compareSemanticVersions } from "@carrick/gamebench-core";
 import { score, type PublicationRecord } from "../lib/data";
+import { rankingMetricForVersion } from "../lib/ranking";
 
 interface Props {
   version: string;
   records: PublicationRecord[];
   tier: "official" | "experimental";
+  board?: "build" | "reproduce";
 }
 
-const { version, records, tier } = Astro.props;
+const { version, records, tier, board = "build" } = Astro.props;
+const buildPrimary = compareSemanticVersions(version, "0.5.0") >= 0;
 const entries = records
   .filter(
     (record) =>
       record.entry.benchmark_version === version &&
       record.entry.tier === tier &&
-      record.entry.status === "active",
+      record.entry.status === "active" &&
+      (!buildPrimary || record.entry.board === board),
   )
   .sort(
     (left, right) =>
-      (right.entry.aggregate.leaderboards.core ?? 0) -
-        (left.entry.aggregate.leaderboards.core ?? 0) ||
+      (rankingMetricForVersion(right.entry.aggregate) ?? -1) -
+        (rankingMetricForVersion(left.entry.aggregate) ?? -1) ||
       left.entry.publication_id.localeCompare(right.entry.publication_id),
   );
 ---
@@ -42,10 +47,14 @@ const entries = records
           <th>#</th>
           <th>Model / configuration</th>
           <th>Agent / harness</th>
-          <th>Core</th>
-          <th>Build</th>
-          <th>Reproduce</th>
-          <th>Coverage</th>
+          {buildPrimary ? (
+            board === "reproduce"
+              ? <><th>Reproduce</th><th>Build</th><th>Legacy Core</th></>
+              : <><th>Build</th><th>Reproduce</th><th>Legacy Core</th></>
+          ) : (
+            <><th>Core</th><th>Build</th><th>Reproduce</th></>
+          )}
+          <th>{buildPrimary ? `${board === "reproduce" ? "Reproduce" : "Build"} coverage` : "Coverage"}</th>
           <th>Status</th>
         </tr>
       </thead>
@@ -63,12 +72,30 @@ const entries = records
               {entry.agent.id}
               <div class="muted">{entry.agent.harness}</div>
             </td>
-            <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
-            <td>{score(entry.aggregate.leaderboards.build)}</td>
-            <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+            {buildPrimary ? (
+              board === "reproduce" ? (
+                <>
+                  <td class="score">{score(entry.aggregate.leaderboards.reproduce)}</td>
+                  <td>{score(entry.aggregate.leaderboards.build)}</td>
+                  <td class="muted">{score(entry.aggregate.leaderboards.core)}</td>
+                </>
+              ) : (
+                <>
+                  <td class="score">{score(entry.aggregate.leaderboards.build)}</td>
+                  <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+                  <td class="muted">{score(entry.aggregate.leaderboards.core)}</td>
+                </>
+              )
+            ) : (
+              <>
+                <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
+                <td>{score(entry.aggregate.leaderboards.build)}</td>
+                <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+              </>
+            )}
             <td class="mono">
-              {entry.aggregate.coverage.core.completed}/
-              {entry.aggregate.coverage.core.required}
+              {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).completed}/
+              {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).required}
             </td>
             <td><span class={`pill ${tier}`}>{tier}</span> <span class="pill">{entry.status}</span></td>
           </tr>

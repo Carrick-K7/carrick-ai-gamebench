@@ -121,6 +121,8 @@ export const TaskManifestSchema = z.strictObject({
   bridge: z.strictObject({
     version: z.literal("1"),
     state_schema: TaskRelativePathSchema,
+    // Retained only to parse and hash immutable v0.1.0 task snapshots.
+    scenarios: z.array(z.string().min(1)).min(1).optional(),
   }),
   reference: ReferenceSchema.optional(),
   tests: z.array(TestDefinitionSchema).min(1),
@@ -277,6 +279,35 @@ export const AgentIdentityV2Schema = z.strictObject({
   parameters: z.record(z.string(), JsonValueSchema).default({}),
 });
 
+export const ExecutionProfileSchema = z.enum(["local", "official-candidate"]);
+
+export const UsageSchema = z.strictObject({
+  input_tokens: z.number().int().nonnegative().optional(),
+  cached_input_tokens: z.number().int().nonnegative().optional(),
+  output_tokens: z.number().int().nonnegative().optional(),
+  cost_usd: z.number().nonnegative().optional(),
+  source: z.enum(["provider", "harness", "estimated", "not-reported"]),
+});
+
+export const ConfigurationV2Schema = z.strictObject({
+  agent: AgentIdentityV2Schema,
+  prompt_language: LanguageSchema,
+  execution_profile: ExecutionProfileSchema,
+  environment: z.strictObject({
+    platform: z.string().min(1),
+    architecture: z.string().min(1),
+    node: z.string().min(1),
+    runner_protocol: z.literal("2"),
+    git_commit: z.string().regex(/^(?:[a-f0-9]{40}|unknown)$/),
+    source_tree_dirty: z.boolean(),
+    working_tree_hash: HashRefSchema.optional(),
+    evaluator_image_digest: HashRefSchema.optional(),
+    browser: z.string().min(1).optional(),
+  }),
+});
+
+export type ConfigurationV2 = z.infer<typeof ConfigurationV2Schema>;
+
 export const RunManifestV1Schema = z.strictObject({
   schema_version: z.literal(1),
   benchmark_version: z.string().min(1),
@@ -352,13 +383,122 @@ export const RunManifestV2Schema = z.strictObject({
     .optional(),
 });
 
+export const RunEnvironmentV3Schema = z.strictObject({
+  platform: z.string().min(1),
+  architecture: z.string().min(1),
+  node: z.string().min(1),
+  runner_protocol: z.literal("3"),
+  git_commit: z.string().regex(/^(?:[a-f0-9]{40}|unknown)$/),
+  source_tree_dirty: z.boolean(),
+  working_tree_hash: HashRefSchema.optional(),
+  evaluator_image_digest: HashRefSchema.optional(),
+  browser: z.string().min(1).optional(),
+});
+
+export const ConfigurationV3Schema = z.strictObject({
+  agent: AgentIdentityV2Schema,
+  prompt_language: LanguageSchema,
+  execution_profile: ExecutionProfileSchema,
+  environment: RunEnvironmentV3Schema,
+});
+
+export const ConfigurationSchema = z.union([
+  ConfigurationV2Schema,
+  ConfigurationV3Schema,
+]);
+export type ConfigurationV3 = z.infer<typeof ConfigurationV3Schema>;
+export type Configuration = z.infer<typeof ConfigurationSchema>;
+
+export const DevelopmentParametersSchema = z
+  .object({ agent_command_hash: HashRefSchema })
+  .catchall(JsonValueSchema);
+export type DevelopmentParameters = z.infer<typeof DevelopmentParametersSchema>;
+
+export const SubmissionManifestV1Schema = z.strictObject({
+  schema_version: z.literal(1),
+  benchmark_version: SemverSchema,
+  benchmark_release_hash: HashRefSchema,
+  series_id: UlidSchema,
+  submission_id: UlidSchema,
+  configuration_id: HashRefSchema,
+  development_input_fingerprint: HashRefSchema,
+  agent_command_hash: HashRefSchema,
+  development_parameters: DevelopmentParametersSchema,
+  task_id: z.string().min(1),
+  task_version: SemverSchema,
+  task_hash: HashRefSchema,
+  agent_invocation_index: z.number().int().positive(),
+  execution_profile: ExecutionProfileSchema,
+  prompt_language: LanguageSchema,
+  network_policy: NetworkPolicySchema,
+  agent: AgentIdentityV2Schema,
+  environment: RunEnvironmentV3Schema,
+  started_at: z.iso.datetime(),
+  finished_at: z.iso.datetime(),
+  development_exit_reason: z.enum([
+    "completed",
+    "timeout",
+    "agent-error",
+    "preparation-error",
+  ]),
+  source_snapshot_hash: HashRefSchema,
+  usage: UsageSchema.optional(),
+}).superRefine((submission, context) => {
+  if (
+    submission.development_parameters.agent_command_hash !==
+    submission.agent_command_hash
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["development_parameters", "agent_command_hash"],
+      message: "development_parameters agent command hash must match agent_command_hash",
+    });
+  }
+});
+
+export type SubmissionManifestV1 = z.infer<typeof SubmissionManifestV1Schema>;
+export const SubmissionManifestSchema = SubmissionManifestV1Schema;
+export type SubmissionManifest = SubmissionManifestV1;
+
+export type RunEnvironmentV3 = z.infer<typeof RunEnvironmentV3Schema>;
+
+export const RunManifestV3Schema = z.strictObject({
+  schema_version: z.literal(3),
+  benchmark_version: SemverSchema,
+  benchmark_release_hash: HashRefSchema,
+  series_id: UlidSchema,
+  run_id: UlidSchema,
+  submission_id: UlidSchema,
+  configuration_id: HashRefSchema,
+  input_fingerprint: HashRefSchema,
+  task_id: z.string().min(1),
+  task_version: SemverSchema,
+  task_hash: HashRefSchema,
+  evaluation_seed: z.number().int(),
+  environment: RunEnvironmentV3Schema,
+  started_at: z.iso.datetime(),
+  finished_at: z.iso.datetime().optional(),
+  exit_reason: z.enum(["completed", "evaluation-error"]).optional(),
+  wall_time_ms: z.number().nonnegative().optional(),
+});
+
+export const EvaluationManifestSchema = RunManifestV3Schema;
+export type RunManifestV3 = z.infer<typeof RunManifestV3Schema>;
+export type EvaluationManifest = RunManifestV3;
+
 export const RunManifestSchema = z.discriminatedUnion("schema_version", [
   RunManifestV1Schema,
   RunManifestV2Schema,
 ]);
+export const AnyRunManifestSchema = z.discriminatedUnion("schema_version", [
+  RunManifestV1Schema,
+  RunManifestV2Schema,
+  RunManifestV3Schema,
+]);
 
 export type RunManifestV2 = z.infer<typeof RunManifestV2Schema>;
 export type RunManifest = z.infer<typeof RunManifestSchema>;
+export type AnyRunManifest = z.infer<typeof AnyRunManifestSchema>;
 
 export const TestOutcomeSchema = z.strictObject({
   id: z.string().min(1),
@@ -400,10 +540,31 @@ export const ScoreResultSchema = z.strictObject({
 
 export type ScoreResult = z.infer<typeof ScoreResultSchema>;
 
+export const EvaluationResultV1Schema = z.strictObject({
+  schema_version: z.literal(1),
+  run_id: UlidSchema,
+  submission_id: UlidSchema,
+  evaluation_seed: z.number().int(),
+  score: ScoreResultSchema,
+});
+export type EvaluationResultV1 = z.infer<typeof EvaluationResultV1Schema>;
+export const EvaluationResultSchema = EvaluationResultV1Schema;
+export type EvaluationResult = EvaluationResultV1;
+
 export const AggregateTaskResultSchema = z.strictObject({
   task_id: z.string().min(1),
   track: TrackSchema,
   attempts: z.number().int().positive(),
+  mean: z.number().min(0).max(100),
+  standard_deviation: z.number().nonnegative(),
+});
+
+export const AggregateTaskResultV3Schema = z.strictObject({
+  task_id: z.string().min(1),
+  track: TrackSchema,
+  submission_id: UlidSchema,
+  evaluation_count: z.number().int().positive(),
+  required_evaluation_count: z.number().int().positive(),
   mean: z.number().min(0).max(100),
   standard_deviation: z.number().nonnegative(),
 });
@@ -413,6 +574,12 @@ const CoverageSchema = z.strictObject({
   required: z.number().int().nonnegative(),
 });
 
+const LeaderboardsSchema = z.strictObject({
+  build: z.number().min(0).max(100).optional(),
+  reproduce: z.number().min(0).max(100).optional(),
+  core: z.number().min(0).max(100).optional(),
+});
+
 const AggregateResultFields = {
   tasks: z.array(AggregateTaskResultSchema),
   coverage: z.strictObject({
@@ -420,11 +587,7 @@ const AggregateResultFields = {
     reproduce: CoverageSchema,
     core: CoverageSchema,
   }),
-  leaderboards: z.strictObject({
-    build: z.number().min(0).max(100).optional(),
-    reproduce: z.number().min(0).max(100).optional(),
-    core: z.number().min(0).max(100).optional(),
-  }),
+  leaderboards: LeaderboardsSchema,
 };
 
 export const AggregateResultV1Schema = z.strictObject({
@@ -437,13 +600,117 @@ export const AggregateResultV2Schema = z.strictObject({
   ...AggregateResultFields,
 });
 
-export const AggregateResultSchema = z.discriminatedUnion("schema_version", [
+export const AggregateResultV3Schema = z.strictObject({
+  schema_version: z.literal(3),
+  primary_board: z.literal("build"),
+  tasks: z.array(AggregateTaskResultV3Schema),
+  coverage: z.strictObject({
+    build: CoverageSchema,
+    reproduce: CoverageSchema,
+  }),
+  evaluation_coverage: z.strictObject({
+    build: CoverageSchema,
+    reproduce: CoverageSchema,
+  }),
+  leaderboards: z.strictObject({
+    build: z.number().min(0).max(100).optional(),
+    reproduce: z.number().min(0).max(100).optional(),
+  }),
+}).superRefine((aggregate, context) => {
+  const ids = new Set<string>();
+  for (const [index, task] of aggregate.tasks.entries()) {
+    if (ids.has(task.task_id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["tasks", index, "task_id"],
+        message: `duplicate aggregate task: ${task.task_id}`,
+      });
+    }
+    ids.add(task.task_id);
+    if (task.evaluation_count > task.required_evaluation_count) {
+      context.addIssue({
+        code: "custom",
+        path: ["tasks", index, "evaluation_count"],
+        message: "evaluation_count may not exceed required_evaluation_count",
+      });
+    }
+  }
+  const tracks = ["build", "reproduce"] as const;
+  for (const track of tracks) {
+    const taskRows = aggregate.tasks.filter((task) => task.track === track);
+    const completedTasks = taskRows.filter(
+      (task) => task.evaluation_count === task.required_evaluation_count,
+    ).length;
+    const completedEvaluations = taskRows.reduce(
+      (sum, task) => sum + task.evaluation_count,
+      0,
+    );
+    const coverage = aggregate.coverage[track];
+    const evaluationCoverage = aggregate.evaluation_coverage[track];
+    if (
+      coverage.completed !== completedTasks ||
+      coverage.completed > coverage.required
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["coverage", track],
+        message: "task coverage is inconsistent with aggregate task rows",
+      });
+    }
+    if (
+      evaluationCoverage.completed !== completedEvaluations ||
+      evaluationCoverage.completed > evaluationCoverage.required
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["evaluation_coverage", track],
+        message: "evaluation coverage is inconsistent with aggregate task rows",
+      });
+    }
+    if (
+      coverage.completed === coverage.required &&
+      coverage.required > 0
+    ) {
+      const expected = Math.round(
+        (taskRows.reduce((sum, task) => sum + task.mean, 0) / taskRows.length) *
+          10_000,
+      ) / 10_000;
+      if (aggregate.leaderboards[track] !== expected) {
+        context.addIssue({
+          code: "custom",
+          path: ["leaderboards", track],
+          message: `complete ${track} coverage requires leaderboard ${expected}`,
+        });
+      }
+    } else if (aggregate.leaderboards[track] !== undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["leaderboards", track],
+        message: `incomplete ${track} coverage may not publish a leaderboard`,
+      });
+    }
+  }
+});
+
+export const AggregateResultLegacySchema = z.discriminatedUnion("schema_version", [
   AggregateResultV1Schema,
   AggregateResultV2Schema,
 ]);
 
+export const AggregateResultSchema = AggregateResultLegacySchema;
+export const AnyAggregateResultSchema = z.discriminatedUnion("schema_version", [
+  AggregateResultV1Schema,
+  AggregateResultV2Schema,
+  AggregateResultV3Schema,
+]);
+
 export type AggregateTaskResult = z.infer<typeof AggregateTaskResultSchema>;
+export type AggregateTaskResultV3 = z.infer<typeof AggregateTaskResultV3Schema>;
+export type AggregateResultV1 = z.infer<typeof AggregateResultV1Schema>;
+export type AggregateResultV2 = z.infer<typeof AggregateResultV2Schema>;
+export type AggregateResultV3 = z.infer<typeof AggregateResultV3Schema>;
 export type AggregateResult = z.infer<typeof AggregateResultSchema>;
+export type AnyAggregateResult = z.infer<typeof AnyAggregateResultSchema>;
 
 export const SeriesRunReferenceSchema = z.strictObject({
   run_id: UlidSchema,
@@ -455,7 +722,7 @@ export const SeriesRunReferenceSchema = z.strictObject({
   exclusion_reason: z.string().min(1).optional(),
 });
 
-export const SeriesManifestSchema = z.strictObject({
+export const SeriesManifestV1Schema = z.strictObject({
   schema_version: z.literal(1),
   series_id: UlidSchema,
   benchmark_version: SemverSchema,
@@ -484,7 +751,120 @@ export const SeriesManifestSchema = z.strictObject({
   }
 });
 
-export type SeriesManifest = z.infer<typeof SeriesManifestSchema>;
+export const SeriesSubmissionReferenceV2Schema = z.strictObject({
+  submission_id: UlidSchema,
+  task_id: z.string().min(1),
+  task_hash: HashRefSchema,
+  agent_invocation_index: z.number().int().positive(),
+  included: z.boolean(),
+  exclusion_reason: z.string().min(1).optional(),
+});
+
+export const SeriesEvaluationReferenceV2Schema = z.strictObject({
+  run_id: UlidSchema,
+  submission_id: UlidSchema,
+  task_id: z.string().min(1),
+  task_hash: HashRefSchema,
+  evaluation_seed: z.number().int(),
+  included: z.boolean(),
+  exclusion_reason: z.string().min(1).optional(),
+});
+
+export const SeriesManifestV2Schema = z.strictObject({
+  schema_version: z.literal(2),
+  series_id: UlidSchema,
+  benchmark_version: SemverSchema,
+  benchmark_release_hash: HashRefSchema,
+  git_commit: z.string().regex(/^(?:[a-f0-9]{40}|unknown)$/),
+  configuration_id: HashRefSchema,
+  configuration: ConfigurationV3Schema,
+  created_at: z.iso.datetime(),
+  submissions: z.array(SeriesSubmissionReferenceV2Schema),
+  evaluations: z.array(SeriesEvaluationReferenceV2Schema),
+}).superRefine((series, context) => {
+  const submissions = new Map<string, (typeof series.submissions)[number]>();
+  const runIds = new Set<string>();
+  const includedCells = new Set<string>();
+  for (const [index, submission] of series.submissions.entries()) {
+    if (submissions.has(submission.submission_id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", index, "submission_id"],
+        message: `duplicate submission_id: ${submission.submission_id}`,
+      });
+    }
+    if (submission.included === (submission.exclusion_reason !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", index],
+        message: "included submissions must omit exclusion_reason and excluded submissions must provide it",
+      });
+    }
+    submissions.set(submission.submission_id, submission);
+  }
+  for (const [index, evaluation] of series.evaluations.entries()) {
+    if (runIds.has(evaluation.run_id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["evaluations", index, "run_id"],
+        message: `duplicate run_id: ${evaluation.run_id}`,
+      });
+    }
+    runIds.add(evaluation.run_id);
+    const submission = submissions.get(evaluation.submission_id);
+    if (!submission) {
+      context.addIssue({
+        code: "custom",
+        path: ["evaluations", index, "submission_id"],
+        message: `unknown submission_id: ${evaluation.submission_id}`,
+      });
+    } else if (
+      submission.task_id !== evaluation.task_id ||
+      submission.task_hash !== evaluation.task_hash
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["evaluations", index],
+        message: "evaluation task identity does not match its submission",
+      });
+    } else if (evaluation.included && !submission.included) {
+      context.addIssue({
+        code: "custom",
+        path: ["evaluations", index, "included"],
+        message: "an included evaluation requires an included submission",
+      });
+    }
+    if (evaluation.included === (evaluation.exclusion_reason !== undefined)) {
+      context.addIssue({
+        code: "custom",
+        path: ["evaluations", index],
+        message: "included evaluations must omit exclusion_reason and excluded evaluations must provide it",
+      });
+    }
+    if (evaluation.included) {
+      const cell = `${evaluation.submission_id}\0${evaluation.evaluation_seed}`;
+      if (includedCells.has(cell)) {
+        context.addIssue({
+          code: "custom",
+          path: ["evaluations", index],
+          message: `duplicate included submission/seed cell: ${evaluation.evaluation_seed}`,
+        });
+      }
+      includedCells.add(cell);
+    }
+  }
+});
+
+export const SeriesManifestSchema = SeriesManifestV1Schema;
+export const AnySeriesManifestSchema = z.discriminatedUnion("schema_version", [
+  SeriesManifestV1Schema,
+  SeriesManifestV2Schema,
+]);
+
+export type SeriesManifestV1 = z.infer<typeof SeriesManifestV1Schema>;
+export type SeriesManifestV2 = z.infer<typeof SeriesManifestV2Schema>;
+export type SeriesManifest = SeriesManifestV1;
+export type AnySeriesManifest = z.infer<typeof AnySeriesManifestSchema>;
 
 export const ArtifactRoleSchema = z.enum([
   "clean-source",
@@ -539,6 +919,40 @@ export const ReproductionRecordSchema = z.strictObject({
 
 export type ReproductionRecord = z.infer<typeof ReproductionRecordSchema>;
 
+export const ReproductionRecordV2Schema = z.strictObject({
+  schema_version: z.literal(2),
+  prepared_at: z.iso.datetime(),
+  benchmark_release_hash: HashRefSchema,
+  submission_id: UlidSchema,
+  clean_source_artifact_id: HashRefSchema,
+  evaluation_set_hash: HashRefSchema,
+});
+
+export const VerificationRecordV2Schema = z.strictObject({
+  schema_version: z.literal(2),
+  status: z.literal("operator-reproduced"),
+  verifier: z.strictObject({
+    id: z.string().min(1),
+    organization: z.string().min(1).optional(),
+  }),
+  verified_at: z.iso.datetime(),
+  benchmark_release_hash: HashRefSchema,
+  git_commit: z.string().regex(/^(?:[a-f0-9]{40}|unknown)$/),
+  evaluator_image_digest: HashRefSchema,
+  network_attestation: z.enum([
+    "not-required",
+    "operator-attested-model-api-only",
+    "unverified",
+  ]),
+  evidence_manifest_hash: HashRefSchema,
+  submission_id: UlidSchema,
+  clean_source_artifact_id: HashRefSchema,
+  evaluation_set_hash: HashRefSchema,
+});
+
+export type ReproductionRecordV2 = z.infer<typeof ReproductionRecordV2Schema>;
+export type VerificationRecordV2 = z.infer<typeof VerificationRecordV2Schema>;
+
 export const ReviewSummarySchema = z.strictObject({
   schema_version: z.literal(1),
   methodology_version: SemverSchema,
@@ -581,7 +995,7 @@ export const PublishedRunSchema = z.strictObject({
   verification: VerificationRecordSchema.optional(),
 });
 
-export const PublicationManifestSchema = z.strictObject({
+export const PublicationManifestV1Schema = z.strictObject({
   schema_version: z.literal(1),
   publication_id: HashRefSchema,
   created_at: z.iso.datetime(),
@@ -599,7 +1013,7 @@ export const PublicationManifestSchema = z.strictObject({
     execution_profile: z.enum(["local", "official-candidate"]),
     environment: RunEnvironmentV2Schema,
   }),
-  aggregate: AggregateResultSchema,
+  aggregate: AggregateResultLegacySchema,
   runs: z.array(PublishedRunSchema).min(1),
   review_summaries: z.array(ReviewSummarySchema).default([]),
 }).superRefine((publication, context) => {
@@ -628,7 +1042,282 @@ export const PublicationManifestSchema = z.strictObject({
   }
 });
 
-export type PublicationManifest = z.infer<typeof PublicationManifestSchema>;
+export type PublicationManifestV1 = z.infer<typeof PublicationManifestV1Schema>;
+
+export const PublishedEvaluationV2Schema = z.strictObject({
+  run_id: UlidSchema,
+  input_fingerprint: HashRefSchema,
+  evaluation_seed: z.number().int(),
+  included: z.boolean(),
+  exit_reason: z.enum(["completed", "evaluation-error"]),
+  score: ScoreResultSchema.optional(),
+  wall_time_ms: z.number().nonnegative().optional(),
+  artifacts: z.array(ArtifactRefSchema),
+});
+
+export const PublishedSubmissionV2Schema = z.strictObject({
+  submission_id: UlidSchema,
+  development_input_fingerprint: HashRefSchema,
+  agent_command_hash: HashRefSchema,
+  development_parameters: z.record(z.string(), JsonValueSchema),
+  source_snapshot_hash: HashRefSchema,
+  task_id: z.string().min(1),
+  task_version: SemverSchema,
+  task_hash: HashRefSchema,
+  agent_invocation_index: z.number().int().positive(),
+  included: z.boolean(),
+  network_policy: NetworkPolicySchema,
+  development_exit_reason: z.enum([
+    "completed",
+    "timeout",
+    "agent-error",
+    "preparation-error",
+  ]),
+  usage: UsageSchema.optional(),
+  artifacts: z.array(ArtifactRefSchema),
+  reproduction: ReproductionRecordV2Schema.optional(),
+  verification: VerificationRecordV2Schema.optional(),
+  evaluations: z.array(PublishedEvaluationV2Schema).min(1),
+}).superRefine((submission, context) => {
+  if (
+    submission.development_parameters.agent_command_hash !==
+    submission.agent_command_hash
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["development_parameters", "agent_command_hash"],
+      message: "development_parameters agent command hash must match agent_command_hash",
+    });
+  }
+});
+
+export const PublicationManifestV2Schema = z.strictObject({
+  schema_version: z.literal(2),
+  publication_id: HashRefSchema,
+  created_at: z.iso.datetime(),
+  tier: z.enum(["experimental", "official"]),
+  board: TrackSchema,
+  series_id: UlidSchema,
+  benchmark: z.strictObject({
+    version: SemverSchema,
+    release_hash: HashRefSchema,
+    git_commit: z.string().regex(/^(?:[a-f0-9]{40}|unknown)$/),
+  }),
+  configuration: z.strictObject({
+    configuration_id: HashRefSchema,
+    agent: AgentIdentityV2Schema,
+    prompt_language: LanguageSchema,
+    execution_profile: ExecutionProfileSchema,
+    environment: RunEnvironmentV3Schema,
+  }),
+  aggregate: AggregateResultV3Schema,
+  submissions: z.array(PublishedSubmissionV2Schema).min(1),
+  review_summaries: z.array(ReviewSummarySchema).default([]),
+}).superRefine((publication, context) => {
+  const otherBoard = publication.board === "build" ? "reproduce" : "build";
+  if (
+    publication.aggregate.coverage[otherBoard].required !== 0 ||
+    publication.aggregate.evaluation_coverage[otherBoard].required !== 0 ||
+    publication.aggregate.leaderboards[otherBoard] !== undefined
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["aggregate"],
+      message: `${otherBoard} must have zero required coverage and no leaderboard in a ${publication.board} publication`,
+    });
+  }
+  for (const [index, task] of publication.aggregate.tasks.entries()) {
+    if (task.track !== publication.board) {
+      context.addIssue({
+        code: "custom",
+        path: ["aggregate", "tasks", index, "track"],
+        message: `aggregate task must belong to the ${publication.board} board`,
+      });
+    }
+  }
+  const submissionIds = new Set<string>();
+  const runIds = new Set<string>();
+  const includedTaskIds = new Set<string>();
+  const matchedAggregateTasks = new Set<string>();
+  const aggregateByTask = new Map(
+    publication.aggregate.tasks.map((task) => [task.task_id, task]),
+  );
+  for (const [submissionIndex, submission] of publication.submissions.entries()) {
+    if (submissionIds.has(submission.submission_id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", submissionIndex, "submission_id"],
+        message: `duplicate submission_id: ${submission.submission_id}`,
+      });
+    }
+    submissionIds.add(submission.submission_id);
+    if (!submission.task_id.startsWith(`${publication.board}.`)) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", submissionIndex, "task_id"],
+        message: `submission task must belong to the ${publication.board} board`,
+      });
+    }
+    if (
+      submission.reproduction &&
+      submission.reproduction.submission_id !== submission.submission_id
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", submissionIndex, "reproduction", "submission_id"],
+        message: "reproduction does not match submission",
+      });
+    }
+    if (
+      submission.verification &&
+      submission.verification.submission_id !== submission.submission_id
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", submissionIndex, "verification", "submission_id"],
+        message: "verification does not match submission",
+      });
+    }
+    if (submission.reproduction && (
+      submission.reproduction.benchmark_release_hash !== publication.benchmark.release_hash ||
+      !submission.artifacts.some(
+        (artifact) =>
+          artifact.role === "clean-source" &&
+          artifact.artifact_id === submission.reproduction?.clean_source_artifact_id,
+      )
+    )) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", submissionIndex, "reproduction"],
+        message: "reproduction must bind this release and a published clean source",
+      });
+    }
+    if (submission.verification && (
+      submission.verification.benchmark_release_hash !== publication.benchmark.release_hash ||
+      !submission.reproduction ||
+      submission.verification.clean_source_artifact_id !==
+        submission.reproduction.clean_source_artifact_id ||
+      submission.verification.evaluation_set_hash !==
+        submission.reproduction.evaluation_set_hash
+    )) {
+      context.addIssue({
+        code: "custom",
+        path: ["submissions", submissionIndex, "verification"],
+        message: "verification must bind the submission reproduction set",
+      });
+    }
+    const seeds = new Set<number>();
+    for (const [evaluationIndex, evaluation] of submission.evaluations.entries()) {
+      if (runIds.has(evaluation.run_id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["submissions", submissionIndex, "evaluations", evaluationIndex, "run_id"],
+          message: `duplicate run_id: ${evaluation.run_id}`,
+        });
+      }
+      runIds.add(evaluation.run_id);
+      if (evaluation.included && !submission.included) {
+        context.addIssue({
+          code: "custom",
+          path: ["submissions", submissionIndex, "evaluations", evaluationIndex, "included"],
+          message: "an included evaluation requires an included submission",
+        });
+      }
+      if (evaluation.included && !evaluation.score) {
+        context.addIssue({
+          code: "custom",
+          path: ["submissions", submissionIndex, "evaluations", evaluationIndex, "score"],
+          message: "an included evaluation requires a score",
+        });
+      }
+      if (evaluation.score && (
+        evaluation.score.task_id !== submission.task_id ||
+        evaluation.score.task_hash !== submission.task_hash
+      )) {
+        context.addIssue({
+          code: "custom",
+          path: ["submissions", submissionIndex, "evaluations", evaluationIndex, "score"],
+          message: "evaluation score does not match submission task",
+        });
+      }
+      if (evaluation.included) {
+        if (seeds.has(evaluation.evaluation_seed)) {
+          context.addIssue({
+            code: "custom",
+            path: ["submissions", submissionIndex, "evaluations", evaluationIndex],
+            message: `duplicate included evaluation seed: ${evaluation.evaluation_seed}`,
+          });
+        }
+        seeds.add(evaluation.evaluation_seed);
+      }
+    }
+    if (submission.included) {
+      if (includedTaskIds.has(submission.task_id)) {
+        context.addIssue({
+          code: "custom",
+          path: ["submissions", submissionIndex, "task_id"],
+          message: `multiple included submissions for task ${submission.task_id}`,
+        });
+      }
+      includedTaskIds.add(submission.task_id);
+      const includedScores = submission.evaluations
+        .filter((evaluation) => evaluation.included && evaluation.score)
+        .map((evaluation) => evaluation.score?.percent ?? 0);
+      const aggregateTask = aggregateByTask.get(submission.task_id);
+      if (includedScores.length === 0 || !aggregateTask) {
+        context.addIssue({
+          code: "custom",
+          path: ["submissions", submissionIndex],
+          message: "an included submission requires scored evaluations and an aggregate task",
+        });
+      } else {
+        matchedAggregateTasks.add(submission.task_id);
+        const mean = includedScores.reduce((sum, score) => sum + score, 0) /
+          includedScores.length;
+        const standardDeviation = Math.sqrt(
+          includedScores.reduce(
+            (sum, score) => sum + (score - mean) ** 2,
+            0,
+          ) / includedScores.length,
+        );
+        const roundedMean = Math.round(mean * 10_000) / 10_000;
+        const roundedDeviation = Math.round(standardDeviation * 10_000) / 10_000;
+        if (
+          aggregateTask.submission_id !== submission.submission_id ||
+          aggregateTask.evaluation_count !== includedScores.length ||
+          aggregateTask.mean !== roundedMean ||
+          aggregateTask.standard_deviation !== roundedDeviation ||
+          aggregateTask.track !== submission.task_id.split(".", 1)[0]
+        ) {
+          context.addIssue({
+            code: "custom",
+            path: ["aggregate", "tasks"],
+            message: `aggregate task does not match included evaluations for ${submission.task_id}`,
+          });
+        }
+      }
+    }
+  }
+  for (const [index, aggregateTask] of publication.aggregate.tasks.entries()) {
+    if (!matchedAggregateTasks.has(aggregateTask.task_id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["aggregate", "tasks", index],
+        message: `aggregate task has no included submission: ${aggregateTask.task_id}`,
+      });
+    }
+  }
+});
+
+export const PublicationManifestSchema = PublicationManifestV1Schema;
+export const AnyPublicationManifestSchema = z.discriminatedUnion("schema_version", [
+  PublicationManifestV1Schema,
+  PublicationManifestV2Schema,
+]);
+
+export type PublicationManifestV2 = z.infer<typeof PublicationManifestV2Schema>;
+export type PublicationManifest = PublicationManifestV1;
+export type AnyPublicationManifest = z.infer<typeof AnyPublicationManifestSchema>;
 
 export const ResultIndexEntrySchema = z.strictObject({
   publication_id: HashRefSchema,
@@ -640,17 +1329,80 @@ export const ResultIndexEntrySchema = z.strictObject({
   series_id: UlidSchema,
   configuration_id: HashRefSchema,
   agent: AgentIdentityV2Schema,
-  aggregate: AggregateResultSchema,
+  aggregate: AggregateResultLegacySchema,
 });
 
-export const ResultIndexSchema = z.strictObject({
+export const ResultIndexV1Schema = z.strictObject({
   schema_version: z.literal(1),
   generated_at: z.iso.datetime(),
   benchmark_versions: z.array(SemverSchema),
   entries: z.array(ResultIndexEntrySchema),
 });
 
-export type ResultIndex = z.infer<typeof ResultIndexSchema>;
+const ResultIndexEntryV2Fields = {
+  publication_id: HashRefSchema,
+  created_at: z.iso.datetime(),
+  tier: z.enum(["experimental", "official"]),
+  status: z.enum(["active", "superseded", "withdrawn"]),
+  superseded_by: HashRefSchema.optional(),
+  benchmark_version: SemverSchema,
+  series_id: UlidSchema,
+  configuration_id: HashRefSchema,
+  agent: AgentIdentityV2Schema,
+};
+
+export const ResultIndexLegacyEntryV2Schema = z.strictObject({
+  publication_schema_version: z.literal(1),
+  ...ResultIndexEntryV2Fields,
+  aggregate: AggregateResultLegacySchema,
+});
+
+export const ResultIndexPublicationV2EntrySchema = z.strictObject({
+  publication_schema_version: z.literal(2),
+  ...ResultIndexEntryV2Fields,
+  board: TrackSchema,
+  aggregate: AggregateResultV3Schema,
+}).superRefine((entry, context) => {
+  const otherBoard = entry.board === "build" ? "reproduce" : "build";
+  if (
+    entry.aggregate.tasks.some((task) => task.track !== entry.board) ||
+    entry.aggregate.coverage[otherBoard].required !== 0 ||
+    entry.aggregate.evaluation_coverage[otherBoard].required !== 0 ||
+    entry.aggregate.leaderboards[otherBoard] !== undefined
+  ) {
+    context.addIssue({
+      code: "custom",
+      path: ["aggregate"],
+      message: `aggregate must be scoped to the ${entry.board} board`,
+    });
+  }
+});
+
+export const ResultIndexEntryV2Schema = z.discriminatedUnion(
+  "publication_schema_version",
+  [ResultIndexLegacyEntryV2Schema, ResultIndexPublicationV2EntrySchema],
+);
+
+export const ResultIndexV2Schema = z.strictObject({
+  schema_version: z.literal(2),
+  generated_at: z.iso.datetime(),
+  benchmark_versions: z.array(SemverSchema),
+  entries: z.array(ResultIndexEntryV2Schema),
+});
+
+export const ResultIndexSchema = ResultIndexV1Schema;
+export const AnyResultIndexSchema = z.discriminatedUnion("schema_version", [
+  ResultIndexV1Schema,
+  ResultIndexV2Schema,
+]);
+
+export type ResultIndexV1 = z.infer<typeof ResultIndexV1Schema>;
+export type ResultIndexLegacyEntryV2 = z.infer<typeof ResultIndexLegacyEntryV2Schema>;
+export type ResultIndexPublicationV2Entry = z.infer<typeof ResultIndexPublicationV2EntrySchema>;
+export type ResultIndexEntryV2 = z.infer<typeof ResultIndexEntryV2Schema>;
+export type ResultIndexV2 = z.infer<typeof ResultIndexV2Schema>;
+export type ResultIndex = ResultIndexV1;
+export type AnyResultIndex = z.infer<typeof AnyResultIndexSchema>;
 
 export const VoteSchema = z.strictObject({
   schema_version: z.literal(1),

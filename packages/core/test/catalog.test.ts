@@ -4,6 +4,7 @@ import path from "node:path";
 import test from "node:test";
 import {
   createReleaseLock,
+  createReleaseLockV3,
   compareSemanticVersions,
   findRepositoryRoot,
   listRetiredTasks,
@@ -113,16 +114,38 @@ test("a release lock freezes every task hash", async () => {
   assert.equal(lock.scoring.aggregate, 2);
 });
 
+test("a v0.5 release lock separates one Agent invocation from three evaluations", async () => {
+  const repositoryRoot = await findRepositoryRoot();
+  const lock = createReleaseLockV3(
+    "0.5.0",
+    await listTasks(repositoryRoot),
+  );
+  assert.equal(lock.schema_version, 3);
+  assert.equal(lock.protocols.run_manifest, 3);
+  assert.equal(lock.protocols.publication_manifest, 2);
+  assert.equal(lock.scoring.aggregate, 3);
+  assert.equal(lock.scoring.primary_board, "build");
+  assert.equal(lock.official.agent_invocations_per_task, 1);
+  assert.deepEqual(lock.official.evaluation_seeds, [104729, 130363, 155921]);
+});
+
 test("release catalogs resolve active and retired task sources by exact hash", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const retired = await listRetiredTasks(repositoryRoot);
-  assert.equal(retired.length, 8);
+  assert.equal(retired.length, 16);
   assert.equal(
     retired.every((task) => task.manifest.id.endsWith(".v1")),
     true,
   );
 
-  for (const version of ["0.2.0", "0.3.0", "0.4.0"]) {
+  for (const version of [
+    "0.1.0",
+    "0.1.1",
+    "0.1.2",
+    "0.2.0",
+    "0.3.0",
+    "0.4.0",
+  ]) {
     const release = JSON.parse(
       await readFile(
         path.join(repositoryRoot, "benchmark", "releases", `${version}.json`),
