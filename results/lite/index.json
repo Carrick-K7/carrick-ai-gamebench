@@ -1,4 +1,25 @@
 {
   "schema_version": 1,
-  "results": []
+  "results": [
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M197VGHHP8SYRDM8JWM5WV2K",
+      "path": "results/lite/0.6.0/01M197VGHHP8SYRDM8JWM5WV2K.json"
+    },
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M197VGHJ25MYGNM7DETBRHKC",
+      "path": "results/lite/0.6.0/01M197VGHJ25MYGNM7DETBRHKC.json"
+    },
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M197VGHJ2GFFWFFZ5AYF39VK",
+      "path": "results/lite/0.6.0/01M197VGHJ2GFFWFFZ5AYF39VK.json"
+    },
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M197VGHJ2R5P5GVG8E3QH1ZS",
+      "path": "results/lite/0.6.0/01M197VGHJ2R5P5GVG8E3QH1ZS.json"
+    }
+  ]
 }

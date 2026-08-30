@@ -1,0 +1,626 @@
+{
+  "schema_version": 2,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "0.6.0",
+  "release_hash": "sha256:7667642a83d3ac8f5270cd094f25d9d228c686dd7158e9adf2b52313b8e8131b",
+  "series_id": "01M197VGHJ25MYGNM7DETBRHKC",
+  "git_commit": "1f56b4ba5343d837654a3960ec8b3b5b35ab2f64",
+  "source_tree_clean": true,
+  "profile": "official",
+  "configuration": {
+    "agent": {
+      "id": "pi",
+      "version": "0.84.3",
+      "model": "gpt-5.6-luna",
+      "harness": "pi",
+      "parameters": {
+        "thinking": "medium",
+        "provider": "openai-codex"
+      }
+    },
+    "prompt_language": "en"
+  },
+  "campaign": {
+    "id": "pi-system-baseline-2026-08-30",
+    "cell_id": "gpt-5.6-luna",
+    "plan_hash": "sha256:c80bf2e436a260367ea44bddf4176ea65d49b7deaa818946fedcc4c5e24c664d",
+    "execution_hash": "sha256:89f9188887ceee5ed046baa472ab60fa14d5b2eaf24471dd587d3c85702b4c3f"
+  },
+  "started_at": "2026-08-30T12:45:53.935Z",
+  "finished_at": "2026-08-30T12:58:09.662Z",
+  "tasks": [
+    {
+      "task_id": "build.2048.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486",
+      "source_hash": "sha256:5060dfd50cd4167ac60530f8ce23b687f7daac3ee4e5ab36dd40199ad133d029",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T12:45:54.567Z",
+        "finished_at": "2026-08-30T12:48:07.851Z",
+        "wall_time_ms": 133284,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.2048.v2",
+          "task_hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486",
+          "earned": 90,
+          "available": 100,
+          "percent": 90,
+          "hard_gate_failed": false,
+          "categories": {
+            "build": {
+              "earned": 5,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 50,
+              "available": 60
+            },
+            "state": {
+              "earned": 20,
+              "available": 20
+            },
+            "input": {
+              "earned": 10,
+              "available": 10
+            },
+            "stability": {
+              "earned": 5,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 0,
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "merge-once",
+              "category": "mechanics",
+              "points": 20,
+              "passed": true,
+              "duration_ms": 661,
+              "artifacts": []
+            },
+            {
+              "id": "valid-spawn",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 824,
+              "message": "state.spawnCount: expected 1, received 0",
+              "artifacts": [
+                "playwright/valid-spawn/failure.png",
+                "playwright/valid-spawn/trace.zip"
+              ]
+            },
+            {
+              "id": "terminal-state",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 651,
+              "artifacts": []
+            },
+            {
+              "id": "directional-move",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 649,
+              "artifacts": []
+            },
+            {
+              "id": "clean-reset",
+              "category": "state",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 663,
+              "artifacts": []
+            },
+            {
+              "id": "deterministic-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 659,
+              "artifacts": []
+            },
+            {
+              "id": "keyboard-input",
+              "category": "input",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 632,
+              "artifacts": []
+            },
+            {
+              "id": "rapid-input",
+              "category": "stability",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 652,
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 631,
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:c1d15b3ce7d3d8ca7967015265299e8b20fcb77a0b9402f151f92a90c4b9d7fa"
+    },
+    {
+      "task_id": "build.minesweeper.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445",
+      "source_hash": "sha256:5c8993427878dc3bd79ddc9502e05d9cc9e732465a5d9a05f92e7b2d1b87ed92",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T12:48:18.096Z",
+        "finished_at": "2026-08-30T12:50:18.698Z",
+        "wall_time_ms": 120602,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.minesweeper.v2",
+          "task_hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445",
+          "earned": 100,
+          "available": 100,
+          "percent": 100,
+          "hard_gate_failed": false,
+          "categories": {
+            "build": {
+              "earned": 5,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 60,
+              "available": 60
+            },
+            "state": {
+              "earned": 20,
+              "available": 20
+            },
+            "input": {
+              "earned": 10,
+              "available": 10
+            },
+            "stability": {
+              "earned": 5,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 0,
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "adjacent-counts",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 686,
+              "artifacts": []
+            },
+            {
+              "id": "flood-expansion",
+              "category": "mechanics",
+              "points": 20,
+              "passed": true,
+              "duration_ms": 723,
+              "artifacts": []
+            },
+            {
+              "id": "flag-behavior",
+              "category": "mechanics",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 683,
+              "artifacts": []
+            },
+            {
+              "id": "terminal-state",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 701,
+              "artifacts": []
+            },
+            {
+              "id": "clean-reset",
+              "category": "state",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 676,
+              "artifacts": []
+            },
+            {
+              "id": "deterministic-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 658,
+              "artifacts": []
+            },
+            {
+              "id": "pointer-input",
+              "category": "input",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 716,
+              "artifacts": []
+            },
+            {
+              "id": "finished-immutable",
+              "category": "stability",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 673,
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 633,
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:55684d1b2918d5da3f6ae816ddf301f9569e75c82e3843b99a1abad0744be9b5"
+    },
+    {
+      "task_id": "build.parking-2d.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c",
+      "source_hash": "sha256:75722ce52d2a739b48f6b43f13ff945cfd4615a69f62a9bca0271cf8d09ebece",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T12:50:28.983Z",
+        "finished_at": "2026-08-30T12:52:43.085Z",
+        "wall_time_ms": 134102,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.parking-2d.v2",
+          "task_hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c",
+          "earned": 75,
+          "available": 100,
+          "percent": 75,
+          "hard_gate_failed": false,
+          "categories": {
+            "build": {
+              "earned": 5,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 45,
+              "available": 60
+            },
+            "state": {
+              "earned": 20,
+              "available": 20
+            },
+            "input": {
+              "earned": 0,
+              "available": 10
+            },
+            "stability": {
+              "earned": 5,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 0,
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "oriented-motion",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 689,
+              "artifacts": []
+            },
+            {
+              "id": "reverse-steering",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 661,
+              "artifacts": []
+            },
+            {
+              "id": "collision",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 752,
+              "message": "state.collisions: expected 1, received 3",
+              "artifacts": [
+                "playwright/collision/failure.png",
+                "playwright/collision/trace.zip"
+              ]
+            },
+            {
+              "id": "parking-criteria",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 634,
+              "artifacts": []
+            },
+            {
+              "id": "clean-reset",
+              "category": "state",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 652,
+              "artifacts": []
+            },
+            {
+              "id": "distinct-levels",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 631,
+              "artifacts": []
+            },
+            {
+              "id": "keyboard-input",
+              "category": "input",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 731,
+              "message": "state.car.speed: expected > 0, received 0",
+              "artifacts": [
+                "playwright/keyboard-input/failure.png",
+                "playwright/keyboard-input/trace.zip"
+              ]
+            },
+            {
+              "id": "pause-stability",
+              "category": "stability",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 644,
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 626,
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:83b9870ce1c3b4c3051b68a48c7441caa4f93f3946b58d1594610d2fa211a301"
+    },
+    {
+      "task_id": "build.texas-holdem.v1",
+      "task_version": "1.0.0",
+      "task_hash": "sha256:ff962bae33b5435d3f935467654d2e1996c47558ca36b8e859808c395c4b1072",
+      "source_hash": "sha256:7e8f946c31a34a08089572b2275e293775598af9cc5abc8930e9e678c788826b",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T12:52:53.280Z",
+        "finished_at": "2026-08-30T12:57:27.419Z",
+        "wall_time_ms": 274139,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.texas-holdem.v1",
+          "task_hash": "sha256:ff962bae33b5435d3f935467654d2e1996c47558ca36b8e859808c395c4b1072",
+          "earned": 30,
+          "available": 100,
+          "percent": 30,
+          "hard_gate_failed": false,
+          "categories": {
+            "build": {
+              "earned": 5,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 15,
+              "available": 60
+            },
+            "state": {
+              "earned": 10,
+              "available": 20
+            },
+            "input": {
+              "earned": 0,
+              "available": 10
+            },
+            "stability": {
+              "earned": 0,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 0,
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "blinds-order",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 905,
+              "message": "state.players.4.stack: expected 199, received 198",
+              "artifacts": [
+                "playwright/blinds-order/failure.png",
+                "playwright/blinds-order/trace.zip"
+              ]
+            },
+            {
+              "id": "betting-round",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 908,
+              "message": "state.legal.callAmount: expected 18, received 0",
+              "artifacts": [
+                "playwright/betting-round/failure.png",
+                "playwright/betting-round/trace.zip"
+              ]
+            },
+            {
+              "id": "short-allin",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 923,
+              "message": "state.legal.callAmount: expected 5, received 24",
+              "artifacts": [
+                "playwright/short-allin/failure.png",
+                "playwright/short-allin/trace.zip"
+              ]
+            },
+            {
+              "id": "side-pots",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 895,
+              "message": "page.evaluate: Error: Not your turn\n    at b (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:4274)\n    at T (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:6696)\n    at Object.act (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:8823)\n    at eval (eval at evaluate (:303:30), <anonymous>:3:34)\n    at UtilityScript.evaluate (<anonymous>:305:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+              "artifacts": [
+                "playwright/side-pots/failure.png",
+                "playwright/side-pots/trace.zip"
+              ]
+            },
+            {
+              "id": "hand-ranking",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 722,
+              "artifacts": []
+            },
+            {
+              "id": "split-conservation",
+              "category": "state",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 698,
+              "artifacts": []
+            },
+            {
+              "id": "new-hand",
+              "category": "state",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 870,
+              "message": "page.evaluate: Error: Not your turn\n    at b (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:4274)\n    at T (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:6696)\n    at Object.act (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:8823)\n    at eval (eval at evaluate (:303:30), <anonymous>:3:34)\n    at UtilityScript.evaluate (<anonymous>:305:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+              "artifacts": [
+                "playwright/new-hand/failure.png",
+                "playwright/new-hand/trace.zip"
+              ]
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 1039,
+              "message": "page.evaluate: Error: Not your turn\n    at b (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:4274)\n    at T (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:6696)\n    at Object.act (http://127.0.0.1:39233/assets/index-CGZXQ2l2.js:1:8823)\n    at eval (eval at evaluate (:303:30), <anonymous>:3:34)\n    at UtilityScript.evaluate (<anonymous>:305:16)\n    at UtilityScript.<anonymous> (<anonymous>:1:44)",
+              "artifacts": [
+                "playwright/run-seed/failure.png",
+                "playwright/run-seed/trace.zip"
+              ]
+            },
+            {
+              "id": "pointer-input",
+              "category": "input",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 30863,
+              "message": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for locator('[data-action=\"check\"]')\n    - locator resolved to <button disabled data-action=\"check\">Check</button>\n  - attempting click action\n    2 × waiting for element to be visible, enabled and stable\n      - element is not enabled\n    - retrying click action\n    - waiting 20ms\n    2 × waiting for element to be visible, enabled and stable\n      - element is not enabled\n    - retrying click action\n      - waiting 100ms\n    58 × waiting for element to be visible, enabled and stable\n       - element is not enabled\n     - retrying click action\n       - waiting 500ms\n",
+              "artifacts": [
+                "playwright/pointer-input/failure.png",
+                "playwright/pointer-input/trace.zip"
+              ]
+            },
+            {
+              "id": "deterministic-bots",
+              "category": "stability",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 865,
+              "message": "state.actionLog.0: expected {\"seq\":1,\"seat\":1,\"street\":\"preflop\",\"kind\":\"call\",\"amount\":2,\"to\":2}, received {\"seq\":1,\"seat\":1,\"street\":\"preflop\",\"kind\":\"call\",\"amount\":0,\"to\":2}",
+              "artifacts": [
+                "playwright/deterministic-bots/failure.png",
+                "playwright/deterministic-bots/trace.zip"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:66e9cfa736ab7162214ac809e68e2e2163e04286f729014b2f54a00c70ae17c1"
+    }
+  ],
+  "build": {
+    "completed": 4,
+    "required": 4,
+    "score": 73.75
+  }
+}

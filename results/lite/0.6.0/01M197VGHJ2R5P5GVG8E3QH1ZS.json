@@ -1,0 +1,611 @@
+{
+  "schema_version": 2,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "0.6.0",
+  "release_hash": "sha256:7667642a83d3ac8f5270cd094f25d9d228c686dd7158e9adf2b52313b8e8131b",
+  "series_id": "01M197VGHJ2R5P5GVG8E3QH1ZS",
+  "git_commit": "1f56b4ba5343d837654a3960ec8b3b5b35ab2f64",
+  "source_tree_clean": true,
+  "profile": "official",
+  "configuration": {
+    "agent": {
+      "id": "pi",
+      "version": "0.84.3",
+      "model": "deepseek-v4-flash-vision-exp",
+      "harness": "pi",
+      "parameters": {
+        "thinking": "medium",
+        "provider": "deepseek"
+      }
+    },
+    "prompt_language": "en"
+  },
+  "campaign": {
+    "id": "pi-system-baseline-2026-08-30",
+    "cell_id": "deepseek-v4-vision",
+    "plan_hash": "sha256:c80bf2e436a260367ea44bddf4176ea65d49b7deaa818946fedcc4c5e24c664d",
+    "execution_hash": "sha256:9c05bcbcd4332c048f629271ba176ecfec6478a10599b356ea2742cc60feff09"
+  },
+  "started_at": "2026-08-30T13:11:55.679Z",
+  "finished_at": "2026-08-30T15:15:58.582Z",
+  "tasks": [
+    {
+      "task_id": "build.2048.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486",
+      "source_hash": "sha256:c3ce6b367c078d22ee1f0e61e2bbd30b48e7cd191060cd507943a79596fe33bf",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T13:11:56.323Z",
+        "finished_at": "2026-08-30T13:22:37.828Z",
+        "wall_time_ms": 641505,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.2048.v2",
+          "task_hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486",
+          "earned": 100,
+          "available": 100,
+          "percent": 100,
+          "hard_gate_failed": false,
+          "categories": {
+            "build": {
+              "earned": 5,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 60,
+              "available": 60
+            },
+            "state": {
+              "earned": 20,
+              "available": 20
+            },
+            "input": {
+              "earned": 10,
+              "available": 10
+            },
+            "stability": {
+              "earned": 5,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 0,
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "merge-once",
+              "category": "mechanics",
+              "points": 20,
+              "passed": true,
+              "duration_ms": 670,
+              "artifacts": []
+            },
+            {
+              "id": "valid-spawn",
+              "category": "mechanics",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 665,
+              "artifacts": []
+            },
+            {
+              "id": "terminal-state",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 687,
+              "artifacts": []
+            },
+            {
+              "id": "directional-move",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 654,
+              "artifacts": []
+            },
+            {
+              "id": "clean-reset",
+              "category": "state",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 648,
+              "artifacts": []
+            },
+            {
+              "id": "deterministic-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 633,
+              "artifacts": []
+            },
+            {
+              "id": "keyboard-input",
+              "category": "input",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 643,
+              "artifacts": []
+            },
+            {
+              "id": "rapid-input",
+              "category": "stability",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 735,
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 661,
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:9a45c3284566ddcfe240cc002b3f70ceb998e4282054a0bc1f8622f2945c93b6"
+    },
+    {
+      "task_id": "build.minesweeper.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445",
+      "source_hash": "sha256:4881fd431b86eb9cb8d6debe0135242e4646d4ed1328ea18b90a2718e893588b",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T13:22:48.091Z",
+        "finished_at": "2026-08-30T14:22:48.217Z",
+        "wall_time_ms": 3600126,
+        "exit_reason": "timeout-delivery"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.minesweeper.v2",
+          "task_hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445",
+          "earned": 0,
+          "available": 100,
+          "percent": 0,
+          "hard_gate_failed": true,
+          "categories": {
+            "build": {
+              "earned": 0,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 0,
+              "available": 60
+            },
+            "state": {
+              "earned": 0,
+              "available": 20
+            },
+            "input": {
+              "earned": 0,
+              "available": 10
+            },
+            "stability": {
+              "earned": 0,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "bridge snapshot does not match state.schema.json: /state must have required property 'cells'; /state must have required property 'mineCount'; /state must have required property 'revealedSafe'; /state must have required property 'flags'; /state must have required property 'mineSignature'; /state must have required property 'inputLocked'",
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "adjacent-counts",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "flood-expansion",
+              "category": "mechanics",
+              "points": 20,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "flag-behavior",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "terminal-state",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "clean-reset",
+              "category": "state",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "deterministic-seed",
+              "category": "state",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "pointer-input",
+              "category": "input",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "finished-immutable",
+              "category": "stability",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:e8dc4a96740c5bb272176edcf72adb350040b19194a4090d54470b8afa5f7e3c"
+    },
+    {
+      "task_id": "build.parking-2d.v2",
+      "task_version": "2.0.0",
+      "task_hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c",
+      "source_hash": "sha256:dd63a09026d4b78f50cb783e82ae258be10b36095ad1e539b7508cd563dd4d62",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T14:22:52.402Z",
+        "finished_at": "2026-08-30T14:40:59.364Z",
+        "wall_time_ms": 1086962,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.parking-2d.v2",
+          "task_hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c",
+          "earned": 75,
+          "available": 100,
+          "percent": 75,
+          "hard_gate_failed": false,
+          "categories": {
+            "build": {
+              "earned": 5,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 45,
+              "available": 60
+            },
+            "state": {
+              "earned": 20,
+              "available": 20
+            },
+            "input": {
+              "earned": 0,
+              "available": 10
+            },
+            "stability": {
+              "earned": 5,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 0,
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "oriented-motion",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 673,
+              "artifacts": []
+            },
+            {
+              "id": "reverse-steering",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 661,
+              "artifacts": []
+            },
+            {
+              "id": "collision",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 902,
+              "message": "state.car.speed: expected 0 ± 0.05, received 0.45599999999999685",
+              "artifacts": [
+                "playwright/collision/failure.png",
+                "playwright/collision/trace.zip"
+              ]
+            },
+            {
+              "id": "parking-criteria",
+              "category": "mechanics",
+              "points": 15,
+              "passed": true,
+              "duration_ms": 653,
+              "artifacts": []
+            },
+            {
+              "id": "clean-reset",
+              "category": "state",
+              "points": 10,
+              "passed": true,
+              "duration_ms": 678,
+              "artifacts": []
+            },
+            {
+              "id": "distinct-levels",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 639,
+              "artifacts": []
+            },
+            {
+              "id": "keyboard-input",
+              "category": "input",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 827,
+              "message": "state.car.speed: expected > 0, received 0",
+              "artifacts": [
+                "playwright/keyboard-input/failure.png",
+                "playwright/keyboard-input/trace.zip"
+              ]
+            },
+            {
+              "id": "pause-stability",
+              "category": "stability",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 635,
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": true,
+              "duration_ms": 612,
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:99c9844e2d42d5b12bd2d55be553621ef2b76a501bbd76befd8b44d9921de872"
+    },
+    {
+      "task_id": "build.texas-holdem.v1",
+      "task_version": "1.0.0",
+      "task_hash": "sha256:ff962bae33b5435d3f935467654d2e1996c47558ca36b8e859808c395c4b1072",
+      "source_hash": "sha256:290d76207bb2c060985c5e301f5b77029bc003191af53aab8a4048f7881db3af",
+      "agent": {
+        "invocation": 1,
+        "started_at": "2026-08-30T14:41:10.025Z",
+        "finished_at": "2026-08-30T15:15:54.632Z",
+        "wall_time_ms": 2084607,
+        "exit_reason": "completed"
+      },
+      "evaluation": {
+        "seed": 104729,
+        "status": "scored",
+        "score": {
+          "schema_version": 1,
+          "task_id": "build.texas-holdem.v1",
+          "task_hash": "sha256:ff962bae33b5435d3f935467654d2e1996c47558ca36b8e859808c395c4b1072",
+          "earned": 0,
+          "available": 100,
+          "percent": 0,
+          "hard_gate_failed": true,
+          "categories": {
+            "build": {
+              "earned": 0,
+              "available": 5
+            },
+            "mechanics": {
+              "earned": 0,
+              "available": 60
+            },
+            "state": {
+              "earned": 0,
+              "available": 20
+            },
+            "input": {
+              "earned": 0,
+              "available": 10
+            },
+            "stability": {
+              "earned": 0,
+              "available": 5
+            }
+          },
+          "tests": [
+            {
+              "id": "build",
+              "category": "build",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "bridge snapshot does not match state.schema.json: /events/0 must NOT have additional properties",
+              "artifacts": [
+                "build.log",
+                "build.stderr.log"
+              ]
+            },
+            {
+              "id": "blinds-order",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "betting-round",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "short-allin",
+              "category": "mechanics",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "side-pots",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "hand-ranking",
+              "category": "mechanics",
+              "points": 15,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "split-conservation",
+              "category": "state",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "new-hand",
+              "category": "state",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "run-seed",
+              "category": "state",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "pointer-input",
+              "category": "input",
+              "points": 10,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            },
+            {
+              "id": "deterministic-bots",
+              "category": "stability",
+              "points": 5,
+              "passed": false,
+              "duration_ms": 0,
+              "message": "not run because the build gate failed",
+              "artifacts": []
+            }
+          ]
+        }
+      },
+      "artifact_manifest_hash": "sha256:0be99304683c5532ff6639d42879bf95990c41cff0e5cec258d36eb2c96691eb"
+    }
+  ],
+  "build": {
+    "completed": 4,
+    "required": 4,
+    "score": 43.75
+  }
+}
