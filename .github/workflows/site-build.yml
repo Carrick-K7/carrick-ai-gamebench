@@ -50,9 +50,8 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check:boundaries
       - run: pnpm --filter @carrick/gamebench-core build
-      - run: pnpm --filter @carrick/gamebench-publisher build
       - run: pnpm --filter @carrick/gamebench build
-      - run: pnpm cagb verify-publication
+      - run: pnpm cagb check
       - name: Build static site
         env:
           GAMEBENCH_SITE_BUILD_ID: ${{ github.sha }}
@@ -67,6 +66,7 @@ jobs:
           node --input-type=module -e '
             import fs from "node:fs";
             const index = JSON.parse(fs.readFileSync("results/index.json"));
+            const liteIndex = JSON.parse(fs.readFileSync("results/lite/index.json"));
             const releases = fs.readdirSync("benchmark/releases")
               .filter((file) => file.endsWith(".json"))
               .map((file) => JSON.parse(fs.readFileSync(`benchmark/releases/${file}`)).benchmark_version);
@@ -76,6 +76,7 @@ jobs:
               source_ref: process.env.SITE_REF,
               benchmark_versions: releases,
               publication_ids: index.entries.map((entry) => entry.publication_id),
+              lightweight_result_ids: liteIndex.results.map((entry) => entry.series_id),
             };
             fs.writeFileSync(
               "apps/site/dist/site-build.json",

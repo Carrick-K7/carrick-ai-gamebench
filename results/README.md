@@ -1,28 +1,12 @@
 # Published results
 
-This directory is the small, Git-reviewed public result ledger:
+GameBench 0.6 uses a small Git-reviewed ledger:
 
-- `index.json` is the mutable discovery index used by the static site.
-- `publications/<sha256>.json` contains immutable publication manifests.
-- large source, playable, screenshot, license, and evidence artifacts live in
-  content-addressed object storage and are referenced by hash.
+- `lite/index.json` discovers accepted flat results;
+- `lite/<benchmark-version>/<series-id>.json` is an immutable validated `result.json` copy.
 
-For v0.5, one task has one included Agent submission and one sealed source
-snapshot. Official qualification requires that same snapshot to be evaluated in
-fresh environments under seeds `104729`, `130363`, and `155921`, with
-independent reproduction and verification. Build is the primary leaderboard;
-Reproduce is reported independently. Human review, when present, is an optional
-non-scoring annotation.
+Use `pnpm cagb publish --run <run-directory>` rather than editing either file. Publishing requires a complete clean-tree Official run, exact four-task coverage, valid release/source/artifact hashes, reproducible score arithmetic, and a passing credential-pattern scan.
 
-Experimental publications may be partial or unverified and are displayed as
-non-Official evidence with explicit task and seed coverage.
+The historical `index.json` and `publications/` files remain data for older site pages. The 0.6 CLI does not generate that protocol.
 
-v0.1-v0.4 publication and release-lock readers remain supported. In that
-history, each fixed seed was a fresh Agent development run and aggregate data
-could include a Build/Reproduce Core score. Existing publication files and IDs
-must never be rewritten to imitate v0.5.
-
-Local submissions, evaluations, trajectories, provider responses, private
-review data, and complete traces remain under ignored storage. Never copy a raw
-source archive directly into the public store; use `cagb publish`, which exports
-and validates allowlisted clean source.
+Generated workspaces, source archives, provider responses, credentials, private trajectories, and complete traces stay outside Git.

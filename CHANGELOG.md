@@ -5,7 +5,23 @@ machine-readable lock under `benchmark/releases/`.
 
 ## Unreleased
 
-## 0.5.0 (Unreleased)
+## 0.6.0 (Unreleased)
+
+- Replaced the multi-track, three-evaluation workflow with four Build tasks, one
+  Agent invocation, one frozen source archive, and one canonical-seed evaluation
+  per task.
+- Added the six-player Texas Hold'em task and a 100/100 deterministic calibration
+  implementation covering betting, short all-ins, ranking, side/split pots,
+  rotation, input, bot cadence, and chip conservation.
+- Added the lightweight `doctor`, `bench`, `check`, and `publish` CLI, flat
+  `result.json`, local evidence manifests, score recomputation, and Git result
+  index.
+- Removed the Docker evaluator, independent verifier, Reproduce default catalog,
+  legacy publisher package, and legacy evaluator CLI workflow.
+- Updated the static site and documentation around the 0.6 trust boundary:
+  project-operated canonical execution rather than independent reproduction.
+
+## 0.5.0
 
 - Changed the Official execution topology from three fresh Agent development
   attempts per task to one Agent invocation and one sealed submission per task.

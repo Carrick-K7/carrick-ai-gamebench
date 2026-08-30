@@ -5,35 +5,21 @@ Use Node.js 22.12+ and the pnpm version declared in `package.json`.
 ```bash
 pnpm install
 pnpm check
+pnpm cagb doctor
 ```
 
-Changes to a released task's prompt, fixtures, weights, tests, reference
-captures, or state schema are benchmark changes and require a new task version.
-Do not silently alter a task after results have been published.
+Active games are self-contained Build packages under `benchmark/tasks/build/<game-slug>/vN/`. A score-affecting change to a prompt, fixture, point allocation, browser case, runtime policy, or state schema requires a new task major and benchmark minor release. Never silently edit an already published release lock.
 
-Add new games as self-contained packages under
-`benchmark/tasks/build/<game-slug>/vN/` or
-`benchmark/tasks/reproduce/<game-slug>/vN/`. After changing the catalog, bump
-the root package version and generate its immutable lock with:
+After an intentional catalog change:
 
-```bash
-pnpm build
-pnpm cagb release-lock --write
-pnpm check
-```
+1. update package versions;
+2. write and review `benchmark/releases/<version>.json` with exact task hashes;
+3. update calibration fixtures and deficient-case coverage;
+4. run the full checks above;
+5. create the immutable Git tag only after merge.
 
-Contributions containing third-party game material must include the exact
-upstream URL, immutable commit, license, copyright notice, and per-file origin
-in `THIRD_PARTY.yml`. Do not submit material with unclear redistribution terms.
+Machine scoring must remain deterministic, public, and auditable. LLM/VLM judgments and human preference do not belong in the trusted score.
 
-Machine scoring contributions must remain deterministic and auditable. LLM/VLM
-judgments belong in experimental reports, not the trusted score.
+Result candidates follow the [result submission policy](docs/result-submissions.md). Official 0.6 results require a maintainer-operated canonical four-task run and `cagb check`; external runs are calibration evidence rather than self-declared leaderboard entries.
 
-Result candidates follow the separate
-[result submission policy](docs/result-submissions.md). External runs enter
-Experimental review; Official results require a maintainer-controlled
-full-matrix rerun and verification.
-
-All contributors must follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report
-security or conduct concerns through the private channel in
-[SECURITY.md](SECURITY.md).
+All contributors must follow the [Code of Conduct](CODE_OF_CONDUCT.md). Report security or conduct concerns through [SECURITY.md](SECURITY.md).

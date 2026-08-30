@@ -18,6 +18,8 @@ interface Props {
 
 const { version, releases, records, isShortcut = false } = Astro.props;
 const buildPrimary = compareSemanticVersions(version, "0.5.0") >= 0;
+const lightweight = compareSemanticVersions(version, "0.6.0") >= 0;
+const hasReproduceReport = buildPrimary && !lightweight;
 const activeForVersion = records.filter(
   ({ entry }) => entry.benchmark_version === version && entry.status === "active",
 );
@@ -58,8 +60,8 @@ const isLatestResultFallback =
 
   {buildPrimary && (
     <div class="callout status-banner">
-      <span class="lang-en"><strong>Build is the primary board.</strong> One development submission is evaluated under three fixed seeds. Reproduce is reported separately; Core is retained only as a secondary compatibility field.</span>
-      <span class="lang-zh"><strong>Build 是主榜。</strong>每个任务只开发一次，再用三组固定种子独立评测。Reproduce 单独展示；Core 仅作为兼容字段保留。</span>
+      <span class="lang-en"><strong>Build is the primary board.</strong> {lightweight ? "Each of four tasks receives one Agent attempt and one canonical-seed evaluation." : "One development submission is evaluated under three fixed seeds; Reproduce is reported separately."}</span>
+      <span class="lang-zh"><strong>Build 是主榜。</strong>{lightweight ? "四个任务各进行一次 Agent 开发和一次固定 seed 评测。" : "每个任务只开发一次，再用三组固定种子独立评测；Reproduce 单独展示。"}</span>
     </div>
   )}
 
@@ -69,12 +71,12 @@ const isLatestResultFallback =
         <div class="section-head">
           <div><span class="pill official">Official</span><h2><span class="lang-en">Official leaderboard</span><span class="lang-zh">正式排行</span></h2></div>
           <p>
-            <span class="lang-en">{buildPrimary ? "One development submission per task, three fixed-seed evaluations, clean rebuild, and independent verification." : "Complete coverage, three fixed attempts, clean rebuild, and independent verification."}</span>
-            <span class="lang-zh">{buildPrimary ? "每个任务开发一次，使用三组固定种子评测，并通过无密钥重建与独立复核。" : "完整覆盖全部游戏和三次固定尝试，并通过无密钥重建与独立复核。"}</span>
+            <span class="lang-en">{lightweight ? "Four complete tasks, one Agent attempt each, one canonical evaluation, and a passing local integrity check." : buildPrimary ? "One development submission per task, three fixed-seed evaluations, clean rebuild, and independent verification." : "Complete coverage, three fixed attempts, clean rebuild, and independent verification."}</span>
+            <span class="lang-zh">{lightweight ? "完整覆盖四个任务；每项一次 Agent 开发、一次固定评测，并通过本地完整性检查。" : buildPrimary ? "每个任务开发一次，使用三组固定种子评测，并通过无密钥重建与独立复核。" : "完整覆盖全部游戏和三次固定尝试，并通过无密钥重建与独立复核。"}</span>
           </p>
         </div>
         <LeaderboardView version={version} records={records} tier="official" board="build" />
-        {buildPrimary && (
+        {hasReproduceReport && (
           <details class="callout">
             <summary><strong>Independent Reproduce report</strong></summary>
             <LeaderboardView version={version} records={records} tier="official" board="reproduce" />
@@ -88,7 +90,7 @@ const isLatestResultFallback =
         </div>
         <div class="callout status-banner"><span class="lang-en">Stage results do not represent an Official ranking.</span><span class="lang-zh">阶段性结果，不代表正式排名。</span></div>
         <LeaderboardView version={version} records={records} tier="experimental" board="build" />
-        {buildPrimary && (
+        {hasReproduceReport && (
           <details class="callout">
             <summary><strong>Independent Reproduce report</strong></summary>
             <LeaderboardView version={version} records={records} tier="experimental" board="reproduce" />
@@ -105,7 +107,7 @@ const isLatestResultFallback =
         </div>
         <div class="callout status-banner"><span class="lang-en">Stage results do not represent an Official ranking.</span><span class="lang-zh">阶段性结果，不代表正式排名。</span></div>
         <LeaderboardView version={version} records={records} tier="experimental" board="build" />
-        {buildPrimary && (
+        {hasReproduceReport && (
           <details class="callout">
             <summary><strong>Independent Reproduce report</strong></summary>
             <LeaderboardView version={version} records={records} tier="experimental" board="reproduce" />
@@ -117,8 +119,8 @@ const isLatestResultFallback =
           <div><span class="pill official">Official</span><h2><span class="lang-en">Official qualification</span><span class="lang-zh">正式成绩资格</span></h2></div>
         </div>
         <div class="callout">
-          <span class="lang-en">No Official result yet for v{version}. {buildPrimary ? "A qualifying result develops each task once, evaluates that frozen submission under all three fixed seeds, then passes clean rebuild and independent verification." : "A qualifying historical result completes all three fixed attempts for every task, then passes clean rebuild and independent verification."}</span>
-          <span class="lang-zh">v{version} 目前还没有正式成绩。{buildPrimary ? "合格结果需要每个任务只开发一次，再对冻结提交进行三组固定种子评测，并通过无密钥重建与独立复核。" : "历史规则要求每个任务完成三次固定尝试，并通过无密钥重建与独立复核。"}</span>
+          <span class="lang-en">No Official result yet for v{version}. {lightweight ? "A qualifying result completes all four tasks with one Agent attempt and one canonical evaluation each, then passes the local integrity check." : buildPrimary ? "A qualifying result develops each task once, evaluates that frozen submission under all three fixed seeds, then passes clean rebuild and independent verification." : "A qualifying historical result completes all three fixed attempts for every task, then passes clean rebuild and independent verification."}</span>
+          <span class="lang-zh">v{version} 目前还没有正式成绩。{lightweight ? "合格结果需完整覆盖四项任务；每项一次 Agent 开发和一次固定评测，并通过本地完整性检查。" : buildPrimary ? "合格结果需要每个任务只开发一次，再对冻结提交进行三组固定种子评测，并通过无密钥重建与独立复核。" : "历史规则要求每个任务完成三次固定尝试，并通过无密钥重建与独立复核。"}</span>
         </div>
       </section>
     </>

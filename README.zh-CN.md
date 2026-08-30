@@ -1,123 +1,85 @@
 # Carrick AI GameBench
 
-Carrick AI GameBench（CAGB）是一套面向 Coding Agent 的可复现网页游戏开发
-评测，以公开、可机器验证的交付契约为核心。
+Carrick AI GameBench 0.6 是一套轻量的 Coding Agent 网页游戏机器评测，以公开、可检查的交付契约为核心。
 
-- **Build** 衡量从冻结规格到可运行游戏的交付能力，是 v0.5 主榜。
-- **Reproduce** 衡量对合法参考游戏的机制、时序、交互和视觉还原能力，独立报告，
-  不影响 Build 排名。
+正式评测只有四个 Build 任务：
 
-可信分数只来自确定性浏览器评测。人工试玩是可选、非计分的定性附注。Build 分
-不代表创意或“好玩程度”；未来 Creative benchmark 将使用独立身份、方法、发布
-账本和榜单。
+- 2048：离散规则和键盘输入；
+- 扫雷：带 seed 的隐藏状态和鼠标输入；
+- 2D 停车：连续运动、碰撞和几何判定；
+- 六人德州扑克：下注状态、牌型、all-in、边池和筹码守恒。
+
+每个任务只调用一次 Agent。交付源码会立即封存，再解包到新目录中，以唯一 canonical seed `104729` 评测一次。Build 总分是四项分数的等权平均。0.6 不再包含 Reproduce、Core、verifier、Docker 或三 seed 重复评测。
 
 ## 快速开始
 
-需要 Node.js 22.12+、pnpm 10、Docker 及 Chromium 运行依赖。
+需要 Node.js 22.12+、pnpm 10.33.0、Chromium 运行依赖、`tar` 和 `zstd`。
 
 ```bash
 pnpm install
 pnpm build
 pnpm cagb doctor
-pnpm cagb list
-pnpm cagb validate-task --all
+pnpm cagb check
 ```
 
-仓库内包含 8 个带版本任务：6 个 Build 和 2 个 Reproduce。
+`doctor` 会在正式调用模型前，真实执行临时目录安装、离线重装、构建、预览服务、Chromium 启动和 Bridge smoke test。
 
-运行任意本地 Agent 命令：
+运行一个完整模型评测：
 
 ```bash
-pnpm cagb run \
-  --task build.2048.v2 \
+pnpm cagb bench \
   --agent-command './my-agent --prompt-file "$CAGB_PROMPT_PATH"' \
-  --agent-id my-agent
+  --agent-id my-agent \
+  --agent-version 1.0.0 \
+  --model my-model \
+  --model-params '{"reasoning_effort":"high"}' \
+  --harness shell
 ```
 
-在 v0.5 协议中，每个 task 只调用一次 Agent，并生成一份不可变的 submission
-源码快照。开发停止并冻结快照后，评测器把同一份源码分别解包到三个全新、隔离的
-环境中，以 `104729`、`130363`、`155921` 三个 seed 评测。seed 是同一交付物
-的评测条件，不是三次开发，也不会挑选最佳 seed。
+Official 运行要求 Git 工作树干净。开发 runner 或 Agent adapter 时可加 `--local`。
 
-`--official` 请求完整固定 seed 评测，并生成待审计的 `official-candidate` 系列。
-这不等于自行认证为 Official；正式发布仍需完整的对应榜单覆盖、清洁源码复现和
-独立验证。
-
-使用 `--series <ulid>` 可将多个 task 加入同一批评测。v0.5 将 submission 身份
-与每次物理 seed 评测的 `run_id` 分开；本地数据仍保存在
-`runs/<benchmark>/<series>/`。
-
-将已评分系列发布到 Experimental：
+检查结果：
 
 ```bash
-pnpm cagb publish \
-  --series runs/0.5.0/<series-id> \
-  --tier experimental \
-  --board build \
-  --objects .gamebench \
-  --base-url https://play.gamebench.ai.carrick7.com
-
-pnpm cagb verify-publication --objects .gamebench
-pnpm --filter @carrick/gamebench-site build
+pnpm cagb check --run runs/0.6.0/<series-id>
 ```
 
-构建固定评测环境：
+可选发布完整 Official 结果：
 
 ```bash
-pnpm docker:build
+pnpm cagb publish --run runs/0.6.0/<series-id>
 ```
 
-## Benchmark 展示面
+## 工作流程为什么必要
 
-- Build：2048、扫雷、2D 停车、俄罗斯方块、横版射击和塔防。完整 Build 覆盖
-  产生主榜分数。
-- Reproduce：OhSteem 和 Radius Raid。Reproduce 拥有独立覆盖率和分数，与
-  Build 分开显示。
+1. **Release lock**：确保所有模型面对相同 prompt、测试、分值、seed 和任务 hash。
+2. **真实 preflight**：在消耗模型算力前发现宿主机问题。
+3. **全新 workspace**：不同任务和模型之间不会继承隐藏文件或状态。
+4. **一次 Agent 调用**：控制机会和算力，失败后不重复开发。
+5. **封存源码**：评测对象不能在交付后被静默修复。
+6. **新目录评测**：确认源码可以独立安装、构建和运行。
+7. **公开浏览器 cases**：通过真实输入和 Schema 状态检查客观计分。
+8. **完整性检查**：不重复评测，只重查文件 hash、计分算术、release 身份和覆盖率。
+9. **可选 Git 发布**：让正式结果进入可 review、不可静默覆盖的历史记录。
 
-详细说明参见 [方法学](docs/methodology.md)、[架构](docs/architecture.md)、
-[任务编写指南](docs/task-authoring.md)、[版本规则](docs/versioning.md)、
-[结果发布](docs/results-and-publication.md)、[结果提交规则](docs/result-submissions.md)、
-[公开网站设计](docs/public-site.md)、[仓库边界 ADR](docs/adr/0001-repository-boundaries.md)
-和[部署](docs/deployment.md)。
+基础设施错误不会被记成模型 0 分。Evaluator 可以对同一个冻结 `source_hash` 重试阅卷，但不能再次调用 Agent。真正的契约失败正常扣分，也可能得到 0 分。
 
-## 扩展游戏
+0.6 的 Official 只表示“由项目维护方使用 canonical runner 运行并提交”，不声称已经由独立第三方复现。
 
-每个游戏版本都是
-`benchmark/tasks/<build|reproduce>/<game-slug>/vN/` 下的独立任务包，
-自带中英文提示、状态 Schema、测试用例，以及必要的合法参考材料。
+## 任务包
 
-Agent 会收到公开用例、计分清单和状态契约。冻结后的 submission 必须支持任意
-bridge reset seed。正式 seed 只在源码快照密封后使用；每个全新评测环境都针对
-完全相同的源码字节执行同一份公开契约。
+每个 active task 位于 `benchmark/tasks/build/<game>/vN/`，自带中英文 prompt、严格状态 Schema、公开浏览器 cases 和 100 分 manifest。`benchmark/releases/0.6.0.json` 冻结完整四任务目录。
 
-每次 Benchmark 发布都会在
-`benchmark/releases/<benchmark-version>.json` 中冻结任务 ID、语义版本、
-内容哈希、协议版本、榜单策略和评测 seed。`pnpm cagb release-lock` 用于核对
-当前发布；只有明确提升 Benchmark 版本后才应使用 `--write`。
+详细说明参见[方法学](docs/methodology.md)、[架构](docs/architecture.md)、[任务编写](docs/task-authoring.md)、[结果发布](docs/results-and-publication.md)和[版本规则](docs/versioning.md)。
 
-## 明确边界
+## 边界
 
-- 所有测试公开。Official 身份依靠可复现证据和审计，而不是隐藏测试、LLM judge
-  或 VLM judge。
-- 机器契约评测具有权威性。人工偏好只能作为可选定性附注，永不改变排名。
-- Build 是 v0.5 主榜；Reproduce 独立展示，不能提高、降低或阻断 Build 分数。
-- 每个 task 一次 Agent invocation、一个 submission；三个 seed 分数全部来自对
-  同一冻结源码快照的全新环境评测。
-- 通用 shell adapter 在执行者宿主机运行，只记录网络策略，不自行提供网络防火墙。
-- 公开网站完全静态。Git 保存审核后的结果元数据，大型源码、试玩包和证据使用
-  内容寻址对象目录；没有数据库和公开提交 API。
-- 公开页面展示所有纳入聚合的 seed 评测，绝不挑选最高分条件。
-- 创意、新颖性、审美和趣味不属于本 benchmark 的可信分数。未来 Creative
-  benchmark 会独立发布，而不是加入为 GameBench 的第三条 track。
-
-## 历史兼容
-
-v0.1-v0.4 保持不可变，并保留原有语义：这些版本的 Official candidate 对每个
-任务执行三次全新的 Agent 开发，历史 aggregate schema 也可能发布将 Build 与
-Reproduce 合并的 Core 分。旧版本 reader、release lock、结果页和不可变
-publication ID 继续有效；v0.5 不会追溯重释或重新排名。
+- 机器契约分数具有权威性；可选人类反馈永不改变排名。
+- 测试完全公开；本 Benchmark 衡量契约交付，不衡量创意或趣味。
+- CLI 与模型供应商无关，不内置 provider SDK。
+- 公开网站是静态站点，没有数据库或公开提交服务。
+- 生成的 workspace 和 provider credential 永不提交。
 
 ## 许可证
 
-代码采用 Apache-2.0；自有任务、文档、媒体和结果数据采用 CC BY 4.0；第三方
-内容继续使用其上游许可证。
+代码采用 Apache-2.0；自有任务、文档、媒体和结果数据采用 CC BY 4.0。

@@ -1,4 +1,5 @@
 ---
+import { compareSemanticVersions } from "@carrick/gamebench-core";
 import Layout from "../layouts/Layout.astro";
 import {
   defaultOfficialSeed,
@@ -30,6 +31,8 @@ const usingHistoricalResults =
 const resultBuildPrimary = activeRecords.some(
   ({ entry }) => entry.aggregate.primary_board === "build",
 );
+const resultLightweight = resultVersion !== undefined &&
+  compareSemanticVersions(resultVersion, "0.6.0") >= 0;
 const experimental = activeRecords
   .filter(({ entry }) => entry.tier === "experimental")
   .sort(
@@ -133,7 +136,7 @@ const titleByTask = new Map(
       <div class="section-head">
         <div>
           <span class="eyebrow">Jump in</span>
-          <h2>Three games. Three models. Zero setup.</h2>
+          <h2>Playable model outputs. Zero setup.</h2>
         </div>
         <p>Each game opens in an isolated player. Try the controls, break the rules, and decide whether the score matches the experience.</p>
       </div>
@@ -175,8 +178,8 @@ const titleByTask = new Map(
           <p>Real keyboard and pointer actions check controls, game state, reset behavior, stability, and winning rules.</p>
         </article>
         <article class="card how-card">
-          <h3>The frozen build is re-evaluated</h3>
-          <p>In v0.5, the agent develops each task once. The same submitted source is then checked under three fixed seeds.</p>
+          <h3>The source is frozen and tested</h3>
+          <p>In v0.6, each of four tasks gets one Agent attempt and one fresh canonical-seed evaluation.</p>
         </article>
       </div>
       <div class="actions"><a class="button secondary" href="/methodology">See exactly how scoring works</a></div>
@@ -185,9 +188,11 @@ const titleByTask = new Map(
     <section class="section">
       <div class="section-head">
         <div><span class="eyebrow">Current lab results</span><h2>No champion yet. Plenty to play.</h2></div>
-        <p>{resultBuildPrimary
-          ? "Each task is developed once and the frozen submission is evaluated under three fixed seeds. Stage results remain separate from Official qualification."
-          : "These historical stage results use the earlier attempt-based protocol. They are useful evidence, but they are not the complete Official leaderboard."}</p>
+        <p>{resultLightweight
+          ? "Each of four tasks receives one Agent invocation and one canonical evaluation. The published row passed the local integrity gate."
+          : resultBuildPrimary
+            ? "Each task is developed once and the frozen submission is evaluated under three fixed seeds. Stage results remain separate from Official qualification."
+            : "These historical stage results use the earlier attempt-based protocol. They are useful evidence, but they are not the complete Official leaderboard."}</p>
       </div>
       <div class="grid">
         {experimental.slice(0, 5).map(({ entry }, index) => (

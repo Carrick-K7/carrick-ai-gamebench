@@ -5,7 +5,6 @@ on:
     paths:
       - "results/**"
       - "packages/core/**"
-      - "packages/publisher/**"
       - "apps/site/**"
   push:
     branches:
@@ -30,6 +29,5 @@ jobs:
           node-version: 22.22.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - name: Validate schemas, non-empty object fixture, and package boundaries
+      - name: Validate schemas, result integrity, and package boundaries
         run: pnpm check
-      - run: pnpm cagb verify-publication

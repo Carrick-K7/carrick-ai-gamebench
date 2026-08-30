@@ -53,14 +53,6 @@ const rules = [
     ],
     forbiddenSource: [],
   },
-  {
-    root: "packages/publisher/src",
-    forbiddenPackages: [
-      "@carrick/gamebench",
-      "@carrick/gamebench-site",
-    ],
-    forbiddenSource: [],
-  },
 ];
 
 const errors = [];

@@ -1,4 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { createWriteStream, type WriteStream } from "node:fs";
+import { finished } from "node:stream/promises";
 import {
   access,
   mkdir,
@@ -28,6 +30,19 @@ import {
 } from "./process.js";
 import { withMaterializedSubmission } from "./archive.js";
 import { installRuntimeNetworkGuard } from "./runtime-security.js";
+
+export class InfrastructureError extends Error {
+  override name = "InfrastructureError";
+
+  constructor(message: string, options?: ErrorOptions) {
+    super(message, options);
+  }
+}
+
+function isBrowserInfrastructureFailure(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /target (?:page|context|browser).*closed|browser has been closed|browser disconnected|browser process/i.test(message);
+}
 
 export interface EvaluationOptions {
   submissionDir: string;
@@ -494,6 +509,16 @@ async function executeBrowserCase(
       artifacts,
     };
   } catch (error) {
+    if (isBrowserInfrastructureFailure(error)) {
+      try {
+        await context.close();
+      } catch {
+        // The browser process is already unavailable.
+      }
+      throw new InfrastructureError("browser infrastructure failed during a case", {
+        cause: error,
+      });
+    }
     const screenshotPath = path.join(artifactsDir, "failure.png");
     const tracePath = path.join(artifactsDir, "trace.zip");
     try {
@@ -522,18 +547,47 @@ async function executeBrowserCase(
   }
 }
 
-function stopServer(server: ChildProcess | undefined): void {
+function processGroupExists(pid: number): boolean {
+  if (process.platform === "win32") {
+    return false;
+  }
+  try {
+    process.kill(-pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function stopServer(server: ChildProcess | undefined): Promise<void> {
   if (!server?.pid) {
     return;
   }
-  try {
-    if (process.platform === "win32") {
+  if (process.platform === "win32") {
+    if (server.exitCode === null && server.signalCode === null) {
       server.kill("SIGTERM");
-    } else {
-      process.kill(-server.pid, "SIGTERM");
     }
+    return;
+  }
+  const pid = server.pid;
+  if (!processGroupExists(pid)) {
+    return;
+  }
+  try {
+    process.kill(-pid, "SIGTERM");
   } catch {
-    // The server has already exited.
+    return;
+  }
+  const deadline = Date.now() + 5_000;
+  while (processGroupExists(pid) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  if (processGroupExists(pid)) {
+    try {
+      process.kill(-pid, "SIGKILL");
+    } catch {
+      // The process group exited between checks.
+    }
   }
 }
 
@@ -557,7 +611,7 @@ export async function evaluateSubmission(
   if (options.install !== false) {
     const install = await runCommand(
       "pnpm",
-      ["install", "--frozen-lockfile", "--offline", "--ignore-workspace"],
+      ["install", "--frozen-lockfile", "--ignore-workspace"],
       {
         cwd: options.submissionDir,
         env: evaluatorEnvironment(),
@@ -567,6 +621,13 @@ export async function evaluateSubmission(
       },
     );
     if (install.exitCode !== 0) {
+      const installError = await readFile(buildErrorLog, "utf8").catch(() => "");
+      if (
+        install.timedOut ||
+        /ERR_PNPM_(?:META_)?FETCH|ERR_PNPM_NO_OFFLINE_TARBALL|EAI_AGAIN|ECONNRESET|ETIMEDOUT|network request failed/i.test(installError)
+      ) {
+        throw new InfrastructureError("dependency registry or cache infrastructure failed");
+      }
       buildPassed = false;
       buildMessage = `dependency installation failed with exit ${install.exitCode}`;
     }
@@ -588,18 +649,16 @@ export async function evaluateSubmission(
   }
 
   let server: ChildProcess | undefined;
+  let serverStdout: WriteStream | undefined;
+  let serverStderr: WriteStream | undefined;
   let baseUrl: string | undefined;
   if (buildPassed) {
     const port = await findAvailablePort();
     baseUrl = `http://127.0.0.1:${port}`;
     const stdout = path.join(options.runDir, "server.log");
     const stderr = path.join(options.runDir, "server.stderr.log");
-    const stdoutHandle = await import("node:fs").then(({ createWriteStream }) =>
-      createWriteStream(stdout, { flags: "w" }),
-    );
-    const stderrHandle = await import("node:fs").then(({ createWriteStream }) =>
-      createWriteStream(stderr, { flags: "w" }),
-    );
+    serverStdout = createWriteStream(stdout, { flags: "w" });
+    serverStderr = createWriteStream(stderr, { flags: "w" });
     server = spawn(
       "pnpm",
       [
@@ -617,8 +676,8 @@ export async function evaluateSubmission(
         stdio: ["ignore", "pipe", "pipe"],
       },
     );
-    server.stdout?.pipe(stdoutHandle);
-    server.stderr?.pipe(stderrHandle);
+    server.stdout?.pipe(serverStdout);
+    server.stderr?.pipe(serverStderr);
     try {
       await waitForUrl(
         baseUrl,
@@ -627,8 +686,12 @@ export async function evaluateSubmission(
     } catch (error) {
       buildPassed = false;
       buildMessage = error instanceof Error ? error.message : String(error);
-      stopServer(server);
+      await stopServer(server);
       server = undefined;
+      await Promise.allSettled([
+        ...(serverStdout ? [finished(serverStdout)] : []),
+        ...(serverStderr ? [finished(serverStderr)] : []),
+      ]);
     }
   }
 
@@ -642,6 +705,11 @@ export async function evaluateSubmission(
       try {
         await preflightBridge(browser, task, validateSnapshot, baseUrl);
       } catch (error) {
+        if (isBrowserInfrastructureFailure(error)) {
+          throw new InfrastructureError("browser infrastructure failed during bridge preflight", {
+            cause: error,
+          });
+        }
         buildPassed = false;
         buildMessage =
           error instanceof Error ? error.message : String(error);
@@ -715,7 +783,11 @@ export async function evaluateSubmission(
     };
   } finally {
     await browser?.close();
-    stopServer(server);
+    await stopServer(server);
+    await Promise.allSettled([
+      ...(serverStdout ? [finished(serverStdout)] : []),
+      ...(serverStderr ? [finished(serverStderr)] : []),
+    ]);
     await rm(path.join(options.submissionDir, ".cagb-evaluator"), {
       recursive: true,
       force: true,
@@ -731,15 +803,22 @@ export async function evaluateSubmissionArchive(
   task: LoadedTask,
   options: ArchiveEvaluationOptions,
 ): Promise<EvaluationResult> {
-  return await withMaterializedSubmission(
-    options.archivePath,
-    options.sourceSnapshotHash,
-    path.join(options.evaluationDir, "archive-materialize.log"),
-    async (submissionDir) => await evaluateSubmission(task, {
-      submissionDir,
-      runDir: options.evaluationDir,
-      seed: options.seed,
-      ...(options.showcasePath ? { showcasePath: options.showcasePath } : {}),
-    }),
-  );
+  try {
+    return await withMaterializedSubmission(
+      options.archivePath,
+      options.sourceSnapshotHash,
+      path.join(options.evaluationDir, "archive-materialize.log"),
+      async (submissionDir) => await evaluateSubmission(task, {
+        submissionDir,
+        runDir: options.evaluationDir,
+        seed: options.seed,
+        ...(options.showcasePath ? { showcasePath: options.showcasePath } : {}),
+      }),
+    );
+  } catch (error) {
+    if (error instanceof InfrastructureError) {
+      throw error;
+    }
+    throw new InfrastructureError("evaluation environment failed", { cause: error });
+  }
 }

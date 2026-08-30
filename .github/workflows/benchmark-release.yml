@@ -38,29 +38,22 @@ jobs:
             }
           '
       - run: pnpm check
-      - run: docker build -f docker/evaluator.Dockerfile -t "carrick-ai-gamebench:${GITHUB_REF_NAME#v}" .
       - name: Create immutable release evidence
         run: |
           version="${GITHUB_REF_NAME#v}"
           install -d release-artifacts
           cp "benchmark/releases/${version}.json" \
             "release-artifacts/gamebench-${version}-release-lock.json"
-          docker image inspect "carrick-ai-gamebench:${version}" \
-            --format '{{.Id}}' > release-artifacts/evaluator-image-id.txt
           {
             echo "# GameBench ${GITHUB_REF_NAME}"
             echo
             echo "- Git commit: \`${GITHUB_SHA}\`"
             echo "- Benchmark release lock: \`gamebench-${version}-release-lock.json\`"
-            echo "- Evaluator image ID: \`$(cat release-artifacts/evaluator-image-id.txt)\`"
-            echo
-            echo "The evaluator image is built and identified by this workflow but is not"
-            echo "published to a container registry until a public runtime is selected."
+            echo "- Workflow: one Agent invocation and one canonical evaluation per task"
           } > release-artifacts/release-summary.md
           (
             cd release-artifacts
-            sha256sum "gamebench-${version}-release-lock.json" \
-              evaluator-image-id.txt > SHA256SUMS
+            sha256sum "gamebench-${version}-release-lock.json" > SHA256SUMS
           )
       - name: Create or update GitHub Release
         env:

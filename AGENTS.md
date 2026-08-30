@@ -8,8 +8,8 @@ production web service.
 1. Read the relevant package and task contracts before editing.
 2. Use the pinned Node and pnpm versions from `package.json`.
 3. Run `pnpm check` before commit.
-4. For evaluator or container changes, also run `pnpm docker:build` when a
-   Docker daemon is available.
+4. For evaluator changes, also run `pnpm cagb doctor` to exercise the real
+   install/build/browser preflight.
 5. Commit only repository-owned files.
 6. After push, follow the exact commit's `ci.yml` run to completion.
 
@@ -22,8 +22,8 @@ coverage in CI.
 
 - GameBench currently has no service, domain, systemd unit, or production
   deployment on `tencent-sg`.
-- The evaluator Dockerfile exists because workload isolation is a product
-  requirement, not because every Carrick application is containerized.
+- GameBench 0.6 uses a host preflight and frozen source archive; it has no
+  Docker or verifier requirement.
 - Do not publish an image or add Pages, Zeabur, or another deployment target
   until the user chooses a concrete runtime.
 - Host-level truth and inactive-service monitoring belong to the private

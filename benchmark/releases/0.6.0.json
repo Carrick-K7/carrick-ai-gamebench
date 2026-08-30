@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "0.6.0",
+  "evaluation_seed": 104729,
+  "agent_invocations_per_task": 1,
+  "scoring": {
+    "primary_board": "build",
+    "task_weighting": "equal"
+  },
+  "tasks": [
+    {
+      "id": "build.2048.v2",
+      "version": "2.0.0",
+      "hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486"
+    },
+    {
+      "id": "build.minesweeper.v2",
+      "version": "2.0.0",
+      "hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445"
+    },
+    {
+      "id": "build.parking-2d.v2",
+      "version": "2.0.0",
+      "hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c"
+    },
+    {
+      "id": "build.texas-holdem.v1",
+      "version": "1.0.0",
+      "hash": "sha256:ff962bae33b5435d3f935467654d2e1996c47558ca36b8e859808c395c4b1072"
+    }
+  ]
+}

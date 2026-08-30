@@ -66,9 +66,6 @@ importers:
       '@carrick/gamebench-core':
         specifier: workspace:*
         version: link:../core
-      '@carrick/gamebench-publisher':
-        specifier: workspace:*
-        version: link:../publisher
       '@playwright/test':
         specifier: 1.61.1
         version: 1.61.1
@@ -88,19 +85,6 @@ importers:
       '@types/pngjs':
         specifier: 6.0.5
         version: 6.0.5
-      typescript:
-        specifier: 5.9.3
-        version: 5.9.3
-
-  packages/publisher:
-    dependencies:
-      '@carrick/gamebench-core':
-        specifier: workspace:*
-        version: link:../core
-    devDependencies:
-      '@types/node':
-        specifier: 22.19.1
-        version: 22.19.1
       typescript:
         specifier: 5.9.3
         version: 5.9.3

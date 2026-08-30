@@ -1,167 +1,78 @@
-# Architecture
+# GameBench 0.6 architecture
 
-## Repository components
-
-```text
-apps/site           static public result, game, source, and methodology site
-apps/reviewer       local-only optional pairwise annotation UI
-packages/core       schemas, catalog loading, hashing, scoring, evidence
-packages/evaluator  cagb CLI, Agent runner, snapshot sealer, browser evaluator
-packages/publisher  clean export, verification, object storage, result ledger
-benchmark/starters  fresh Build/Reproduce development workspace
-benchmark/tasks     versioned prompts, manifests, schemas, tests, references
-benchmark/retired   preserved inactive task sources grouped by release
-benchmark/releases  immutable catalog, protocol, board, and seed policy
-results             small Git-reviewed public index and immutable manifests
-```
-
-Node.js 22, TypeScript, pnpm, and one Playwright browser stack keep the runtime
-small. The CLI does not include model-provider SDKs.
-
-## v0.5 data flow
+## Components
 
 ```text
-task manifest + starter + public state schema + public cases
-          │
-          ▼
-one fresh development workspace ── prompt/env ──► one Agent invocation
-          │
-          ├──► development logs and usage
-          ▼
-stop Agent → sanitize evaluator transients → seal immutable source snapshot
-          │
-          ├──────────────┬──────────────┐
-          ▼              ▼              ▼
-fresh env seed A  fresh env seed B  fresh env seed C
-install/build/serve/bridge/browser cases in every environment
-          │              │              │
-          └──────────────┴──────────────┘
-                         ▼
-        per-seed scores/evidence → task mean/deviation
-                         ▼
-         Build primary board + Reproduce independent report
-                         ▼
-clean reconstruction → verification → publication → static site
+apps/site           static task, methodology, and result pages
+apps/reviewer       optional local human annotation UI
+packages/core       task loading, strict schemas, hashing, and scoring
+packages/evaluator  cagb doctor/bench/check/publish and Playwright evaluator
+benchmark/starters  fresh Agent workspace
+benchmark/tasks     four active Build contracts
+benchmark/retired   inactive historical task packages
+benchmark/releases  immutable release lock
+results/lite        optional Git-reviewed flat result index
 ```
 
-One task has one Agent invocation and one submission source snapshot. The three
-fixed seeds are applied only while evaluating separately materialized copies of
-that snapshot. Evaluation environments are fresh: dependency state, generated
-files, browser storage, and server processes from one seed cannot affect
-another.
+The runtime is Node.js 22, pnpm 10, TypeScript, and Playwright Chromium. It has no model-provider SDK, Docker daemon, verifier service, database, or application server.
 
-Build workspaces install under the track's declared network policy. Reproduce
-preparation and evaluation use the local pnpm store in offline mode where
-required. Evaluator-owned install, build, preview, and browser processes receive
-an explicit non-secret environment. Browser contexts allow requests only to the
-assigned loopback origin and block WebSockets and service workers.
+## Data flow
 
-The Agent receives the state schema, public cases, and scored task manifest. A
-v0.5 development input does not use one evaluation seed as a development
-identity. The frozen game instead satisfies the bridge contract for arbitrary
-reset seeds; the evaluator supplies each fixed seed after sealing.
-
-## Public game contract
-
-`task.yml` is validated by the strict `TaskManifestSchema`. Unknown keys,
-missing files, duplicate test IDs, non-100 point totals, invalid case
-references, and invalid snapshot schemas are rejected.
-
-Games expose:
-
-```ts
-window.__CARRICK_GAMEBENCH__: {
-  version: "1";
-  ready: Promise<void>;
-  reset({ seed, scenario? }): Promise<void>;
-  act({ type, payload? }): Promise<void>;
-  advance(ms: number): Promise<void>;
-  snapshot(): Promise<{
-    seed: number;
-    status: "menu" | "running" | "paused" | "won" | "lost";
-    tick: number;
-    score?: number;
-    state: object;
-    events: object[];
-  }>;
-};
+```text
+release lock + four task packages
+             │
+             ▼
+real host preflight (install/build/preview/Chromium/bridge)
+             │
+             ▼
+fresh task workspace → one Agent invocation
+             │
+             ▼
+stop process tree → deterministic source archive + source hash
+             │
+             ▼
+fresh materialization → one install/build/serve/browser evaluation
+             │
+             ▼
+100-point task score
+             │
+             ├── repeat once for each of four tasks
+             ▼
+equal-weight Build mean → flat result.json → cagb check → optional Git publish
 ```
 
-The bridge supplies deterministic observation and controlled time. It does not
-replace UI testing: cases also send native keyboard, mouse, and select events.
-The machine contract, not a human or model judge, determines the trusted score.
+## Identity and layout
 
-## Submission and evaluation identity
+A run has one `series_id` used only as a directory and result identity. Each task row records:
 
-v0.5 separates development from evaluation:
+- task id, version, and content hash;
+- exactly one Agent invocation and its exit state;
+- deterministic source archive hash;
+- seed `104729` and evaluation status;
+- complete ScoreResult test vector;
+- artifact manifest hash.
 
-- `series_id` identifies one benchmark batch.
-- `submission_id` identifies one task's single Agent invocation and immutable
-  source snapshot.
-- `development_input_fingerprint` identifies the task, Agent configuration,
-  prompt, budget, network policy, and other development inputs without an
-  evaluation seed.
-- `source_snapshot_hash` binds every evaluation to identical delivered bytes.
-- `run_id` identifies one physical evaluation of that submission.
-- the evaluation input fingerprint adds `submission_id`, evaluation seed,
-  evaluator contract, and environment.
+The public contract is one `result.json`. Per-task directories hold source, logs, score, and failure evidence; they do not introduce Submission, Evaluation, Reproduction, Verification, or Publication protocol layers.
 
-Equal fingerprints are reruns, not overwrites. A series records submissions and
-evaluations separately. Official v0.5 data contains exactly one included
-submission per required task and one included evaluation for each required seed
-of that submission.
+## Failure boundary
 
-The old Run Manifest v1/v2 model remains readable. For v0.1-v0.4, one physical
-run combined a fresh Agent development with one seed and had no parent
-submission. Readers must not infer that those historical runs shared source.
+The preflight must succeed before any Agent call. During evaluation:
 
-## Scoring and publication boundaries
+- contract and build-gate failures are model-delivery outcomes and are scored;
+- unexpected host/runner exceptions are infrastructure errors and produce no score;
+- an infrastructure evaluation may be attempted again with the identical archive;
+- development is never retried automatically.
 
-Per-seed checks produce immutable score and evidence records. Aggregation first
-computes each submission's mean and population standard deviation across the
-three seed evaluations, then macro-averages complete tasks within a board.
-Build is the primary board; Reproduce is independent. v0.5 does not compute a
-new ranked Core composite.
+This separation prevents a missing package tarball or browser failure from becoming a model zero while preserving the one-attempt rule.
 
-Official publication requires an operator to:
+## Process and network boundary
 
-1. run the single Agent invocation under the declared network policy;
-2. seal and identify the submission source snapshot;
-3. materialize that snapshot freshly for all three evaluation seeds;
-4. verify evidence and score identity for every evaluation;
-5. rebuild the clean source in one digest-pinned evaluator image;
-6. publish complete coverage for the board being qualified.
+Agent, install, build, preview, and browser processes run in detached process groups and are terminated as trees. Evaluator-owned commands receive an allowlisted environment without provider credentials. Browser contexts allow the assigned loopback origin and data URLs, and block WebSockets and service workers.
 
-The current generic host shell adapter cannot prove egress isolation. That
-control belongs to the official execution harness and is recorded as an
-attestation.
+The generic Agent shell runs on the operator host and does not prove egress isolation. GameBench 0.6 records the harness configuration but does not make network-attestation claims.
 
-The publisher exports only allowlisted project source, rejects unsafe links and
-credential patterns, rebuilds without model credentials, scans generated
-playables, and creates deterministic public artifacts. A stable presentation
-seed may select the default cover, but all included seed evaluations remain
-visible and the highest score is never selected for presentation.
+## Integrity and publication
 
-Git stores `results/index.json` and immutable publication JSON. Large source
-archives, playable directories, screenshots, and evidence use content-addressed
-object storage. The static site reads only validated public data and never
-scans `runs/`.
+After all child processes and log streams close, the runner writes a per-task SHA-256 manifest. `cagb check` verifies those manifests, source archives, release identity, score arithmetic, exact four-task coverage, and the Build mean.
 
-Human review summaries, when present, are optional annotations separated from
-machine scoring and board qualification. Historical review schemas and the
-local Reviewer remain supported but are not a required v0.5 component.
-
-## Trust boundary
-
-The trusted site and untrusted games use separate origins. Generated game
-iframes have no main-site storage access and are served with restrictive CSP.
-Raw trajectories, provider responses, complete traces, credentials, and private
-votes stay outside the public result ledger.
-
-## Future Creative benchmark
-
-Creative evaluation will not be added as a third `build|reproduce` track. A
-future Creative benchmark must have its own benchmark identity, release locks,
-methodology, result index, qualification rules, and leaderboard. It may reuse
-safe infrastructure types such as Agent identity and artifact storage without
-sharing GameBench scores or coverage.
+`cagb publish` performs the same check and updates the lightweight Git index. It does not rebuild, re-evaluate, call a verifier, or invoke Docker. Git review and immutable commits are the Official audit boundary.

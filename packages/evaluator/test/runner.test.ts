@@ -12,16 +12,7 @@ import {
   findRepositoryRoot,
   loadTask,
 } from "@carrick/gamebench-core";
-import {
-  developmentInvocationCount,
-  prepareSubmissionWorkspace,
-} from "../src/runner.js";
-
-test("Official v0.5 invokes the Agent once per task", () => {
-  assert.equal(developmentInvocationCount(true, 3), 1);
-  assert.throws(() => developmentInvocationCount(true, 3, 1), /may not be retried/);
-  assert.equal(developmentInvocationCount(false, 3), 3);
-});
+import { prepareSubmissionWorkspace } from "../src/runner.js";
 
 test("submission workspace includes the public task contract", async () => {
   const repositoryRoot = await findRepositoryRoot();

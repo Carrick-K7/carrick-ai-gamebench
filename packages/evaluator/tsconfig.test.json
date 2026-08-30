@@ -6,6 +6,6 @@
     "declaration": false,
     "sourceMap": false
   },
-  "references": [{ "path": "../core" }, { "path": "../publisher" }],
+  "references": [{ "path": "../core" }],
   "include": ["src/**/*.ts", "test/**/*.ts"]
 }

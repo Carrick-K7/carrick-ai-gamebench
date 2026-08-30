@@ -1,4 +1,5 @@
 ---
+import { compareSemanticVersions } from "@carrick/gamebench-core";
 import Layout from "../../layouts/Layout.astro";
 import {
   releaseCatalogFor,
@@ -32,6 +33,7 @@ const humanize = (value: string) => value
   .replace(/[-_.]+/g, " ")
   .replace(/\b\w/g, (letter) => letter.toUpperCase());
 const modern = publication.schema_version === 2;
+const lightweight = compareSemanticVersions(publication.benchmark.version, "0.6.0") >= 0;
 const reproducePrimary = publication.board === "reproduce";
 const included = publication.runs.filter((run) => run.included);
 const includedSubmissions = publication.submissions.filter((submission) => submission.included);
@@ -103,25 +105,32 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
     <div class="output-meta">
       <span class={`pill ${publication.tier}`}>{publication.tier}</span>
       <span class="pill">{entry.status}</span>
-      <span class="pill">
-        {verified}/{includedSubmissions.length} submissions verified
-      </span>
+      {lightweight ? (
+        <span class="pill">local integrity checked</span>
+      ) : (
+        <span class="pill">
+          {verified}/{includedSubmissions.length} submissions verified
+        </span>
+      )}
     </div>
     <h1>{publication.configuration.agent.model}</h1>
     <p class="lead">
       <span class="lang-en">
-        {modern
-          ? `One development submission per task, followed by fixed-seed machine evaluation across ${publication.aggregate.tasks.length} game challenges.`
-          : `Historical attempt-based result across ${publication.aggregate.tasks.length} game challenges.`}
-        {" "}Open any game below, inspect the machine-contract score, or read
-        the clean source. Tested with {publication.configuration.agent.id} on
+        {lightweight
+          ? `One Agent invocation and one canonical machine evaluation for each of ${publication.aggregate.tasks.length} Build challenges.`
+          : modern
+            ? `One development submission per task, followed by fixed-seed machine evaluation across ${publication.aggregate.tasks.length} game challenges.`
+            : `Historical attempt-based result across ${publication.aggregate.tasks.length} game challenges.`}
+        {" "}{lightweight ? "Inspect every public machine-contract score below." : "Open any game below, inspect the machine-contract score, or read the clean source."} Tested with {publication.configuration.agent.id} on
         GameBench {publication.benchmark.version}.
       </span>
       <span class="lang-zh">
-        {modern
-          ? `每个任务只开发一次，再用固定种子对冻结提交进行机器评测，共覆盖 ${publication.aggregate.tasks.length} 个游戏任务。`
-          : `这是一条历史尝试制成绩，共覆盖 ${publication.aggregate.tasks.length} 个游戏任务。`}
-        你可以直接试玩、核对机器契约分数，也可以查看整理后的源码。本次使用 {publication.configuration.agent.id}，基准版本为 GameBench {publication.benchmark.version}。
+        {lightweight
+          ? `四个 Build 任务各调用一次 Agent，并各执行一次固定条件机器评测。`
+          : modern
+            ? `每个任务只开发一次，再用固定种子对冻结提交进行机器评测，共覆盖 ${publication.aggregate.tasks.length} 个游戏任务。`
+            : `这是一条历史尝试制成绩，共覆盖 ${publication.aggregate.tasks.length} 个游戏任务。`}
+        {lightweight ? "下方公开每项机器契约分数。" : "你可以直接试玩、核对机器契约分数，也可以查看整理后的源码。"}本次使用 {publication.configuration.agent.id}，基准版本为 GameBench {publication.benchmark.version}。
       </span>
     </p>
 
@@ -138,7 +147,7 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
             <strong>{reproducePrimary
               ? `${publication.aggregate.evaluation_coverage.reproduce.completed}/${publication.aggregate.evaluation_coverage.reproduce.required}`
               : `${publication.aggregate.evaluation_coverage.build.completed}/${publication.aggregate.evaluation_coverage.build.required}`}</strong>
-            <span>{reproducePrimary ? "Reproduce seed evaluations" : "Build seed evaluations"}</span>
+            <span>{lightweight ? "Build canonical evaluations" : reproducePrimary ? "Reproduce seed evaluations" : "Build seed evaluations"}</span>
           </div>
           <div class="card metric muted">
             <strong>1</strong>
@@ -166,12 +175,14 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
       <div class="section-head">
         <div>
           <span class="eyebrow">What the model made</span>
-          <h2>Do not just read the score. Play it.</h2>
+          <h2>{lightweight ? "One scored delivery for every task." : "Do not just read the score. Play it."}</h2>
         </div>
         <p>
-          {modern
-            ? "The one submitted game is shown with all fixed-seed evaluations; no second development attempt is substituted."
-            : "The fixed presentation attempt appears first. We do not select the prettiest screenshot or highest-scoring attempt."}
+          {lightweight
+            ? "Game source and failure artifacts remain local; the Git ledger publishes the validated score vector only."
+            : modern
+              ? "The one submitted game is shown with all fixed-seed evaluations; no second development attempt is substituted."
+              : "The fixed presentation attempt appears first. We do not select the prettiest screenshot or highest-scoring attempt."}
         </p>
       </div>
       <div class="grid cols-3">
@@ -194,7 +205,7 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
               {primaryShowcase ? (
                 <img class="cover" src={primaryShowcase.url} alt={`${taskTitle(task.task_id)} generated by ${publication.configuration.agent.model}`} loading="lazy" />
               ) : (
-                <div class="cover placeholder">No playable cover was produced</div>
+                <div class="cover placeholder">{lightweight ? "Playable artifacts stay in the local run" : "No playable cover was produced"}</div>
               )}
               <div class="output-meta">
                 <span class="pill">{task.track === "build" ? "made new" : "recreated"}</span>
@@ -206,10 +217,12 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
                   <span class="lang-zh">{taskTitles(task.task_id).zh}</span>
                 </a>
               </h3>
-              <p>{modern
-                ? `One development submission · ${runs.length} fixed-seed evaluation${runs.length === 1 ? "" : "s"}.`
-                : `${runs.length} scored attempt${runs.length === 1 ? "" : "s"}.`}
-                {" "}Open the game, source, or exact test record below.</p>
+              <p>{lightweight
+                ? `One Agent invocation · one canonical evaluation.`
+                : modern
+                  ? `One development submission · ${runs.length} fixed-seed evaluation${runs.length === 1 ? "" : "s"}.`
+                  : `${runs.length} scored attempt${runs.length === 1 ? "" : "s"}.`}
+                {" "}{lightweight ? "The exact public test vector is recorded below." : "Open the game, source, or exact test record below."}</p>
               {primaryPlayable && (
                 <a class="button" href={`/showcase/${primaryPlayable.artifact_id.slice(7)}`}>Play this game</a>
               )}
@@ -359,17 +372,17 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
     <section class="section prose identity">
       <div class="section-head">
         <div><span class="eyebrow">For auditors</span><h2>Exact runs, files, and identities.</h2></div>
-        <p>Most people can stop here. These records exist so researchers can reproduce and challenge the result.</p>
+        <p>{lightweight ? "The flat record exposes exact task, source, seed, Agent, and score identities for audit." : "Most people can stop here. These records exist so researchers can reproduce and challenge the result."}</p>
       </div>
 
       <details class="audit">
-        <summary>{modern ? "Development submissions, seed evaluations, timing, and verification" : "Historical attempts, timing, usage, and verification"}</summary>
+        <summary>{lightweight ? "Agent invocation, canonical evaluation, and timing" : modern ? "Development submissions, seed evaluations, timing, and verification" : "Historical attempts, timing, usage, and verification"}</summary>
         <div class="audit-body table-wrap">
         <table>
           <thead>
             <tr>
               <th>{modern ? "Evaluation" : "Attempt"}</th><th>Task</th><th>{modern ? "Evaluation seed" : "Seed"}</th><th>Score</th><th>{modern ? "Development / evaluation" : "Exit"}</th>
-              <th>Evaluation time</th><th>{modern ? "Development usage · shown once" : "Tokens / cost"}</th><th>Verification</th>
+              <th>Evaluation time</th><th>{modern ? "Development usage · shown once" : "Tokens / cost"}</th><th>{lightweight ? "Integrity" : "Verification"}</th>
             </tr>
           </thead>
           <tbody>
@@ -403,9 +416,11 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
                     : "Not reported"}
                 </td>
                 <td>
-                  {run.verification
-                    ? `${run.verification.status} · ${run.verification.network_attestation}`
-                    : "Unverified"}
+                  {lightweight
+                    ? "Checked before Git publication"
+                    : run.verification
+                      ? `${run.verification.status} · ${run.verification.network_attestation}`
+                      : "Unverified"}
                 </td>
               </tr>
             ))}
@@ -414,26 +429,28 @@ const sampleFor = (run: (typeof publication.runs)[number]) => {
         </div>
       </details>
 
-      <details class="audit">
-        <summary>Published source, game builds, screenshots, and licenses</summary>
-        <div class="audit-body table-wrap">
-        <table>
-          <thead><tr><th>Owner</th><th>Stage</th><th>Role</th><th>File</th><th>Bytes</th><th>Content ID</th></tr></thead>
-          <tbody>
-            {artifactRows.map(({ owner, kind, artifact }) => (
-              <tr>
-                <td class="mono">{owner.slice(0, 10)}…</td>
-                <td>{kind}</td>
-                <td>{artifact.role}</td>
-                <td><a href={artifact.url}>{artifact.file_name}</a></td>
-                <td>{artifact.size_bytes}</td>
-                <td class="mono">{artifact.artifact_id.slice(0, 23)}…</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
-      </details>
+      {!lightweight && (
+        <details class="audit">
+          <summary>Published source, game builds, screenshots, and licenses</summary>
+          <div class="audit-body table-wrap">
+          <table>
+            <thead><tr><th>Owner</th><th>Stage</th><th>Role</th><th>File</th><th>Bytes</th><th>Content ID</th></tr></thead>
+            <tbody>
+              {artifactRows.map(({ owner, kind, artifact }) => (
+                <tr>
+                  <td class="mono">{owner.slice(0, 10)}…</td>
+                  <td>{kind}</td>
+                  <td>{artifact.role}</td>
+                  <td><a href={artifact.url}>{artifact.file_name}</a></td>
+                  <td>{artifact.size_bytes}</td>
+                  <td class="mono">{artifact.artifact_id.slice(0, 23)}…</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          </div>
+        </details>
+      )}
 
       <details class="audit">
         <summary>Immutable IDs and model parameters</summary>

@@ -1,103 +1,39 @@
 # Result submission policy
 
-GameBench accepts public result candidates as generated, reviewable evidence,
-not as unverified leaderboard claims.
+## Official 0.6 results
 
-## Submission classes
+The Official leaderboard accepts only project-operated canonical runs. A qualifying run must:
 
-- **Experimental** may be partial, missing tasks or seed evaluations, locally
-  attested, or awaiting independent verification. Every limitation is explicit.
-- **Official candidate** is an internal execution profile, not a public tier.
-  Under v0.5 it contains one Agent invocation and one sealed submission per
-  required task, then all fixed-seed evaluations of each exact snapshot.
-- **Official Build** is published only after the complete Build board is
-  independently reproduced and verified.
-- **Official Reproduce** applies the same trust requirements to the Reproduce
-  task set and is reported separately. It cannot change Build rank.
+1. start from one clean repository commit;
+2. declare the complete Agent, model, harness, and score-relevant parameter configuration;
+3. invoke the Agent once for each of the four release tasks;
+4. evaluate the frozen source once at seed `104729`;
+5. contain four scored rows and an equal-weight Build mean;
+6. pass `pnpm cagb check --run <directory>`;
+7. pass the publication credential-pattern scan;
+8. enter the append-only Git result index through review.
 
-External submissions request Experimental publication. Maintainers may select a
-candidate configuration for a separate controlled Official execution; an
-external run is not relabeled by assertion.
+External runs and partial local runs are useful calibration evidence, but they are not relabeled Official. Maintainers may rerun the same public configuration with the canonical runner.
 
-## v0.5 execution requirements
+## What may be committed
 
-For each included task, a candidate must preserve:
-
-1. exactly one included `submission_id` from one Agent invocation;
-2. the sealed `source_snapshot_hash` produced at the coding boundary;
-3. one evaluation of that submission for each included seed;
-4. a fresh materialization and isolated evaluator environment for every seed;
-5. development usage attached once to the submission;
-6. per-seed score, evidence, timing, exit state, and `run_id`.
-
-An Official board requires all three release seeds (`104729`, `130363`, and
-`155921`) for every task required by that board. All evaluations of one task
-must name the same submission and snapshot. Cherry-picking the best seed,
-substituting another source tree, or invoking the Agent once per seed is not a
-v0.5 Official execution.
-
-## Required public contents
-
-A result PR contains:
-
-1. one new immutable file under `results/publications/`;
-2. the matching append-only discovery entry in `results/index.json`;
-3. content-addressed references for clean source, playable output, public
-   screenshots, evidence, and applicable third-party licenses;
-4. no raw workspace, trajectory, provider response, credential, private vote,
-   or complete trace.
-
-Objects must be uploaded before the manifest is proposed. The publication keeps
-the exact Benchmark release and lock hash, task hashes, model parameters,
-Agent/harness identity, submission and evaluation identities, source snapshot,
-seeds, exit states, verification, and missing telemetry visible.
-
-Use the CLI rather than editing publication JSON:
+Use:
 
 ```bash
-pnpm cagb publish \
-  --series runs/<benchmark-version>/<series-id> \
-  --tier experimental \
-  --board build \
-  --objects <object-root> \
-  --base-url https://play.gamebench.ai.carrick7.com
-
-pnpm cagb verify-publication \
-  --results results \
-  --objects <object-root>
+pnpm cagb publish --run runs/0.6.0/<series-id>
 ```
 
-## Ranking and annotation rules
+This creates one immutable flat result under `results/lite/0.6.0/` and updates `results/lite/index.json`.
 
-- Build is the v0.5 primary leaderboard. Only complete, verified Build machine
-  contract results enter it.
-- Reproduce is independently aggregated and displayed. It is not a Build
-  prerequisite, hidden weight, or tie-break.
-- v0.5 does not publish a new Core ranking.
-- Human playtesting is optional qualitative annotation only. It cannot change
-  machine score, tier, qualification, Build rank, or Reproduce score.
-- Creative quality is outside this benchmark. Future Creative submissions will
-  use a separate benchmark identity and policy.
+Do not commit generated workspaces, source archives, raw provider responses, credentials, private trajectories, complete traces, or temporary logs. Per-task evidence remains in the local run directory unless a later artifact policy explicitly accepts it.
 
-## Review rules
+## Corrections and ranking
 
-- Existing Publication JSON is never edited or deleted.
-- A correction creates a new publication and marks the old index entry
-  `superseded`.
-- A withdrawn result remains addressable with a visible status.
-- Scores from different Benchmark versions are never ranked together.
-- License ambiguity, missing objects, secret-scan failures, inconsistent
-  hashes, source-snapshot mismatch, or misleading configuration metadata block
-  publication.
-- Maintainers may reproduce even an Experimental candidate before acceptance.
+- Different benchmark versions are never ranked together.
+- Existing published result JSON is not edited or overwritten.
+- A correction requires a new canonical run and series ID.
+- Build score is the only 0.6 ranking metric.
+- Human feedback, usage, cost, time, and model reputation are not score inputs or tie-breakers.
+- A secret pattern, identity mismatch, missing task, modified score, or incomplete coverage blocks publication.
 
-## Historical submissions
-
-v0.1-v0.4 publications remain valid under their own release locks. Their fixed
-seeds represented separate fresh Agent developments, and their aggregate
-schemas could include Core. Do not retrofit v0.5 submission/evaluation parentage
-onto those runs, rewrite their manifests, or reassess their Official status
-under v0.5.
-
-See [results and publication](results-and-publication.md) for identity and
-storage details and [methodology](methodology.md) for the scoring contract.
+Official means maintainer-operated and Git-reviewed. It does not assert independent reproduction, network isolation, or container attestation.

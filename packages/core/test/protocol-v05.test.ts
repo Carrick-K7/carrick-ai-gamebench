@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   AnyPublicationManifestSchema,
   AnyReleaseLockSchema,
+  LiteReleaseLockSchema,
   PublicationManifestV1Schema,
   ResultIndexV1Schema,
   ResultIndexV2Schema,
@@ -21,7 +22,13 @@ test("historical release locks remain readable under their original versions", a
   const root = await findRepositoryRoot();
   const releasesRoot = path.join(root, "benchmark", "releases");
   for (const file of (await readdir(releasesRoot)).filter((name) => name.endsWith(".json"))) {
-    const lock = AnyReleaseLockSchema.parse(await readJson(path.join(releasesRoot, file)));
+    const input = await readJson(path.join(releasesRoot, file));
+    if (file === "0.6.0.json") {
+      const lock = LiteReleaseLockSchema.parse(input);
+      assert.equal(lock.benchmark_version, "0.6.0");
+      continue;
+    }
+    const lock = AnyReleaseLockSchema.parse(input);
     assert.equal(`${lock.benchmark_version}.json`, file);
     if (lock.benchmark_version !== "0.5.0") {
       assert.ok(lock.schema_version === 1 || lock.schema_version === 2);

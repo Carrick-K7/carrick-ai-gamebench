@@ -19,7 +19,7 @@ test("leaderboard shortcuts select the latest result-bearing version and canonic
   }
 });
 
-test("current game shortcuts keep v0.5 task identity and canonical versioned URLs", async () => {
+test("current game shortcuts keep current task identity and canonical versioned URLs", async () => {
   const [games, game] = await Promise.all([
     source("../src/pages/games/index.astro"),
     source("../src/pages/games/[id].astro"),

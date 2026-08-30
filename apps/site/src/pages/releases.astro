@@ -26,8 +26,8 @@ const archived = releases.slice(1);
           <div>
             <h3>{current.task_count} <span class="lang-en">game challenges</span><span class="lang-zh">个游戏任务</span></h3>
             <p>
-              <span class="lang-en">{current.tasks.filter((task) => task.track === "build").length} original-game tasks and {current.tasks.filter((task) => task.track === "reproduce").length} recreation tasks.</span>
-              <span class="lang-zh">包含 {current.tasks.filter((task) => task.track === "build").length} 个原创游戏任务和 {current.tasks.filter((task) => task.track === "reproduce").length} 个复刻任务。</span>
+              <span class="lang-en">Four Build tasks, one Agent attempt and one canonical evaluation per task.</span>
+              <span class="lang-zh">四个 Build 任务；每个任务一次 Agent 开发、一次固定条件评测。</span>
             </p>
           </div>
           <div class="actions">

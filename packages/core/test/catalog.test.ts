@@ -3,9 +3,9 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import {
-  createReleaseLock,
-  createReleaseLockV3,
+  LITE_EVALUATION_SEED,
   compareSemanticVersions,
+  createLiteReleaseLock,
   findRepositoryRoot,
   listRetiredTasks,
   listTasks,
@@ -20,45 +20,28 @@ test("semantic releases sort by precedence rather than filename", () => {
   );
 });
 
-test("the active v2 catalog contains the eight Build and Reproduce tasks", async () => {
+test("the active v0.6 catalog contains four complementary Build tasks", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const tasks = await listTasks(repositoryRoot);
-  assert.equal(tasks.length, 8);
-  assert.equal(
-    tasks.filter((task) => task.manifest.track === "build").length,
-    6,
-  );
-  assert.equal(
-    tasks.filter((task) => task.manifest.track === "reproduce").length,
-    2,
-  );
   assert.deepEqual(
-    [...new Set(tasks.map((task) => task.manifest.track))].sort(),
-    ["build", "reproduce"],
+    tasks.map((task) => task.manifest.id),
+    [
+      "build.2048.v2",
+      "build.minesweeper.v2",
+      "build.parking-2d.v2",
+      "build.texas-holdem.v1",
+    ],
   );
-  assert.equal(
-    tasks.every(
-      (task) =>
-        task.manifest.id.endsWith(".v2") &&
-        task.manifest.version === "2.0.0",
-    ),
-    true,
-  );
+  assert.equal(tasks.every((task) => task.manifest.track === "build"), true);
 });
 
-test("every active v2 task exposes and verifies the applied run seed", async () => {
+test("every active task exposes and verifies the canonical run seed", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const tasks = await listTasks(repositoryRoot);
 
   for (const task of tasks) {
-    const runSeedCase = task.suite.cases.find(
-      (testCase) => testCase.id === "run-seed",
-    );
-    assert.equal(
-      runSeedCase?.kind,
-      "browser",
-      `${task.manifest.id} must define a browser run-seed case`,
-    );
+    const runSeedCase = task.suite.cases.find((testCase) => testCase.id === "run-seed");
+    assert.equal(runSeedCase?.kind, "browser", `${task.manifest.id} needs run-seed`);
     if (!runSeedCase || runSeedCase.kind !== "browser") {
       continue;
     }
@@ -70,73 +53,87 @@ test("every active v2 task exposes and verifies the applied run seed", async () 
           step.equals_run_seed === true,
       ),
       true,
-      `${task.manifest.id} must compare snapshot.seed with the run seed`,
     );
     assert.equal(
-      task.suite.cases.some(
-        (testCase) =>
-          testCase.kind === "browser" &&
-          testCase.steps.some(
-            (step) => step.op === "reset" && step.seed === undefined,
-          ),
-      ),
+      runSeedCase.steps.some((step) => step.op === "reset" && step.seed === undefined),
       true,
-      `${task.manifest.id} must contain a reset driven by the active run seed`,
     );
-
     const stateSchema = JSON.parse(
-      await readFile(
-        path.join(task.root, task.manifest.bridge.state_schema),
-        "utf8",
-      ),
-    ) as {
-      required?: string[];
-      properties?: Record<string, { type?: string }>;
-    };
-    assert.equal(
-      stateSchema.required?.includes("seed"),
-      true,
-      `${task.manifest.id} must require snapshot.seed`,
-    );
+      await readFile(path.join(task.root, task.manifest.bridge.state_schema), "utf8"),
+    ) as { required?: string[]; properties?: Record<string, { type?: string }> };
+    assert.equal(stateSchema.required?.includes("seed"), true);
     assert.equal(stateSchema.properties?.seed?.type, "integer");
   }
 });
 
-test("a release lock freezes every task hash", async () => {
+test("Texas Hold'em covers non-reopening, odd pots, and an ordinary seeded hand", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  const lock = createReleaseLock(
-    "0.4.0",
-    await listTasks(repositoryRoot),
+  const poker = (await listTasks(repositoryRoot)).find(
+    (task) => task.manifest.id === "build.texas-holdem.v1",
   );
-  assert.equal(lock.task_count, 8);
-  assert.equal(new Set(lock.tasks.map((task) => task.hash)).size, 8);
-  assert.deepEqual(lock.tracks, ["build", "reproduce"]);
-  assert.equal(lock.scoring.aggregate, 2);
+  assert.ok(poker);
+  const shortAllIn = poker.suite.cases.find((testCase) => testCase.id === "short-allin");
+  const split = poker.suite.cases.find((testCase) => testCase.id === "split-conservation");
+  const runSeed = poker.suite.cases.find((testCase) => testCase.id === "run-seed");
+  assert.equal(shortAllIn?.kind, "browser");
+  assert.equal(split?.kind, "browser");
+  assert.equal(runSeed?.kind, "browser");
+  if (shortAllIn?.kind === "browser") {
+    assert.equal(
+      shortAllIn.steps.some(
+        (step) => step.op === "expect" && step.path === "state.legal.canAllIn" && step.equals === false,
+      ),
+      true,
+    );
+    assert.equal(
+      shortAllIn.steps.some(
+        (step) => step.op === "expect" && step.path === "state.phase" && step.equals === "complete",
+      ),
+      true,
+    );
+  }
+  if (split?.kind === "browser") {
+    assert.equal(
+      split.steps.some(
+        (step) =>
+          step.op === "expect" &&
+          step.path === "state.showdown.payouts.0" &&
+          JSON.stringify(step.equals) === JSON.stringify({ seat: 1, amount: 2, potIndex: 0 }),
+      ),
+      true,
+    );
+  }
+  if (runSeed?.kind === "browser") {
+    assert.equal(
+      runSeed.steps.some(
+        (step) => step.op === "expect" && step.path === "state.scenario" && step.equals === "default",
+      ),
+      true,
+    );
+    assert.equal(
+      runSeed.steps.some(
+        (step) => step.op === "expect" && step.path === "state.deckRemaining" && step.equals === 40,
+      ),
+      true,
+    );
+  }
 });
 
-test("a v0.5 release lock separates one Agent invocation from three evaluations", async () => {
+test("the v0.6 release freezes exactly four task hashes and one seed", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  const lock = createReleaseLockV3(
-    "0.5.0",
-    await listTasks(repositoryRoot),
-  );
-  assert.equal(lock.schema_version, 3);
-  assert.equal(lock.protocols.run_manifest, 3);
-  assert.equal(lock.protocols.publication_manifest, 2);
-  assert.equal(lock.scoring.aggregate, 3);
+  const lock = createLiteReleaseLock("0.6.0", await listTasks(repositoryRoot));
+  assert.equal(lock.tasks.length, 4);
+  assert.equal(new Set(lock.tasks.map((task) => task.hash)).size, 4);
+  assert.equal(lock.evaluation_seed, LITE_EVALUATION_SEED);
+  assert.equal(lock.agent_invocations_per_task, 1);
   assert.equal(lock.scoring.primary_board, "build");
-  assert.equal(lock.official.agent_invocations_per_task, 1);
-  assert.deepEqual(lock.official.evaluation_seeds, [104729, 130363, 155921]);
 });
 
-test("release catalogs resolve active and retired task sources by exact hash", async () => {
+test("retired releases still resolve their exact task sources", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const retired = await listRetiredTasks(repositoryRoot);
-  assert.equal(retired.length, 16);
-  assert.equal(
-    retired.every((task) => task.manifest.id.endsWith(".v1")),
-    true,
-  );
+  assert.equal(retired.length, 21);
+  assert.equal(retired.some((task) => task.manifest.id === "reproduce.radius-raid.v2"), true);
 
   for (const version of [
     "0.1.0",
@@ -145,6 +142,7 @@ test("release catalogs resolve active and retired task sources by exact hash", a
     "0.2.0",
     "0.3.0",
     "0.4.0",
+    "0.5.0",
   ]) {
     const release = JSON.parse(
       await readFile(

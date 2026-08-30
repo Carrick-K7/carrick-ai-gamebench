@@ -2,6 +2,9 @@ import {
   AnyPublicationManifestSchema,
   AnyReleaseLockSchema,
   AnyResultIndexSchema,
+  LiteReleaseLockSchema,
+  LiteResultIndexSchema,
+  LiteSeriesResultSchema,
   compareSemanticVersions,
   findRepositoryRoot,
   listTasks,
@@ -10,17 +13,20 @@ import {
   sha256File,
   type JsonValue,
   type AnyReleaseLock,
+  type LiteReleaseLock,
   type ReleasedTask,
   type AnyResultIndex,
 } from "@carrick/gamebench-core";
-import { readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import {
   normalizePublication,
   normalizeResultEntry,
+  type NormalizedAggregate,
   type NormalizedEvaluation,
   type NormalizedPublication,
   type NormalizedResultEntry,
+  type NormalizedSubmission,
 } from "./normalize.ts";
 
 export const repositoryRoot = await findRepositoryRoot();
@@ -30,13 +36,24 @@ export const siteBuildId =
   process.env.GITHUB_SHA ??
   "local";
 
+type SiteRelease = AnyReleaseLock | (LiteReleaseLock & {
+  task_count: number;
+  tracks: ["build"];
+  protocols: Record<string, never>;
+  official: {
+    agent_invocations_per_task: 1;
+    evaluation_seeds: [number];
+  };
+  tasks: Array<LiteReleaseLock["tasks"][number] & { track: "build" }>;
+});
+
 export interface PublicationRecord {
   entry: NormalizedResultEntry;
   publication: NormalizedPublication;
 }
 
 export interface ReleaseCatalog {
-  release: AnyReleaseLock;
+  release: SiteRelease;
   tasks: ReleasedTask[];
 }
 
@@ -54,17 +71,171 @@ async function readJson(filePath: string): Promise<unknown> {
   return JSON.parse(await readFile(filePath, "utf8"));
 }
 
-let releasesPromise: Promise<AnyReleaseLock[]> | undefined;
+async function exists(filePath: string): Promise<boolean> {
+  try {
+    await access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
-async function loadReleases(): Promise<AnyReleaseLock[]> {
+function normalizeLiteResult(input: unknown): PublicationRecord {
+  const result = LiteSeriesResultSchema.parse(input);
+  if (
+    result.profile !== "official" ||
+    !result.source_tree_clean ||
+    result.git_commit === "unknown" ||
+    result.build.completed !== 4 ||
+    result.build.required !== 4 ||
+    result.build.score === undefined
+  ) {
+    throw new Error(`non-Official lightweight result: ${result.series_id}`);
+  }
+  const publicationId = sha256Canonical(
+    JSON.parse(JSON.stringify(result)) as JsonValue,
+  );
+  const configurationId = sha256Canonical(
+    JSON.parse(JSON.stringify(result.configuration)) as JsonValue,
+  );
+  const evaluations: NormalizedEvaluation[] = result.tasks.map((task, index) => ({
+    run_id: `${result.series_id}-evaluation-${index + 1}`,
+    submission_id: `${result.series_id}-submission-${index + 1}`,
+    input_fingerprint: task.source_hash,
+    task_id: task.task_id,
+    task_version: task.task_version,
+    task_hash: task.task_hash,
+    seed: task.evaluation.seed,
+    included: task.evaluation.status === "scored",
+    network_policy: "full",
+    exit_reason: task.evaluation.status === "infrastructure-error"
+      ? "evaluation-error"
+      : task.agent.exit_reason === "agent-error"
+        ? "agent-error"
+        : task.agent.exit_reason === "timeout-delivery"
+          ? "timeout"
+          : "completed",
+    development_exit_reason: task.agent.exit_reason === "agent-error"
+      ? "agent-error"
+      : task.agent.exit_reason === "timeout-delivery"
+        ? "timeout"
+        : "completed",
+    ...(task.evaluation.score ? { score: task.evaluation.score } : {}),
+    wall_time_ms: task.agent.wall_time_ms,
+    artifacts: [],
+    development_artifacts: [],
+    evaluation_artifacts: [],
+    agent_invocation_index: 1,
+  }));
+  const submissions: NormalizedSubmission[] = result.tasks.map((task, index) => ({
+    submission_id: `${result.series_id}-submission-${index + 1}`,
+    task_id: task.task_id,
+    task_version: task.task_version,
+    task_hash: task.task_hash,
+    included: task.evaluation.status === "scored",
+    agent_invocation_index: 1,
+    development_exit_reason: evaluations[index]!.development_exit_reason,
+    artifacts: [],
+    evaluations: [evaluations[index]!],
+  }));
+  const aggregate: NormalizedAggregate = {
+    schema_version: 3,
+    primary_board: "build",
+    tasks: result.tasks.map((task) => ({
+      task_id: task.task_id,
+      track: "build",
+      submission_id: `${result.series_id}-submission-${result.tasks.indexOf(task) + 1}`,
+      development_count: 1,
+      evaluation_count: task.evaluation.status === "scored" ? 1 : 0,
+      required_evaluation_count: 1,
+      mean: task.evaluation.score?.percent ?? 0,
+      standard_deviation: 0,
+    })),
+    coverage: {
+      build: { completed: result.build.completed, required: result.build.required },
+      reproduce: { completed: 0, required: 0 },
+      core: { completed: 0, required: 0 },
+    },
+    evaluation_coverage: {
+      build: { completed: result.build.completed, required: result.build.required },
+      reproduce: { completed: 0, required: 0 },
+      core: { completed: 0, required: 0 },
+    },
+    leaderboards: result.build.score === undefined ? {} : { build: result.build.score },
+  };
+  const configuration = {
+    configuration_id: configurationId,
+    agent: result.configuration.agent,
+    prompt_language: result.configuration.prompt_language,
+    execution_profile: "official-candidate" as const,
+    environment: {
+      platform: "linux",
+      architecture: "unknown",
+      node: "unknown",
+      runner_protocol: "3" as const,
+      git_commit: result.git_commit,
+      source_tree_dirty: !result.source_tree_clean,
+    },
+  };
+  const publication: NormalizedPublication = {
+    schema_version: 2,
+    publication_id: publicationId,
+    created_at: result.finished_at,
+    tier: "official",
+    board: "build",
+    series_id: result.series_id,
+    benchmark: {
+      version: result.benchmark_version,
+      release_hash: result.release_hash,
+      git_commit: result.git_commit,
+    },
+    configuration,
+    aggregate,
+    submissions,
+    runs: evaluations,
+    review_summaries: [],
+  };
+  const entry: NormalizedResultEntry = {
+    publication_id: publicationId,
+    created_at: result.finished_at,
+    tier: "official",
+    board: "build",
+    status: "active",
+    benchmark_version: result.benchmark_version,
+    series_id: result.series_id,
+    configuration_id: configurationId,
+    agent: result.configuration.agent,
+    aggregate,
+  };
+  return { entry, publication };
+}
+
+let releasesPromise: Promise<SiteRelease[]> | undefined;
+
+async function loadReleases(): Promise<SiteRelease[]> {
   releasesPromise ??= (async () => {
     const releasesRoot = path.join(repositoryRoot, "benchmark", "releases");
     const files = (await readdir(releasesRoot))
       .filter((file) => file.endsWith(".json"));
     const releases = await Promise.all(
-      files.map(async (file) =>
-        AnyReleaseLockSchema.parse(await readJson(path.join(releasesRoot, file))),
-      ),
+      files.map(async (file): Promise<SiteRelease> => {
+        const input = await readJson(path.join(releasesRoot, file));
+        const lite = LiteReleaseLockSchema.safeParse(input);
+        if (lite.success) {
+          return {
+            ...lite.data,
+            task_count: lite.data.tasks.length,
+            tracks: ["build"],
+            protocols: {},
+            official: {
+              agent_invocations_per_task: 1,
+              evaluation_seeds: [lite.data.evaluation_seed],
+            },
+            tasks: lite.data.tasks.map((task) => ({ ...task, track: "build" as const })),
+          };
+        }
+        return AnyReleaseLockSchema.parse(input);
+      }),
     );
     return releases.sort((left, right) =>
       compareSemanticVersions(right.benchmark_version, left.benchmark_version),
@@ -73,7 +244,7 @@ async function loadReleases(): Promise<AnyReleaseLock[]> {
   return releasesPromise;
 }
 
-export async function releaseData(): Promise<AnyReleaseLock[]> {
+export async function releaseData(): Promise<SiteRelease[]> {
   return loadReleases();
 }
 
@@ -117,7 +288,7 @@ export async function resultData(): Promise<{
     releases.map((release) => [release.benchmark_version, release]),
   );
 
-  const records = await Promise.all(
+  const legacyRecords = await Promise.all(
     index.entries.map(async (rawEntry) => {
       const rawPublication = AnyPublicationManifestSchema.parse(
         await readJson(
@@ -203,6 +374,48 @@ export async function resultData(): Promise<{
       return { entry, publication };
     }),
   );
+
+  const liteIndexPath = path.join(resultsRoot, "lite", "index.json");
+  const liteIndex = LiteResultIndexSchema.parse(
+    await exists(liteIndexPath)
+      ? await readJson(liteIndexPath)
+      : { schema_version: 1, results: [] },
+  );
+  const liteRecords = await Promise.all(liteIndex.results.map(async (item) => {
+    const expectedPath = `results/lite/${item.benchmark_version}/${item.series_id}.json`;
+    if (item.path !== expectedPath) {
+      throw new Error(`unsafe lightweight result path: ${item.path}`);
+    }
+    const input = LiteSeriesResultSchema.parse(
+      await readJson(path.join(resultsRoot, item.path.slice("results/".length))),
+    );
+    const release = releaseByVersion.get(item.benchmark_version);
+    const lockPath = path.join(
+      repositoryRoot,
+      "benchmark",
+      "releases",
+      `${item.benchmark_version}.json`,
+    );
+    if (
+      !release ||
+      input.release_hash !== `sha256:${await sha256File(lockPath)}` ||
+      input.tasks.some((row) => {
+        const task = release.tasks.find((candidate) => candidate.id === row.task_id);
+        return !task || task.version !== row.task_version || task.hash !== row.task_hash;
+      })
+    ) {
+      throw new Error(`lightweight result is outside its release: ${item.series_id}`);
+    }
+    const record = normalizeLiteResult(input);
+    if (
+      record.entry.benchmark_version !== item.benchmark_version ||
+      record.entry.series_id !== item.series_id
+    ) {
+      throw new Error(`lightweight result index mismatch: ${item.series_id}`);
+    }
+    return record;
+  }));
+  const records = [...legacyRecords, ...liteRecords];
 
   const byId = new Map(
     records.map((record) => [record.entry.publication_id, record.entry]),

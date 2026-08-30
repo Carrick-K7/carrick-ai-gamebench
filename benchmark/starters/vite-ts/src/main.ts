@@ -49,6 +49,7 @@ const bridge: CarrickGameBenchBridge = {
       status,
       tick,
       score: 0,
+      seed,
       state: { seed, placeholder: true },
       events: [...events],
     };

@@ -12,6 +12,7 @@ interface Props {
 
 const { version, records, tier, board = "build" } = Astro.props;
 const buildPrimary = compareSemanticVersions(version, "0.5.0") >= 0;
+const lightweight = compareSemanticVersions(version, "0.6.0") >= 0;
 const entries = records
   .filter(
     (record) =>
@@ -36,7 +37,9 @@ const entries = records
         : `No stage result is available for v${version} yet.`
       }</strong>
       <span class="muted">{tier === "official"
-        ? "A complete three-condition, independently rebuilt result is required."
+        ? lightweight
+          ? "All four tasks must complete one canonical evaluation and pass the integrity check."
+          : "A complete three-condition, independently rebuilt result is required."
         : "No active stage result has been published for this version."
       }</span>
     </div>
@@ -47,7 +50,9 @@ const entries = records
           <th>#</th>
           <th>Model / configuration</th>
           <th>Agent / harness</th>
-          {buildPrimary ? (
+          {lightweight ? (
+            <th>Build</th>
+          ) : buildPrimary ? (
             board === "reproduce"
               ? <><th>Reproduce</th><th>Build</th><th>Legacy Core</th></>
               : <><th>Build</th><th>Reproduce</th><th>Legacy Core</th></>
@@ -72,7 +77,9 @@ const entries = records
               {entry.agent.id}
               <div class="muted">{entry.agent.harness}</div>
             </td>
-            {buildPrimary ? (
+            {lightweight ? (
+              <td class="score">{score(entry.aggregate.leaderboards.build)}</td>
+            ) : buildPrimary ? (
               board === "reproduce" ? (
                 <>
                   <td class="score">{score(entry.aggregate.leaderboards.reproduce)}</td>

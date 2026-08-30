@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["status", "tick", "score", "seed", "state", "events"],
+  "properties": {
+    "status": { "enum": ["menu", "running", "won", "lost"] },
+    "tick": { "type": "integer", "minimum": 0 },
+    "score": { "type": "integer", "minimum": 0 },
+    "seed": { "type": "integer" },
+    "state": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "scenario", "handNumber", "phase", "street", "dealerSeat",
+        "smallBlindSeat", "bigBlindSeat", "actionSeat", "smallBlind",
+        "bigBlind", "currentBet", "minRaiseIncrement", "potTotal",
+        "totalChips", "board", "deckRemaining", "players", "pots", "legal",
+        "actionLog", "showdown", "rankingSamples"
+      ],
+      "properties": {
+        "scenario": { "type": "string" },
+        "handNumber": { "type": "integer", "minimum": 0 },
+        "phase": { "enum": ["menu", "betting", "showdown", "complete"] },
+        "street": { "enum": ["preflop", "flop", "turn", "river"] },
+        "dealerSeat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "smallBlindSeat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "bigBlindSeat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "actionSeat": {
+          "oneOf": [
+            { "type": "integer", "minimum": 0, "maximum": 5 },
+            { "type": "null" }
+          ]
+        },
+        "smallBlind": { "type": "integer", "minimum": 1 },
+        "bigBlind": { "type": "integer", "minimum": 2 },
+        "currentBet": { "type": "integer", "minimum": 0 },
+        "minRaiseIncrement": { "type": "integer", "minimum": 1 },
+        "potTotal": { "type": "integer", "minimum": 0 },
+        "totalChips": { "type": "integer", "minimum": 0 },
+        "board": { "type": "array", "maxItems": 5, "items": { "$ref": "#/$defs/card" } },
+        "deckRemaining": { "type": "integer", "minimum": 0, "maximum": 52 },
+        "players": {
+          "type": "array",
+          "minItems": 6,
+          "maxItems": 6,
+          "items": { "$ref": "#/$defs/player" }
+        },
+        "pots": { "type": "array", "items": { "$ref": "#/$defs/pot" } },
+        "legal": { "$ref": "#/$defs/legal" },
+        "actionLog": { "type": "array", "items": { "$ref": "#/$defs/action" } },
+        "showdown": { "$ref": "#/$defs/showdown" },
+        "rankingSamples": { "type": "array", "items": { "$ref": "#/$defs/rankingSample" } }
+      }
+    },
+    "events": { "type": "array", "items": { "$ref": "#/$defs/event" } }
+  },
+  "$defs": {
+    "card": { "type": "string", "pattern": "^[2-9TJQKA][cdhs]$" },
+    "player": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seat", "id", "name", "isHuman", "stack", "holeCards", "status",
+        "streetBet", "handContribution", "actedSinceFullRaise"
+      ],
+      "properties": {
+        "seat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "id": { "enum": ["human", "bot-1", "bot-2", "bot-3", "bot-4", "bot-5"] },
+        "name": { "type": "string" },
+        "isHuman": { "type": "boolean" },
+        "stack": { "type": "integer", "minimum": 0 },
+        "holeCards": { "type": "array", "maxItems": 2, "items": { "$ref": "#/$defs/card" } },
+        "status": { "enum": ["active", "folded", "all-in", "out"] },
+        "streetBet": { "type": "integer", "minimum": 0 },
+        "handContribution": { "type": "integer", "minimum": 0 },
+        "actedSinceFullRaise": { "type": "boolean" }
+      }
+    },
+    "pot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["amount", "eligibleSeats"],
+      "properties": {
+        "amount": { "type": "integer", "minimum": 0 },
+        "eligibleSeats": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 0, "maximum": 5 },
+          "uniqueItems": true
+        }
+      }
+    },
+    "legal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["canFold", "canCheck", "callAmount", "canRaise", "minRaiseTo", "maxRaiseTo", "canAllIn"],
+      "properties": {
+        "canFold": { "type": "boolean" },
+        "canCheck": { "type": "boolean" },
+        "callAmount": { "type": "integer", "minimum": 0 },
+        "canRaise": { "type": "boolean" },
+        "minRaiseTo": { "type": "integer", "minimum": 0 },
+        "maxRaiseTo": { "type": "integer", "minimum": 0 },
+        "canAllIn": { "type": "boolean" }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seq", "seat", "street", "kind", "amount", "to"],
+      "properties": {
+        "seq": { "type": "integer", "minimum": 1 },
+        "seat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "street": { "enum": ["preflop", "flop", "turn", "river"] },
+        "kind": { "enum": ["small-blind", "big-blind", "fold", "check", "call", "raise", "all-in", "refund"] },
+        "amount": { "type": "integer", "minimum": 0 },
+        "to": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "category": {
+      "enum": ["high-card", "one-pair", "two-pair", "three-of-a-kind", "straight", "flush", "full-house", "four-of-a-kind", "straight-flush"]
+    },
+    "rank": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seat", "category", "rankVector", "bestFive"],
+      "properties": {
+        "seat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "category": { "$ref": "#/$defs/category" },
+        "rankVector": { "type": "array", "minItems": 2, "items": { "type": "integer", "minimum": 0, "maximum": 14 } },
+        "bestFive": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/card" } }
+      }
+    },
+    "payout": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seat", "amount", "potIndex"],
+      "properties": {
+        "seat": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "amount": { "type": "integer", "minimum": 0 },
+        "potIndex": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "showdown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["complete", "ranks", "payouts"],
+      "properties": {
+        "complete": { "type": "boolean" },
+        "ranks": { "type": "array", "items": { "$ref": "#/$defs/rank" } },
+        "payouts": { "type": "array", "items": { "$ref": "#/$defs/payout" } }
+      }
+    },
+    "rankingSample": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "cards", "category", "rankVector", "bestFive"],
+      "properties": {
+        "id": { "type": "string" },
+        "cards": { "type": "array", "minItems": 7, "maxItems": 7, "items": { "$ref": "#/$defs/card" } },
+        "category": { "$ref": "#/$defs/category" },
+        "rankVector": { "type": "array", "minItems": 2, "items": { "type": "integer", "minimum": 0, "maximum": 14 } },
+        "bestFive": { "type": "array", "minItems": 5, "maxItems": 5, "items": { "$ref": "#/$defs/card" } }
+      }
+    },
+    "event": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["seq", "type"],
+      "properties": {
+        "seq": { "type": "integer", "minimum": 1 },
+        "type": { "type": "string" }
+      }
+    }
+  }
+}

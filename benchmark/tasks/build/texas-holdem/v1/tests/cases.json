@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "cases": [
+    {
+      "id": "build",
+      "kind": "build",
+      "description": "The six-player table builds and serves."
+    },
+    {
+      "id": "blinds-order",
+      "kind": "browser",
+      "description": "A six-player hand posts blinds and starts preflop left of the big blind.",
+      "steps": [
+        { "op": "reset", "scenario": "blinds-order", "seed": 104729 },
+        { "op": "expect", "path": "state.players.0.stack", "equals": 200 },
+        { "op": "expect", "path": "state.players.4.stack", "equals": 199 },
+        { "op": "expect", "path": "state.players.5.stack", "equals": 198 },
+        { "op": "expect", "path": "state.dealerSeat", "equals": 3 },
+        { "op": "expect", "path": "state.smallBlindSeat", "equals": 4 },
+        { "op": "expect", "path": "state.bigBlindSeat", "equals": 5 },
+        { "op": "expect", "path": "state.actionSeat", "equals": 0 },
+        { "op": "expect", "path": "state.potTotal", "equals": 3 },
+        { "op": "expect", "path": "state.currentBet", "equals": 2 }
+      ]
+    },
+    {
+      "id": "betting-round",
+      "kind": "browser",
+      "description": "Call and minimum full-raise values update the betting round correctly.",
+      "steps": [
+        { "op": "reset", "scenario": "facing-raise", "seed": 104729 },
+        { "op": "expect", "path": "state.legal.callAmount", "equals": 18 },
+        { "op": "expect", "path": "state.legal.minRaiseTo", "equals": 38 },
+        { "op": "expect", "path": "state.legal.maxRaiseTo", "equals": 200 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "raise", "to": 38 } },
+        { "op": "expect", "path": "state.players.0.stack", "equals": 162 },
+        { "op": "expect", "path": "state.players.0.streetBet", "equals": 38 },
+        { "op": "expect", "path": "state.currentBet", "equals": 38 },
+        { "op": "expect", "path": "state.minRaiseIncrement", "equals": 18 },
+        { "op": "expect", "path": "state.actionSeat", "equals": 1 }
+      ]
+    },
+    {
+      "id": "short-allin",
+      "kind": "browser",
+      "description": "A short all-in raises the price without reopening a full raise.",
+      "steps": [
+        { "op": "reset", "scenario": "short-allin", "seed": 104729 },
+        { "op": "advance", "ms": 250 },
+        { "op": "expect", "path": "state.currentBet", "equals": 25 },
+        { "op": "expect", "path": "state.minRaiseIncrement", "equals": 10 },
+        { "op": "expect", "path": "state.actionSeat", "equals": 0 },
+        { "op": "expect", "path": "state.legal.callAmount", "equals": 5 },
+        { "op": "expect", "path": "state.legal.canRaise", "equals": false },
+        { "op": "expect", "path": "state.legal.canAllIn", "equals": false },
+        { "op": "act", "action": "player-action", "payload": { "kind": "call" } },
+        { "op": "expect", "path": "state.players.0.streetBet", "equals": 0 },
+        { "op": "expect", "path": "state.phase", "equals": "complete" },
+        { "op": "expect", "path": "state.showdown.complete", "equals": true },
+        { "op": "expect", "path": "state.totalChips", "equals": 1200 }
+      ]
+    },
+    {
+      "id": "side-pots",
+      "kind": "browser",
+      "description": "Three unequal all-ins create eligible pots, refund excess, and pay the correct winners.",
+      "steps": [
+        { "op": "reset", "scenario": "three-way-side-pot", "seed": 104729 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "all-in" } },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "state.phase", "equals": "complete" },
+        { "op": "expect", "path": "state.showdown.payouts.0", "equals": { "seat": 0, "amount": 150, "potIndex": 0 } },
+        { "op": "expect", "path": "state.showdown.payouts.1", "equals": { "seat": 1, "amount": 100, "potIndex": 1 } },
+        { "op": "expect", "path": "state.players.0.stack", "equals": 150 },
+        { "op": "expect", "path": "state.players.1.stack", "equals": 100 },
+        { "op": "expect", "path": "state.players.2.stack", "equals": 100 },
+        { "op": "expect", "path": "state.actionLog.3", "equals": { "seq": 4, "seat": 2, "street": "river", "kind": "refund", "amount": 100, "to": 200 } },
+        { "op": "expect", "path": "state.potTotal", "equals": 0 },
+        { "op": "expect", "path": "state.totalChips", "equals": 950 }
+      ]
+    },
+    {
+      "id": "hand-ranking",
+      "kind": "browser",
+      "description": "The evaluator distinguishes all standard categories and the wheel straight.",
+      "steps": [
+        { "op": "reset", "scenario": "ranking", "seed": 104729 },
+        { "op": "expect", "path": "state.rankingSamples.0.id", "equals": "high-card" },
+        { "op": "expect", "path": "state.rankingSamples.0.rankVector", "equals": [0, 14, 11, 9, 7, 4] },
+        { "op": "expect", "path": "state.rankingSamples.1.rankVector", "equals": [1, 14, 13, 12, 9] },
+        { "op": "expect", "path": "state.rankingSamples.2.rankVector", "equals": [2, 14, 13, 9] },
+        { "op": "expect", "path": "state.rankingSamples.3.rankVector", "equals": [3, 14, 13, 12] },
+        { "op": "expect", "path": "state.rankingSamples.4.rankVector", "equals": [4, 5] },
+        { "op": "expect", "path": "state.rankingSamples.5.rankVector", "equals": [5, 14, 11, 9, 4, 2] },
+        { "op": "expect", "path": "state.rankingSamples.6.rankVector", "equals": [6, 14, 13] },
+        { "op": "expect", "path": "state.rankingSamples.7.rankVector", "equals": [7, 14, 13] },
+        { "op": "expect", "path": "state.rankingSamples.8.rankVector", "equals": [8, 13] }
+      ]
+    },
+    {
+      "id": "split-conservation",
+      "kind": "browser",
+      "description": "A tied odd pot with a folded contributor awards the odd chip clockwise without losing chips.",
+      "steps": [
+        { "op": "reset", "scenario": "split-pot", "seed": 104729 },
+        { "op": "advance", "ms": 250 },
+        { "op": "expect", "path": "state.phase", "equals": "complete" },
+        { "op": "expect", "path": "state.showdown.payouts.0", "equals": { "seat": 1, "amount": 2, "potIndex": 0 } },
+        { "op": "expect", "path": "state.showdown.payouts.1", "equals": { "seat": 3, "amount": 1, "potIndex": 0 } },
+        { "op": "expect", "path": "state.players.1.stack", "equals": 201 },
+        { "op": "expect", "path": "state.players.2.stack", "equals": 199 },
+        { "op": "expect", "path": "state.players.3.stack", "equals": 200 },
+        { "op": "expect", "path": "state.potTotal", "equals": 0 },
+        { "op": "expect", "path": "state.totalChips", "equals": 1200 }
+      ]
+    },
+    {
+      "id": "new-hand",
+      "kind": "browser",
+      "description": "A completed hand advances the button and posts the next blinds.",
+      "steps": [
+        { "op": "reset", "scenario": "fold-win", "seed": 104729 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "fold" } },
+        { "op": "act", "action": "new-hand" },
+        { "op": "expect", "path": "state.dealerSeat", "equals": 0 },
+        { "op": "expect", "path": "state.smallBlindSeat", "equals": 1 },
+        { "op": "expect", "path": "state.bigBlindSeat", "equals": 2 },
+        { "op": "expect", "path": "state.players.1.stack", "equals": 209 },
+        { "op": "expect", "path": "state.players.2.stack", "equals": 198 },
+        { "op": "expect", "path": "state.potTotal", "equals": 3 },
+        { "op": "expect", "path": "state.totalChips", "equals": 1200 }
+      ]
+    },
+    {
+      "id": "pointer-input",
+      "kind": "browser",
+      "description": "A real Check button click reaches the same reducer as a bridge action.",
+      "steps": [
+        { "op": "reset", "scenario": "check-input", "seed": 104729 },
+        { "op": "click", "selector": "[data-action=\"check\"]" },
+        { "op": "expect", "path": "state.actionLog.0.seat", "equals": 0 },
+        { "op": "expect", "path": "state.actionLog.0.kind", "equals": "check" },
+        { "op": "expect", "path": "state.actionSeat", "equals": 1 }
+      ]
+    },
+    {
+      "id": "deterministic-bots",
+      "kind": "browser",
+      "description": "Bot decisions advance one at a time and remain deterministic for a fixed seed.",
+      "steps": [
+        { "op": "reset", "scenario": "bot-cadence", "seed": 104729 },
+        { "op": "advance", "ms": 750 },
+        { "op": "expect", "path": "state.actionLog.0", "equals": { "seq": 1, "seat": 1, "street": "preflop", "kind": "call", "amount": 2, "to": 2 } },
+        { "op": "expect", "path": "state.actionLog.1", "equals": { "seq": 2, "seat": 2, "street": "preflop", "kind": "fold", "amount": 0, "to": 0 } },
+        { "op": "expect", "path": "state.actionLog.2", "equals": { "seq": 3, "seat": 3, "street": "preflop", "kind": "raise", "amount": 6, "to": 6 } },
+        { "op": "expect", "path": "tick", "equals": 750 }
+      ]
+    },
+    {
+      "id": "run-seed",
+      "kind": "browser",
+      "description": "An ordinary canonical reset starts a complete seeded six-seat hand rather than a named fixture.",
+      "steps": [
+        { "op": "reset" },
+        { "op": "expect", "path": "seed", "equals_run_seed": true },
+        { "op": "expect", "path": "state.scenario", "equals": "default" },
+        { "op": "expect", "path": "state.phase", "equals": "betting" },
+        { "op": "expect", "path": "state.dealerSeat", "equals": 5 },
+        { "op": "expect", "path": "state.smallBlindSeat", "equals": 0 },
+        { "op": "expect", "path": "state.bigBlindSeat", "equals": 1 },
+        { "op": "expect", "path": "state.actionSeat", "equals": 2 },
+        { "op": "expect", "path": "state.players.0.stack", "equals": 199 },
+        { "op": "expect", "path": "state.players.1.stack", "equals": 198 },
+        { "op": "expect", "path": "state.potTotal", "equals": 3 },
+        { "op": "expect", "path": "state.deckRemaining", "equals": 40 },
+        { "op": "advance", "ms": 1000 },
+        { "op": "expect", "path": "state.actionSeat", "equals": 0 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "call" } },
+        { "op": "advance", "ms": 1250 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "call" } },
+        { "op": "expect", "path": "state.street", "equals": "flop" },
+        { "op": "act", "action": "player-action", "payload": { "kind": "check" } },
+        { "op": "advance", "ms": 1000 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "call" } },
+        { "op": "advance", "ms": 500 },
+        { "op": "expect", "path": "state.street", "equals": "turn" },
+        { "op": "act", "action": "player-action", "payload": { "kind": "check" } },
+        { "op": "advance", "ms": 1000 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "call" } },
+        { "op": "advance", "ms": 500 },
+        { "op": "expect", "path": "state.street", "equals": "river" },
+        { "op": "act", "action": "player-action", "payload": { "kind": "check" } },
+        { "op": "advance", "ms": 1000 },
+        { "op": "act", "action": "player-action", "payload": { "kind": "call" } },
+        { "op": "advance", "ms": 500 },
+        { "op": "expect", "path": "state.phase", "equals": "complete" },
+        { "op": "expect", "path": "state.board", "equals": ["2c", "3c", "3s", "5s", "6h"] },
+        { "op": "expect", "path": "state.players.0.stack", "equals": 258 },
+        { "op": "expect", "path": "state.showdown.payouts.2", "equals": { "seat": 0, "amount": 8, "potIndex": 2 } },
+        { "op": "expect", "path": "state.totalChips", "equals": 1200 }
+      ]
+    }
+  ]
+}

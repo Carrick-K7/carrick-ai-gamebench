@@ -22,10 +22,3 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
-
-  evaluator-container:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v6
-      - run: docker build -f docker/evaluator.Dockerfile -t carrick-ai-gamebench:ci .

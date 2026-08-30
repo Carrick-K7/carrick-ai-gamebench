@@ -1,87 +1,61 @@
 # Task authoring
 
-## Minimal task
-
-Create a directory below `benchmark/tasks/<track>/...` containing:
-
-```text
-task.yml
-prompt.en.md
-prompt.zh.md
-state.schema.json
-tests/cases.json
-```
-
-Reproduce tasks also require `THIRD_PARTY.yml`, a `reference/` capture page,
-and licensed files under `references/`.
-
-The runner copies the declared `bridge.state_schema`, complete public case
-suite, and scored task manifest into every fresh submission workspace. Agent
-harnesses can read their absolute locations from `CAGB_STATE_SCHEMA_PATH`,
-`CAGB_PUBLIC_TESTS_PATH`, and `CAGB_TASK_MANIFEST_PATH`. The active execution
-seed is available as `CAGB_SEED`.
-
-Place the complete package at:
+GameBench 0.6 discovers active tasks below `benchmark/tasks/build/`. A task package contains:
 
 ```text
 benchmark/tasks/build/<game-slug>/vN/
-benchmark/tasks/reproduce/<game-slug>/vN/
+  task.yml
+  prompt.en.md
+  prompt.zh.md
+  state.schema.json
+  tests/cases.json
 ```
 
-The evaluator discovers task packages recursively. New game genres therefore
-do not require a central switch statement or evaluator registration.
+The runner copies the complete public contract into each fresh Agent workspace. Harnesses receive:
 
-Run:
+- `CAGB_PROMPT_PATH`;
+- `CAGB_STATE_SCHEMA_PATH`;
+- `CAGB_PUBLIC_TESTS_PATH`;
+- `CAGB_TASK_MANIFEST_PATH`.
 
-```bash
-pnpm build
-pnpm cagb validate-task --all
-```
+Evaluation seed is deliberately not a development identity. Games must support the bridge reset contract for the seed supplied after source freezing.
 
 ## Manifest rules
 
-- IDs are stable and end in `.vN`, where `N` equals the semantic version's
-  major number.
+- IDs are stable and begin with `build.`.
+- IDs end in `.vN`, where `N` equals the semantic task major.
 - English is canonical and Chinese is a semantic mirror.
-- Points total exactly 100.
-- Each declared test references a case in `tests/cases.json`.
-- Reproduce manifests pin an immutable 40-character upstream commit and
-  declare its license.
-- All referenced files are included in the task hash.
+- Atomic points total exactly 100.
+- Every declared scored test references a case in `tests/cases.json`.
+- Every task includes a `run-seed` browser case that resets with the active seed and checks `snapshot.seed`.
+- Paths are relative, portable, and cannot escape the package.
+- Every task file contributes to the content hash.
 
-Any change that can affect scores requires a new task major version and a new
-benchmark release. See [versioning](versioning.md).
+Unknown fields, duplicate tests, invalid paths, score totals other than 100, and schema-invalid cases are rejected.
 
-## Case operations
+## Browser cases
 
-Browser cases support:
+Cases may use:
 
-- `reset`, `act`, and `advance` through the bridge;
-- real `key` and `click` interaction;
-- snapshot `expect` with exact, one-of, numeric, approximate, or active-run-seed
-  comparison;
-- deterministic `screenshot` with a normalized `max_diff_ratio`.
+- bridge `reset`, `act`, and `advance` operations;
+- native keyboard and pointer operations;
+- state expectations with exact, one-of, numeric, approximate, or active-seed comparisons;
+- deterministic screenshot comparison when visual pixels are an explicit contract.
 
-A `reset` step without an explicit seed receives the active run seed. Use an
-explicit case seed only when a fixed reference capture or deterministic
-fixture requires it. Active v2 tasks require `snapshot().seed` and include a
-public `equals_run_seed` assertion; do not merely record the seed in run
-metadata.
+Use explicit fixture seeds for deterministic scenarios inside the one canonical evaluation. Keep each case focused enough that a failure loses only the points associated with that behavior.
 
-## Quality gate for a new task
+Build, preview, bridge readiness, and initial state validity are hard gates. Complex tasks should otherwise preserve granular partial credit. Texas Hold'em, for example, separates betting order, action legality, hand ranking, all-ins, side pots, split pots, and conservation checks.
 
-Before release:
+## Quality gate
 
-1. write an implementation that passes every case;
-2. create focused mutants so every atomic test is observed failing;
-3. run twice in clean evaluator environments and compare the test vector;
-4. check real input and bridge state reach the same transition;
-5. audit every third-party asset and record its provenance;
-6. verify screenshot tolerances on the published Chromium image against the
-   reference, a blank implementation, and representative deficient mutants;
-7. freeze prompt, fixtures, tests, and image digest together.
+Before changing the release lock:
 
-Released active tasks live under `benchmark/tasks`. When a new major replaces
-one, preserve the prior files under `benchmark/retired/<benchmark-version>/`
-so the current branch remains readable without letting the catalog discover
-both versions.
+1. write a reference fixture that passes every case;
+2. create focused deficient implementations or mutants that demonstrate each atomic test can fail;
+3. run the complete suite repeatedly and compare test vectors;
+4. check that native UI input and bridge actions reach equivalent state transitions;
+5. test boundary states, not only a happy-path game;
+6. run `pnpm cagb check`, `pnpm check`, and `pnpm cagb doctor`;
+7. bump the task major and benchmark minor for any score-affecting change.
+
+When a task is replaced, move its exact old package under `benchmark/retired/<release>/` so active discovery sees only the new baseline.

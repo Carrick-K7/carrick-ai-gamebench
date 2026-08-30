@@ -1,0 +1,32 @@
+schema_version: 1
+id: build.texas-holdem.v1
+version: 1.0.0
+title: { en: "Six-player Texas Hold'em", zh: "六人德州扑克" }
+track: build
+level: 3
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+starter: vite-ts
+budget_seconds: 3600
+network_policy: full
+runtime:
+  node: "22"
+  package_manager: pnpm
+  port: 4173
+  viewport: [1280, 720]
+  device_scale_factor: 1
+test_suite: tests/cases.json
+bridge:
+  version: "1"
+  state_schema: state.schema.json
+tests:
+  - { id: build, category: build, points: 5, case: build }
+  - { id: blinds-order, category: mechanics, points: 10, case: blinds-order }
+  - { id: betting-round, category: mechanics, points: 10, case: betting-round }
+  - { id: short-allin, category: mechanics, points: 10, case: short-allin }
+  - { id: side-pots, category: mechanics, points: 15, case: side-pots }
+  - { id: hand-ranking, category: mechanics, points: 15, case: hand-ranking }
+  - { id: split-conservation, category: state, points: 10, case: split-conservation }
+  - { id: new-hand, category: state, points: 5, case: new-hand }
+  - { id: run-seed, category: state, points: 5, case: run-seed }
+  - { id: pointer-input, category: input, points: 10, case: pointer-input }
+  - { id: deterministic-bots, category: stability, points: 5, case: deterministic-bots }
