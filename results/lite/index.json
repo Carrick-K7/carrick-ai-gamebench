@@ -20,6 +20,11 @@
       "benchmark_version": "0.6.0",
       "series_id": "01M197VGHJ2R5P5GVG8E3QH1ZS",
       "path": "results/lite/0.6.0/01M197VGHJ2R5P5GVG8E3QH1ZS.json"
+    },
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M1C3ECWM6VSC1ZBXQBW32PET",
+      "path": "results/lite/0.6.0/01M1C3ECWM6VSC1ZBXQBW32PET.json"
     }
   ]
 }
