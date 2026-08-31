@@ -164,6 +164,12 @@ The planned four-model campaign is a **system comparison**, not a pure causal co
 
 Execution order is explicitly fixed before results exist. It is a preregistered order, not a claim of a reproducible randomization algorithm. The published interpretation remains one observed canonical run per system.
 
+### 4.2 Single-system measurement
+
+A later model may be measured without mutating or rerunning an already published Campaign. Schema v1 represents this as exactly one cell with `comparison.vary: []`. The historical `comparison` property name is retained so existing plan hashes and published bindings remain immutable. A one-cell Campaign is an **Official measurement**, not an internally controlled comparison: it may appear on the flat same-release leaderboard, but cross-Campaign differences include time, provider, and harness-environment effects and must not be described as causal model deltas.
+
+An empty `vary` set is invalid for two or more cells, and a non-empty `vary` set is invalid for a one-cell Campaign. All other preregistration, single-shot, result-binding, and atomic-publication rules are unchanged.
+
 ## 5. Series state machine
 
 ```text
@@ -207,7 +213,7 @@ The Official sequence is:
 
 Batch publication acquires one exclusive index lock, re-reads the index after lock acquisition, validates every cell, copies all missing result files, and atomically renames one fully updated index. An unindexed result file left by an interrupted prior attempt is an orphan and may be removed only after its bytes are compared with the planned source result. An indexed missing result is a hard integrity failure, never auto-repaired.
 
-Direct single-series publication rejects campaign-affiliated results; they pass through campaign batch publication so partial comparison publication cannot be mistaken for a complete campaign.
+Direct single-series publication rejects campaign-affiliated results; even a one-cell measurement passes through Campaign batch publication so the same completeness and atomic-index path applies uniformly.
 
 ## 7. Machine-enforceable invariants
 
@@ -217,7 +223,7 @@ Direct single-series publication rejects campaign-affiliated results; they pass 
 4. Every tracked adapter exists in Git and its content hash matches the plan.
 5. The plan contains no credential-like values, absolute host paths, or escaping relative paths.
 6. A campaign result's series ID, configuration, prompt language, plan hash, and execution-spec hash match exactly one planned cell.
-7. All campaign cells share every execution property outside the declared `vary` set, and every declared varying property differs in at least two cells.
+7. A one-cell Official measurement has `vary: []`; a multi-cell comparison declares at least one varying property. Multi-cell Campaigns share every execution property outside that set, and every declared varying property differs in at least two cells.
 8. Every campaign result records the same clean Git commit and exact release hash.
 9. A preallocated series directory is created once and never reused; no development retry exists.
 10. A published campaign has exactly one complete Official result per planned cell and no extra cell.

@@ -19,6 +19,9 @@ machine-readable lock under `benchmark/releases/`.
 - Added enforced preregistered Campaign Plans, tracked Pi invocation adapters,
   preallocated single-use series IDs, schema-v2 Campaign bindings, durable series
   phase markers, and locked atomic batch publication.
+- Extended Campaign schema v1 compatibly to support a one-cell Official
+  measurement (`vary: []`) without changing historical plan hashes; multi-cell
+  Campaigns remain explicitly comparative.
 - Removed the Docker evaluator, independent verifier, Reproduce default catalog,
   legacy publisher package, and legacy evaluator CLI workflow.
 - Updated the static site and documentation around the 0.6 trust boundary:

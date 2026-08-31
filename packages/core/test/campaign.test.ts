@@ -95,6 +95,28 @@ test("a valid four-cell system comparison plan is accepted", () => {
   );
 });
 
+test("a one-cell Official measurement uses an empty vary set", () => {
+  const measurement = validPlan();
+  measurement.comparison.vary = [];
+  measurement.cells = [
+    cell({
+      cell_id: "glm-5.3-flash-302",
+      provider: "ai-302",
+      model: "glm-5.3-flash",
+      parameters: { thinking: "off" },
+    }),
+  ];
+  assert.equal(CampaignPlanSchema.safeParse(measurement).success, true);
+
+  const falselyComparative = structuredClone(measurement);
+  falselyComparative.comparison.vary = ["model"];
+  assert.equal(CampaignPlanSchema.safeParse(falselyComparative).success, false);
+
+  const emptyMultiCell = validPlan();
+  emptyMultiCell.comparison.vary = [];
+  assert.equal(CampaignPlanSchema.safeParse(emptyMultiCell).success, false);
+});
+
 test("duplicate cell_id and duplicate series_id are rejected", () => {
   const duplicateCell = validPlan();
   duplicateCell.cells[1]!.cell_id = duplicateCell.cells[0]!.cell_id;
@@ -180,6 +202,7 @@ test("campaign plans reject enabled isolation and credential parameters", () => 
   const credential = validPlan();
   credential.cells[0]!.parameters = { thinking: "medium", api_key: "not-allowed" };
   assert.equal(CampaignPlanSchema.safeParse(credential).success, false);
+
 });
 
 test("a declared vary property that does not differ is rejected", () => {

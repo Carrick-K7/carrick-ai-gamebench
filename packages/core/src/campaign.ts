@@ -130,7 +130,9 @@ export const CampaignComparisonSchema = z.strictObject({
   unit: z.literal("system"),
   primary_endpoint: z.literal("build.score"),
   comparability: z.literal("within-release-only"),
-  vary: z.array(CampaignVaryKeySchema).min(1),
+  // An empty vary set is reserved for a one-cell Official measurement. A
+  // multi-cell Campaign remains a comparison and must declare what varies.
+  vary: z.array(CampaignVaryKeySchema),
   order_policy: z.literal("preregistered"),
 });
 export type CampaignComparison = z.infer<typeof CampaignComparisonSchema>;
@@ -169,9 +171,24 @@ export const CampaignPlanV1Schema = z
     benchmark_version: SemverSchema,
     release_hash: HashRefSchema,
     comparison: CampaignComparisonSchema,
-    cells: z.array(CampaignCellSchema).min(2),
+    cells: z.array(CampaignCellSchema).min(1),
   })
   .superRefine((plan, context) => {
+    const isMeasurement = plan.comparison.vary.length === 0;
+    if (isMeasurement && plan.cells.length !== 1) {
+      context.addIssue({
+        code: "custom",
+        path: ["cells"],
+        message: "an empty vary set is valid only for exactly one measurement cell",
+      });
+    }
+    if (!isMeasurement && plan.cells.length < 2) {
+      context.addIssue({
+        code: "custom",
+        path: ["cells"],
+        message: "a comparison Campaign requires at least two cells",
+      });
+    }
     if (new Set(plan.comparison.vary).size !== plan.comparison.vary.length) {
       context.addIssue({
         code: "custom",

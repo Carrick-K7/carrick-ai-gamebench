@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "campaign_id": "glm-5-3-flash-302-2026-08-31",
+  "benchmark_version": "0.6.0",
+  "release_hash": "sha256:7667642a83d3ac8f5270cd094f25d9d228c686dd7158e9adf2b52313b8e8131b",
+  "comparison": {
+    "unit": "system",
+    "primary_endpoint": "build.score",
+    "comparability": "within-release-only",
+    "vary": [],
+    "order_policy": "preregistered"
+  },
+  "cells": [
+    {
+      "cell_id": "glm-5.3-flash-302",
+      "series_id": "01M1C3ECWM6VSC1ZBXQBW32PET",
+      "agent": {
+        "id": "pi",
+        "version": "0.84.3"
+      },
+      "adapter": {
+        "path": "tools/agents/pi-gamebench.sh",
+        "hash": "sha256:6b6a0e13e72db3df0e2bf44414e79ab4b99814fa2f0d1f36b6aef3c66dd845e8"
+      },
+      "provider": "ai-302",
+      "model": "glm-5.3-flash",
+      "parameters": {
+        "thinking": "off"
+      },
+      "prompt_language": "en",
+      "isolation": {
+        "session": false,
+        "context_files": false,
+        "extensions": false,
+        "skills": false
+      }
+    }
+  ]
+}

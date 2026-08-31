@@ -25,6 +25,10 @@ test("campaign plan derives one fixed Official Pi invocation", async () => {
     repositoryRoot,
     "pi-system-baseline-2026-08-30",
   );
+  assert.equal(
+    planHash,
+    "sha256:c80bf2e436a260367ea44bddf4176ea65d49b7deaa818946fedcc4c5e24c664d",
+  );
   const cell = findCampaignCell(plan, "gpt-5.6-sol");
   const options = campaignBenchOptions(repositoryRoot, plan, cell);
   assert.equal(options.seriesId, cell.series_id);
@@ -40,6 +44,25 @@ test("campaign plan derives one fixed Official Pi invocation", async () => {
   assert.equal(options.campaign?.execution_hash, hashCampaignCellExecution(cell));
   assert.match(options.agentCommand, /tools\/agents\/pi-gamebench\.sh/);
   assert.match(options.agentCommand, /openai-codex/);
+});
+
+test("single-cell GLM measurement derives its frozen 302.AI invocation", async () => {
+  const repositoryRoot = await findRepositoryRoot();
+  const { plan } = await loadCampaignPlan(
+    repositoryRoot,
+    "glm-5-3-flash-302-2026-08-31",
+  );
+  assert.equal(plan.cells.length, 1);
+  assert.deepEqual(plan.comparison.vary, []);
+  const cell = findCampaignCell(plan, "glm-5.3-flash-302");
+  const options = campaignBenchOptions(repositoryRoot, plan, cell);
+  assert.equal(options.seriesId, "01M1C3ECWM6VSC1ZBXQBW32PET");
+  assert.equal(options.model, "glm-5.3-flash");
+  assert.deepEqual(options.modelParameters, {
+    thinking: "off",
+    provider: "ai-302",
+  });
+  assert.match(options.agentCommand, /ai-302/);
 });
 
 test("campaign execution order is enforced before Agent invocation", async () => {
@@ -134,5 +157,5 @@ test("preallocated series directories are single-use", async () => {
 
 test("committed campaign plans may remain preregistered before publication", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  assert.equal(await checkCampaignPublications(repositoryRoot), 1);
+  assert.equal(await checkCampaignPublications(repositoryRoot), 2);
 });

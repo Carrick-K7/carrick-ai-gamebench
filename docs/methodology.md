@@ -75,6 +75,6 @@ One flat `result.json` binds:
 
 ## Official meaning
 
-Official 0.6 means that repository maintainers preregistered a Campaign Plan, ran each single-shot cell with the canonical runner from one clean Git commit, completed all four tasks per cell, passed `cagb check`, and batch-committed the flat results to the repository index.
+Official 0.6 means that repository maintainers preregistered a Campaign Plan, ran each single-shot cell with the canonical runner from one clean Git commit, completed all four tasks per cell, passed `cagb check`, and batch-committed the flat results to the repository index. A one-cell Plan is an Official measurement rather than an internally controlled comparison; comparisons across separately committed Campaigns remain descriptive.
 
 It does not claim independent third-party reproduction. GameBench 0.6 has no verifier, Docker image, network attestation, Reproduce board, Core composite, or mandatory human review.
