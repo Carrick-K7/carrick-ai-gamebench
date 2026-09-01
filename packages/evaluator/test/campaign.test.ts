@@ -15,6 +15,7 @@ import {
   campaignBenchOptions,
   checkCampaignPublications,
   findCampaignCell,
+  listCampaignPlans,
   loadCampaignPlan,
 } from "../src/campaign.js";
 import { createSeriesRunDirectory } from "../src/lite-runner.js";
@@ -157,5 +158,7 @@ test("preallocated series directories are single-use", async () => {
 
 test("committed campaign plans may remain preregistered before publication", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  assert.equal(await checkCampaignPublications(repositoryRoot), 2);
+  const plans = await listCampaignPlans(repositoryRoot);
+  assert.equal(await checkCampaignPublications(repositoryRoot), plans.length);
+  assert.equal(plans.length, 4);
 });
