@@ -679,11 +679,13 @@ export async function checkLiteBenchmark(
     ) {
       throw new Error("publish requires an Official clean-tree result with a Git commit");
     }
+    if (gitOutput(repositoryRoot, ["status", "--porcelain"]) !== "") {
+      throw new Error("publish requires a clean Git tree");
+    }
     if (
-      gitOutput(repositoryRoot, ["status", "--porcelain"]) !== "" ||
-      gitOutput(repositoryRoot, ["rev-parse", "HEAD"]) !== result.git_commit
+      gitOutput(repositoryRoot, ["cat-file", "-e", `${result.git_commit}^{commit}`]) === undefined
     ) {
-      throw new Error("publish must run from the same clean Git commit as the benchmark");
+      throw new Error("the benchmark Git commit is not available in this repository");
     }
     if (result.build.completed !== result.build.required || result.build.score === undefined) {
       throw new Error("publish requires complete scored coverage");

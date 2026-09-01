@@ -17,6 +17,7 @@ import {
   findCampaignCell,
   listCampaignPlans,
   loadCampaignPlan,
+  publishCampaigns,
 } from "../src/campaign.js";
 import { createSeriesRunDirectory } from "../src/lite-runner.js";
 
@@ -127,6 +128,18 @@ test("campaign result binding rejects relabeling", async () => {
         cell,
       ),
     /configuration differs/,
+  );
+});
+
+test("multi-Campaign publication requires a non-empty unique ID set", async () => {
+  const repositoryRoot = await findRepositoryRoot();
+  await assert.rejects(
+    publishCampaigns(repositoryRoot, []),
+    /unique campaign IDs/,
+  );
+  await assert.rejects(
+    publishCampaigns(repositoryRoot, ["same", "same"]),
+    /unique campaign IDs/,
   );
 });
 

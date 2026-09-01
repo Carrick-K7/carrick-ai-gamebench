@@ -211,7 +211,7 @@ The Official sequence is:
 5. Publish the campaign as a **batch operation** while preserving individual flat result files.
 6. Commit the result files and one updated flat index.
 
-Batch publication acquires one exclusive index lock, re-reads the index after lock acquisition, validates every cell, copies all missing result files, and atomically renames one fully updated index. An unindexed result file left by an interrupted prior attempt is an orphan and may be removed only after its bytes are compared with the planned source result. An indexed missing result is a hard integrity failure, never auto-repaired.
+Batch publication acquires one exclusive index lock, re-reads the index after lock acquisition, validates every cell, copies all missing result files, and atomically renames one fully updated index. Multiple completed Campaigns may be supplied as repeated `--id` arguments and are validated and published in the same lock transaction; this prevents one Campaign's publication files from making the tree dirty before the next is validated. An unindexed result file left by an interrupted prior attempt is an orphan and may be removed only after its bytes are compared with the planned source result. An indexed missing result is a hard integrity failure, never auto-repaired.
 
 Direct single-series publication rejects campaign-affiliated results; even a one-cell measurement passes through Campaign batch publication so the same completeness and atomic-index path applies uniformly.
 

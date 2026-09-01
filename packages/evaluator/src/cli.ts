@@ -16,7 +16,7 @@ import {
   doctorCampaignAgents,
   findCampaignCell,
   loadCampaignPlan,
-  publishCampaign,
+  publishCampaigns,
 } from "./campaign.js";
 import { commandExists } from "./process.js";
 import {
@@ -37,7 +37,7 @@ Usage:
   cagb bench --campaign <id> --cell <id>
   cagb bench --local --agent-command <command> --agent-id <id> [options]
   cagb campaign check
-  cagb campaign publish --id <campaign-id>
+  cagb campaign publish --id <campaign-id> [--id <campaign-id> ...]
   cagb check [--run <run-directory>]
   cagb publish --run <run-directory>   # non-campaign result only
 
@@ -268,11 +268,11 @@ async function commandCampaign(repositoryRoot: string, args: string[]): Promise<
     const values = parseArgs({
       args: rest,
       strict: true,
-      options: { id: { type: "string" } },
+      options: { id: { type: "string", multiple: true } },
     }).values;
-    const campaignId = typeof values.id === "string" ? values.id : fail("--id is required");
-    const destinations = await publishCampaign(repositoryRoot, campaignId);
-    console.log(`PUBLISHED  ${campaignId}: ${destinations.length} series`);
+    const campaignIds = Array.isArray(values.id) ? values.id : fail("--id is required");
+    const destinations = await publishCampaigns(repositoryRoot, campaignIds);
+    console.log(`PUBLISHED  ${campaignIds.join(", ")}: ${destinations.length} series`);
     return;
   }
   fail("campaign command requires check or publish");

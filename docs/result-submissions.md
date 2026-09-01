@@ -20,7 +20,7 @@ External runs and partial local runs are useful calibration evidence, but they a
 Use:
 
 ```bash
-pnpm cagb campaign publish --id <campaign-id>
+pnpm cagb campaign publish --id <campaign-id> [--id <another-campaign-id>]
 ```
 
 This validates the complete preregistered Campaign, creates one immutable flat result per cell under `results/lite/0.6.0/`, and atomically updates `results/lite/index.json` once.

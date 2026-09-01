@@ -45,7 +45,7 @@ The check does not rebuild or re-evaluate source. It is a low-cost integrity ope
 
 ```bash
 pnpm cagb campaign check
-pnpm cagb campaign publish --id <campaign-id>
+pnpm cagb campaign publish --id <campaign-id> [--id <another-campaign-id>]
 ```
 
 Official runs are preregistered under `benchmark/campaigns/<version>/`. Each cell owns one preallocated series ID and cannot be developed twice. Publishing requires every planned cell to be a clean-tree Official result with four scored tasks. Campaign publication validates all cells, copies each flat result into `results/lite/0.6.0/`, and atomically appends all rows to `results/lite/index.json` under one lock. Existing IDs cannot be overwritten. Direct `cagb publish --run` rejects Campaign-affiliated results.

@@ -22,6 +22,9 @@ machine-readable lock under `benchmark/releases/`.
 - Extended Campaign schema v1 compatibly to support a one-cell Official
   measurement (`vary: []`) without changing historical plan hashes; multi-cell
   Campaigns remain explicitly comparative.
+- Added one-lock publication of multiple completed Campaigns and retained
+  evidence validation for clean Official runs whose recorded Git commit remains
+  available after later protocol-only commits.
 - Removed the Docker evaluator, independent verifier, Reproduce default catalog,
   legacy publisher package, and legacy evaluator CLI workflow.
 - Updated the static site and documentation around the 0.6 trust boundary:

@@ -272,14 +272,30 @@ export async function publishCampaign(
   repositoryRoot: string,
   campaignId: string,
 ): Promise<string[]> {
-  const { plan } = await loadCampaignPlan(repositoryRoot, campaignId);
-  await ensurePublicationDirectory(repositoryRoot, plan.benchmark_version);
+  return publishCampaigns(repositoryRoot, [campaignId]);
+}
+
+export async function publishCampaigns(
+  repositoryRoot: string,
+  campaignIds: string[],
+): Promise<string[]> {
+  if (campaignIds.length === 0 || new Set(campaignIds).size !== campaignIds.length) {
+    throw new Error("campaign publication requires unique campaign IDs");
+  }
+  const plans = await Promise.all(
+    campaignIds.map((campaignId) => loadCampaignPlan(repositoryRoot, campaignId)),
+  );
+  for (const benchmarkVersion of new Set(plans.map(({ plan }) => plan.benchmark_version))) {
+    await ensurePublicationDirectory(repositoryRoot, benchmarkVersion);
+  }
   const resultsRoot = path.join(repositoryRoot, "results", "lite");
   const indexPath = path.join(resultsRoot, "index.json");
   const releaseLock = await acquirePublicationIndexLock(`${indexPath}.lock`);
   const copied: string[] = [];
   try {
-    const rows = await checkLocalCampaign(repositoryRoot, campaignId);
+    const rows = (await Promise.all(
+      campaignIds.map((campaignId) => checkLocalCampaign(repositoryRoot, campaignId)),
+    )).flat();
     for (const { result } of rows) {
       assertSecretFreePublication(result);
     }
@@ -288,9 +304,11 @@ export async function publishCampaign(
       index.results.map((entry) => `${entry.benchmark_version}/${entry.series_id}`),
     );
     for (const { result } of rows) {
-      if (identities.has(`${result.benchmark_version}/${result.series_id}`)) {
+      const identity = `${result.benchmark_version}/${result.series_id}`;
+      if (identities.has(identity)) {
         throw new Error(`campaign result is already published: ${result.series_id}`);
       }
+      identities.add(identity);
     }
     const entries = [...index.results];
     for (const { runDir, result } of rows) {
