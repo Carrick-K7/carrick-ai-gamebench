@@ -25,6 +25,16 @@
       "benchmark_version": "0.6.0",
       "series_id": "01M1C3ECWM6VSC1ZBXQBW32PET",
       "path": "results/lite/0.6.0/01M1C3ECWM6VSC1ZBXQBW32PET.json"
+    },
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M1EHSCF83P18BXNDAC4YFDS3",
+      "path": "results/lite/0.6.0/01M1EHSCF83P18BXNDAC4YFDS3.json"
+    },
+    {
+      "benchmark_version": "0.6.0",
+      "series_id": "01M1EHSCFB7GH3HB0NNRGG6CKC",
+      "path": "results/lite/0.6.0/01M1EHSCFB7GH3HB0NNRGG6CKC.json"
     }
   ]
 }
