@@ -29,5 +29,6 @@ jobs:
           node-version: 22.22.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @carrick/gamebench exec playwright install --with-deps chromium
       - name: Validate schemas, result integrity, and package boundaries
         run: pnpm check

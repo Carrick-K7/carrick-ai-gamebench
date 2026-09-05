@@ -356,13 +356,24 @@ export async function validateTaskManifest(
         errors.push(...formatZodIssues(suiteResult.error));
       } else {
         suite = suiteResult.data;
-        const caseIds = new Set(suite.cases.map((testCase) => testCase.id));
+        const casesById = new Map(suite.cases.map((testCase) => [testCase.id, testCase]));
+        const scoredCases = new Set<string>();
         for (const test of manifest.tests) {
-          if (!caseIds.has(test.case)) {
+          const testCase = casesById.get(test.case);
+          if (!testCase) {
             errors.push(`test ${test.id} references missing case ${test.case}`);
+          } else if ((test.category === "build") !== (testCase.kind === "build")) {
+            errors.push(`test ${test.id}: build category must reference a build case and other categories must reference browser cases`);
           }
+          if (scoredCases.has(test.case)) {
+            errors.push(`case ${test.case} is scored more than once`);
+          }
+          scoredCases.add(test.case);
         }
         for (const testCase of suite.cases) {
+          if (!scoredCases.has(testCase.id)) {
+            errors.push(`case ${testCase.id} has no scored test`);
+          }
           if (testCase.kind !== "browser") {
             continue;
           }

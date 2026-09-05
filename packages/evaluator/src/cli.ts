@@ -3,6 +3,7 @@ import { spawnSync } from "node:child_process";
 import { parseArgs } from "node:util";
 import path from "node:path";
 import {
+  LITE_BENCHMARK_VERSION,
   LiteReleaseLockSchema,
   createLiteReleaseLock,
   findRepositoryRoot,
@@ -30,9 +31,10 @@ import {
 } from "./lite-runner.js";
 
 const USAGE = `
-Carrick AI GameBench 0.6 Lite
+Carrick AI GameBench ${LITE_BENCHMARK_VERSION} Lite
 
 Usage:
+  cagb --version
   cagb doctor
   cagb bench --campaign <id> --cell <id>
   cagb bench --local --agent-command <command> --agent-id <id> [options]
@@ -280,6 +282,10 @@ async function commandCampaign(repositoryRoot: string, args: string[]): Promise<
 
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
+  if (command === "--version" || command === "-V") {
+    console.log(LITE_BENCHMARK_VERSION);
+    return;
+  }
   if (!command || command === "help" || command === "--help" || command === "-h") {
     console.log(USAGE.trim());
     return;

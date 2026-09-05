@@ -15,6 +15,8 @@ Any change to a prompt, state schema, public case, point allocation, task set, c
 
 Patch releases are reserved for changes that cannot affect score meaning: documentation, UI wording, diagnostics, and equivalent performance fixes. If a bug fix may change task outcomes, it is not a patch.
 
+0.6.1 is a patch to the 0.6.0 development baseline. Its new release lock differs only in `benchmark_version`; task IDs/hashes, seed, invocation count, and scoring remain identical. Packages and the Git tag use 0.6.1, while old results, raw-run directories, and Campaign Plans keep their original 0.6.0 versions and hashes. New runs and Campaign selection default to the installed release; integrity checks resolve the exact release named by each record. A patch does not authorize reusing an old Campaign cell or merging versioned leaderboards.
+
 Before publishing a release:
 
 1. choose the semantic version;

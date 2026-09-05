@@ -47,8 +47,23 @@ type SiteRelease = AnyReleaseLock | (LiteReleaseLock & {
   tasks: Array<LiteReleaseLock["tasks"][number] & { track: "build" }>;
 });
 
+/** Optional campaign provenance projected onto a lightweight entry for display
+ * only. The raw result's `campaign` already contributes to `publication_id`
+ * (which hashes the full result JSON), while `configuration_id` is derived from
+ * `result.configuration`; this display projection recomputes no identity and
+ * therefore does not alter either existing hash. */
+export interface CampaignProvenance {
+  id: string;
+  cell_id: string;
+}
+
+/** A lightweight result entry may carry optional campaign provenance. */
+export interface DisplayResultEntry extends NormalizedResultEntry {
+  campaign?: CampaignProvenance | undefined;
+}
+
 export interface PublicationRecord {
-  entry: NormalizedResultEntry;
+  entry: DisplayResultEntry;
   publication: NormalizedPublication;
 }
 
@@ -195,7 +210,7 @@ function normalizeLiteResult(input: unknown): PublicationRecord {
     runs: evaluations,
     review_summaries: [],
   };
-  const entry: NormalizedResultEntry = {
+  const entry: DisplayResultEntry = {
     publication_id: publicationId,
     created_at: result.finished_at,
     tier: "official",
@@ -206,6 +221,9 @@ function normalizeLiteResult(input: unknown): PublicationRecord {
     configuration_id: configurationId,
     agent: result.configuration.agent,
     aggregate,
+    ...(result.campaign
+      ? { campaign: { id: result.campaign.id, cell_id: result.campaign.cell_id } }
+      : {}),
   };
   return { entry, publication };
 }

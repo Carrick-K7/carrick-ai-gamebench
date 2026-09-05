@@ -20,6 +20,7 @@ import {
   LiteSeriesResultSchema,
   LiteTaskResultSchema,
   ScoreResultSchema,
+  SemverSchema,
   TestOutcomeSchema,
   createUlid,
   loadTask,
@@ -149,26 +150,57 @@ async function stopProcessTree(child: ChildProcess | undefined): Promise<void> {
   }
 }
 
+/**
+ * Resolve the benchmark version used to locate a release lock.
+ *
+ * When no version is supplied, the active benchmark version is declared by
+ * `package.json`. An explicit version is validated through `SemverSchema`,
+ * which only permits a plain semantic version. That guarantees the value can
+ * never contain a path separator and can never be an escaping relative or
+ * absolute component, so it is always safe to interpolate as a single
+ * release-file name. (A prerelease identifier may itself contain dots or a
+ * `..` substring, but the whole value is one file-name component, so those
+ * never become a path segment.)
+ */
+async function resolveLiteBenchmarkVersion(
+  repositoryRoot: string,
+  benchmarkVersion?: string,
+): Promise<string> {
+  let version = benchmarkVersion;
+  if (version === undefined) {
+    const packageJson = JSON.parse(
+      await readFile(path.join(repositoryRoot, "package.json"), "utf8"),
+    ) as { version?: unknown };
+    if (typeof packageJson.version !== "string") {
+      throw new Error("package.json must declare a benchmark version");
+    }
+    version = packageJson.version;
+  }
+  const parsed = SemverSchema.safeParse(version);
+  if (!parsed.success) {
+    throw new Error(`invalid benchmark version: ${version}`);
+  }
+  return parsed.data;
+}
+
 export async function loadLiteRelease(
   repositoryRoot: string,
+  benchmarkVersion?: string,
 ): Promise<{ release: LiteReleaseLock; releasePath: string; releaseHash: `sha256:${string}` }> {
-  const packageJson = JSON.parse(
-    await readFile(path.join(repositoryRoot, "package.json"), "utf8"),
-  ) as { version?: unknown };
-  if (typeof packageJson.version !== "string") {
-    throw new Error("package.json must declare a benchmark version");
-  }
+  const version = await resolveLiteBenchmarkVersion(repositoryRoot, benchmarkVersion);
   const releasePath = path.join(
     repositoryRoot,
     "benchmark",
     "releases",
-    `${packageJson.version}.json`,
+    `${version}.json`,
   );
   const release = LiteReleaseLockSchema.parse(
     JSON.parse(await readFile(releasePath, "utf8")),
   );
-  if (release.benchmark_version !== packageJson.version) {
-    throw new Error("release lock version does not match package.json");
+  if (release.benchmark_version !== version) {
+    throw new Error(
+      `release lock version ${release.benchmark_version} does not match requested version ${version}`,
+    );
   }
   return {
     release,
@@ -616,12 +648,18 @@ export async function checkLiteBenchmark(
   runDir: string,
   requireOfficial = false,
 ): Promise<LiteSeriesResult> {
-  const { release, releaseHash } = await loadLiteRelease(repositoryRoot);
   const result = LiteSeriesResultSchema.parse(
     JSON.parse(await readFile(path.join(runDir, "result.json"), "utf8")),
   );
+  // A result is bound to the exact release lock it declares, so an old run
+  // recorded under a previous benchmark version is still verified against its
+  // own immutable lock rather than the currently active release.
+  const { release, releaseHash } = await loadLiteRelease(
+    repositoryRoot,
+    result.benchmark_version,
+  );
   if (result.benchmark_version !== release.benchmark_version || result.release_hash !== releaseHash) {
-    throw new Error("result does not match the current release lock");
+    throw new Error("result does not match its release lock");
   }
   if (result.tasks.length !== release.tasks.length) {
     throw new Error("result task count does not match the release");
@@ -701,10 +739,18 @@ export async function checkLitePublishedResults(
   const index = LiteResultIndexSchema.parse(
     JSON.parse(await readFile(indexPath, "utf8")),
   );
-  const { release, releaseHash } = await loadLiteRelease(repositoryRoot);
   for (const entry of index.results) {
     const result = LiteSeriesResultSchema.parse(
       JSON.parse(await readFile(path.join(repositoryRoot, entry.path), "utf8")),
+    );
+    // Each published result is validated against the release lock of the
+    // benchmark version it records. Historical results published under an
+    // earlier version are never re-validated against the current release and
+    // their scores are never rewritten or re-evaluated; the score arithmetic
+    // is still rechecked against the task evidence below.
+    const { release, releaseHash } = await loadLiteRelease(
+      repositoryRoot,
+      result.benchmark_version,
     );
     if (
       result.series_id !== entry.series_id ||

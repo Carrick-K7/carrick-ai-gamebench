@@ -58,8 +58,9 @@ function gitTracks(repositoryRoot: string, relativePath: string): boolean {
 export async function loadCampaignPlan(
   repositoryRoot: string,
   campaignId: string,
+  benchmarkVersion?: string,
 ): Promise<{ plan: CampaignPlan; planPath: string; planHash: `sha256:${string}` }> {
-  const { release, releaseHash } = await loadLiteRelease(repositoryRoot);
+  const { release, releaseHash } = await loadLiteRelease(repositoryRoot, benchmarkVersion);
   const planPath = campaignPath(repositoryRoot, release.benchmark_version, campaignId);
   const plan = CampaignPlanSchema.parse(JSON.parse(await readFile(planPath, "utf8")));
   if (plan.campaign_id !== campaignId) {
@@ -69,7 +70,7 @@ export async function loadCampaignPlan(
     plan.benchmark_version !== release.benchmark_version ||
     plan.release_hash !== releaseHash
   ) {
-    throw new Error(`campaign ${campaignId} does not match the current release lock`);
+    throw new Error(`campaign ${campaignId} does not match the loaded release lock`);
   }
   for (const cell of plan.cells) {
     const adapterPath = path.resolve(repositoryRoot, cell.adapter.path);
@@ -92,8 +93,11 @@ export async function loadCampaignPlan(
   return { plan, planPath, planHash: hashCampaignPlan(plan) };
 }
 
-export async function listCampaignPlans(repositoryRoot: string): Promise<CampaignPlan[]> {
-  const { release } = await loadLiteRelease(repositoryRoot);
+export async function listCampaignPlans(
+  repositoryRoot: string,
+  benchmarkVersion?: string,
+): Promise<CampaignPlan[]> {
+  const { release } = await loadLiteRelease(repositoryRoot, benchmarkVersion);
   const directory = path.join(
     repositoryRoot,
     "benchmark",
@@ -111,7 +115,10 @@ export async function listCampaignPlans(repositoryRoot: string): Promise<Campaig
   }
   const plans: CampaignPlan[] = [];
   for (const name of names.filter((entry) => entry.endsWith(".json")).sort()) {
-    plans.push((await loadCampaignPlan(repositoryRoot, name.slice(0, -5))).plan);
+    plans.push(
+      (await loadCampaignPlan(repositoryRoot, name.slice(0, -5), release.benchmark_version))
+        .plan,
+    );
   }
   return plans;
 }
@@ -413,15 +420,26 @@ export async function doctorCampaignAgents(repositoryRoot: string): Promise<numb
 }
 
 export async function checkCampaignPublications(repositoryRoot: string): Promise<number> {
-  const plans = await listCampaignPlans(repositoryRoot);
-  const byBinding = new Map<string, LiteSeriesResult[]>();
   const index = LiteResultIndexSchema.parse(
     JSON.parse(await readFile(path.join(repositoryRoot, "results", "lite", "index.json"), "utf8")),
   );
+  const byBinding = new Map<string, LiteSeriesResult[]>();
+  const indexedVersions = new Set<string>();
   for (const entry of index.results) {
     const result = LiteSeriesResultSchema.parse(
       JSON.parse(await readFile(path.join(repositoryRoot, entry.path), "utf8")),
     );
+    // A standalone campaign check must not ignore the index binding: the
+    // flat index is the authoritative (benchmark_version, series_id) ledger,
+    // so a result that differs from its index entry is an integrity failure
+    // regardless of whether it carries a campaign binding.
+    if (
+      result.series_id !== entry.series_id ||
+      result.benchmark_version !== entry.benchmark_version
+    ) {
+      throw new Error(`published result identity does not match the index entry: ${entry.series_id}`);
+    }
+    indexedVersions.add(result.benchmark_version);
     if (result.campaign) {
       const key = `${result.benchmark_version}/${result.campaign.id}`;
       const values = byBinding.get(key) ?? [];
@@ -429,16 +447,29 @@ export async function checkCampaignPublications(repositoryRoot: string): Promise
       byBinding.set(key, values);
     }
   }
-  const knownCampaigns = new Set(
-    plans.map((plan) => `${plan.benchmark_version}/${plan.campaign_id}`),
-  );
+  // Campaign bindings are validated against every release that has published
+  // results, plus the currently active release. A campaign that was published
+  // under a historical benchmark version (for example 0.6.0) remains known
+  // even when the current release (0.6.1) declares no new campaign plans.
+  const currentRelease = await loadLiteRelease(repositoryRoot);
+  const versionsToScan = new Set<string>([
+    ...indexedVersions,
+    currentRelease.release.benchmark_version,
+  ]);
+  const plans = new Map<string, CampaignPlan>();
+  for (const version of versionsToScan) {
+    for (const plan of await listCampaignPlans(repositoryRoot, version)) {
+      plans.set(`${plan.benchmark_version}/${plan.campaign_id}`, plan);
+    }
+  }
+  const knownCampaigns = new Set(plans.keys());
   for (const key of byBinding.keys()) {
     if (!knownCampaigns.has(key)) {
       throw new Error(`published result references an unknown campaign: ${key}`);
     }
   }
-  for (const plan of plans) {
-    const values = byBinding.get(`${plan.benchmark_version}/${plan.campaign_id}`) ?? [];
+  for (const [key, plan] of plans) {
+    const values = byBinding.get(key) ?? [];
     if (values.length !== 0 && values.length !== plan.cells.length) {
       throw new Error(`campaign ${plan.campaign_id} is only partially published`);
     }
@@ -452,5 +483,5 @@ export async function checkCampaignPublications(repositoryRoot: string): Promise
       assertResultMatchesCampaignCell(result, plan, cell);
     }
   }
-  return plans.length;
+  return plans.size;
 }

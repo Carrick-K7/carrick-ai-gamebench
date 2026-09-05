@@ -1,7 +1,7 @@
 ---
 import { compareSemanticVersions } from "@carrick/gamebench-core";
 import { score, type PublicationRecord } from "../lib/data";
-import { rankingMetricForVersion } from "../lib/ranking";
+import { assignCompetitionRanks, rankingMetricForVersion } from "../lib/ranking";
 
 interface Props {
   version: string;
@@ -13,6 +13,10 @@ interface Props {
 const { version, records, tier, board = "build" } = Astro.props;
 const buildPrimary = compareSemanticVersions(version, "0.5.0") >= 0;
 const lightweight = compareSemanticVersions(version, "0.6.0") >= 0;
+const metricKey = (metric: number | undefined): number =>
+  typeof metric === "number" && Number.isFinite(metric)
+    ? metric
+    : Number.NEGATIVE_INFINITY;
 const entries = records
   .filter(
     (record) =>
@@ -23,10 +27,41 @@ const entries = records
   )
   .sort(
     (left, right) =>
-      (rankingMetricForVersion(right.entry.aggregate) ?? -1) -
-        (rankingMetricForVersion(left.entry.aggregate) ?? -1) ||
+      metricKey(rankingMetricForVersion(right.entry.aggregate)) -
+        metricKey(rankingMetricForVersion(left.entry.aggregate)) ||
       left.entry.publication_id.localeCompare(right.entry.publication_id),
   );
+
+// Competition (1,2,2,4) ranking: ties share a rank; a missing / non-finite
+// metric is an observation without a position (undefined → UI "—"), so it is
+// never tied with a real 0 and never gets a fabricated rank 1. Display order
+// is stable via publication_id and cannot break the ties computed here.
+const ranks = assignCompetitionRanks(
+  entries.map(({ entry }) => rankingMetricForVersion(entry.aggregate)),
+);
+
+// One breakdown row per entry, driven by the aggregate task order (already
+// sorted by task id); per-task score and hard-gate come from the published run.
+const taskBreakdown = entries.map(({ entry, publication }) => {
+  const runsByTask = new Map(publication.runs.map((run) => [run.task_id, run]));
+  return entry.aggregate.tasks.map((task) => {
+    const run = runsByTask.get(task.task_id);
+    return {
+      task_id: task.task_id,
+      percent: run?.score?.percent ?? task.mean,
+      hard_gate_failed: run?.score?.hard_gate_failed ?? false,
+    };
+  });
+});
+
+function taskLabel(taskId: string): string {
+  return taskId.replace(/^build\./, "").replace(/\.v\d+$/, "");
+}
+
+function parameterValue(params: Record<string, unknown> | undefined, key: string): string {
+  const value = params?.[key];
+  return typeof value === "string" && value.length > 0 ? value : "unknown";
+}
 ---
 
 <div class="table-wrap">
@@ -44,70 +79,115 @@ const entries = records
       }</span>
     </div>
   ) : (
-    <table>
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Model / configuration</th>
-          <th>Agent / harness</th>
-          {lightweight ? (
-            <th>Build</th>
-          ) : buildPrimary ? (
-            board === "reproduce"
-              ? <><th>Reproduce</th><th>Build</th><th>Legacy Core</th></>
-              : <><th>Build</th><th>Reproduce</th><th>Legacy Core</th></>
-          ) : (
-            <><th>Core</th><th>Build</th><th>Reproduce</th></>
-          )}
-          <th>{buildPrimary ? `${board === "reproduce" ? "Reproduce" : "Build"} coverage` : "Coverage"}</th>
-          <th>Status</th>
-        </tr>
-      </thead>
-      <tbody>
-        {entries.map(({ entry }, index) => (
+    <>
+      {lightweight && (
+        <p class="muted note">
+          {tier === "official"
+            ? "Each row is one preregistered single-shot run (one observation per system). Only rows within a Campaign are an internally controlled comparison; across Campaigns the results may be confounded by time, provider, and harness-environment effects, so those differences are descriptive rather than causal."
+            : "Each row is one observed delivery per task (a single observation). Not every run is necessarily preregistered; comparisons are descriptive rather than causal."}
+        </p>
+      )}
+      <table>
+        <thead>
           <tr>
-            <td class="mono">{index + 1}</td>
-            <td>
-              <a href={`/results/${entry.publication_id.slice(7)}`}>
-                <strong>{entry.agent.model}</strong>
-              </a>
-              <div class="muted mono">{entry.agent.version}</div>
-            </td>
-            <td>
-              {entry.agent.id}
-              <div class="muted">{entry.agent.harness}</div>
-            </td>
+            <th>#</th>
+            <th>Model / configuration</th>
+            <th>Agent / harness</th>
             {lightweight ? (
-              <td class="score">{score(entry.aggregate.leaderboards.build)}</td>
+              <><th>Build</th><th>Tasks</th></>
             ) : buildPrimary ? (
-              board === "reproduce" ? (
-                <>
-                  <td class="score">{score(entry.aggregate.leaderboards.reproduce)}</td>
-                  <td>{score(entry.aggregate.leaderboards.build)}</td>
-                  <td class="muted">{score(entry.aggregate.leaderboards.core)}</td>
-                </>
-              ) : (
+              board === "reproduce"
+                ? <><th>Reproduce</th><th>Build</th><th>Legacy Core</th></>
+                : <><th>Build</th><th>Reproduce</th><th>Legacy Core</th></>
+            ) : (
+              <><th>Core</th><th>Build</th><th>Reproduce</th></>
+            )}
+            <th>{buildPrimary ? `${board === "reproduce" ? "Reproduce" : "Build"} coverage` : "Coverage"}</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map(({ entry }, index) => {
+            const breakdown = taskBreakdown[index] ?? [];
+            return (
+            <tr>
+              <td class="mono">{ranks[index] ?? "—"}</td>
+              <td>
+                <a href={`/results/${entry.publication_id.slice(7)}`}>
+                  <strong>{entry.agent.model}</strong>
+                </a>
+                <div class="muted mono">{entry.agent.version}</div>
+                {lightweight && (
+                  <div class="muted">
+                    {parameterValue(entry.agent.parameters, "provider")} · {parameterValue(entry.agent.parameters, "thinking")} thinking
+                  </div>
+                )}
+                {entry.campaign && (
+                  <div class="muted campaign">campaign {entry.campaign.id} · {entry.campaign.cell_id}</div>
+                )}
+              </td>
+              <td>
+                {entry.agent.id}
+                <div class="muted">{entry.agent.harness}</div>
+              </td>
+              {lightweight ? (
                 <>
                   <td class="score">{score(entry.aggregate.leaderboards.build)}</td>
-                  <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
-                  <td class="muted">{score(entry.aggregate.leaderboards.core)}</td>
+                  <td>
+                    <details class="task-toggle">
+                      <summary>{breakdown.length} tasks</summary>
+                      <ul class="task-list">
+                        {breakdown.map((task) => (
+                          <li>
+                            <span>{taskLabel(task.task_id)}</span>
+                            <span class="mono">{score(task.percent)}</span>
+                            {task.hard_gate_failed && <span class="pill gate">hard-gate</span>}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  </td>
                 </>
-              )
-            ) : (
-              <>
-                <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
-                <td>{score(entry.aggregate.leaderboards.build)}</td>
-                <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
-              </>
-            )}
-            <td class="mono">
-              {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).completed}/
-              {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).required}
-            </td>
-            <td><span class={`pill ${tier}`}>{tier}</span> <span class="pill">{entry.status}</span></td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
+              ) : buildPrimary ? (
+                board === "reproduce" ? (
+                  <>
+                    <td class="score">{score(entry.aggregate.leaderboards.reproduce)}</td>
+                    <td>{score(entry.aggregate.leaderboards.build)}</td>
+                    <td class="muted">{score(entry.aggregate.leaderboards.core)}</td>
+                  </>
+                ) : (
+                  <>
+                    <td class="score">{score(entry.aggregate.leaderboards.build)}</td>
+                    <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+                    <td class="muted">{score(entry.aggregate.leaderboards.core)}</td>
+                  </>
+                )
+              ) : (
+                <>
+                  <td class="score">{score(entry.aggregate.leaderboards.core)}</td>
+                  <td>{score(entry.aggregate.leaderboards.build)}</td>
+                  <td>{score(entry.aggregate.leaderboards.reproduce)}</td>
+                </>
+              )}
+              <td class="mono">
+                {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).completed}/
+                {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).required}
+              </td>
+              <td><span class={`pill ${tier}`}>{tier}</span> <span class="pill">{entry.status}</span></td>
+            </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </>
   )}
 </div>
+
+<style>
+  .note { margin: 0 0 12px; font-size: 13px; max-width: 760px; }
+  .campaign { font-size: 11px; }
+  .task-toggle summary { cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .task-list { list-style: none; margin: 6px 0 0; padding: 0; }
+  .task-list li { display: flex; gap: 8px; align-items: center; justify-content: space-between; font-size: 12px; padding: 2px 0; }
+  .pill.gate { background: #f6c95c; color: #3a2c00; }
+</style>

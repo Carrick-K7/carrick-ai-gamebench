@@ -5,7 +5,7 @@
 `cagb bench` writes one directory:
 
 ```text
-runs/0.6.0/<series-id>/
+runs/<benchmark-version>/<series-id>/
   .series.json
   result.json
   tasks/<task-id>/
@@ -39,7 +39,7 @@ The check rejects:
 - an incorrect aggregate;
 - incomplete coverage when Official publication is requested.
 
-The check does not rebuild or re-evaluate source. It is a low-cost integrity operation, not an independent verifier.
+The check does not rebuild or re-evaluate source. It is a low-cost integrity operation, not an independent verifier. A 0.6.1 checkout resolves a 0.6.0 result against the unchanged 0.6.0 lock, so the historical command above remains valid. New runs use 0.6.1; do not rename or relabel old evidence.
 
 ## Official publication
 
@@ -48,7 +48,7 @@ pnpm cagb campaign check
 pnpm cagb campaign publish --id <campaign-id> [--id <another-campaign-id>]
 ```
 
-Official runs are preregistered under `benchmark/campaigns/<version>/`. Each cell owns one preallocated series ID and cannot be developed twice. Publishing requires every planned cell to be a clean-tree Official result with four scored tasks. Campaign publication validates all cells, copies each flat result into `results/lite/0.6.0/`, and atomically appends all rows to `results/lite/index.json` under one lock. Existing IDs cannot be overwritten. Direct `cagb publish --run` rejects Campaign-affiliated results.
+Official runs are preregistered under `benchmark/campaigns/<version>/`. Each cell owns one preallocated series ID and cannot be developed twice. Publishing requires every planned cell to be a clean-tree Official result with four scored tasks. Campaign publication validates all cells, copies each flat result into `results/lite/<benchmark-version>/`, and atomically appends all rows to `results/lite/index.json` under one lock. Existing IDs cannot be overwritten. Direct `cagb publish --run` rejects Campaign-affiliated results.
 
 Official means project-operated canonical execution accepted through Git review. It does not mean independently reproduced. External or partial runs remain local/experimental data and are not added to the Official index.
 

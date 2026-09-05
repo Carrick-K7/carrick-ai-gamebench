@@ -26,7 +26,10 @@ Evaluation seed is deliberately not a development identity. Games must support t
 - IDs end in `.vN`, where `N` equals the semantic task major.
 - English is canonical and Chinese is a semantic mirror.
 - Atomic points total exactly 100.
-- Every declared scored test references a case in `tests/cases.json`.
+- Scored tests and cases in `tests/cases.json` have a one-to-one mapping: no shared or unscored cases.
+- Case IDs are unique lowercase slugs (`[a-z0-9][a-z0-9._-]*`) because they also name evidence directories.
+- Only the build-category test may reference a `kind: build` case; all other scored tests reference browser cases.
+- Every browser case has at least one `expect` or screenshot assertion; actions alone cannot earn points.
 - Every task includes a `run-seed` browser case that resets with the active seed and checks `snapshot.seed`.
 - Paths are relative, portable, and cannot escape the package.
 - Every task file contributes to the content hash.
@@ -42,7 +45,9 @@ Cases may use:
 - state expectations with exact, one-of, numeric, approximate, or active-seed comparisons;
 - deterministic screenshot comparison when visual pixels are an explicit contract.
 
-Use explicit fixture seeds for deterministic scenarios inside the one canonical evaluation. Keep each case focused enough that a failure loses only the points associated with that behavior.
+Use explicit fixture seeds for deterministic scenarios inside the one canonical evaluation. `equals_run_seed` means the canonical evaluation seed, not the last explicit fixture seed; use `equals: <fixture-seed>` to check a reset with a different fixed seed. Keep each case focused enough that a failure loses only the points associated with that behavior.
+
+An assertion is necessary, not proof of adequate coverage. Prefer observable game state over self-reported counters or labels: compare the resulting board, the revealed-cell set, collision geometry, or chip sums. Include negative boundaries (not parked, illegal action, no legal move), ordinary seeded play, and native-input/bridge equivalence. Merely checking `lastMove`, a scenario signature, or a declared total does not establish the corresponding mechanic. Changes to these scored observations require a new task major and benchmark minor, even when they correct an obvious coverage gap.
 
 Build, preview, bridge readiness, and initial state validity are hard gates. Complex tasks should otherwise preserve granular partial credit. Texas Hold'em, for example, separates betting order, action legality, hand ranking, all-ins, side pots, split pots, and conservation checks.
 

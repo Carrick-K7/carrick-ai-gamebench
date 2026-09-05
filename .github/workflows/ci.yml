@@ -21,4 +21,6 @@ jobs:
           node-version: 22.22.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Calibration exercises the real browser; a pnpm cache does not install it.
+      - run: pnpm --filter @carrick/gamebench exec playwright install --with-deps chromium
       - run: pnpm check

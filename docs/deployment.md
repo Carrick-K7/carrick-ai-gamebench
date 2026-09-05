@@ -1,12 +1,14 @@
 # Static deployment
 
-GameBench v0.3 has no application server, database, account system, or public
-write endpoint.
+GameBench 0.6.1 builds static artifacts; it does not introduce an application
+server, database, account system, or public write endpoint. No production runtime,
+domain, systemd unit, or deployment is currently selected on `tencent-sg`.
 
-- `gamebench.ai.carrick7.com` serves the trusted Astro build.
-- `play.gamebench.ai.carrick7.com` serves content-addressed untrusted game
-  bundles and downloadable public artifacts.
+- The trusted Astro site is a build artifact, not proof of a live service.
+- A future runtime must isolate untrusted game bundles on a separate origin.
 - `apps/reviewer` remains loopback-only and is not deployed.
+- Domain names and deployment scripts retained under `infra/` are historical
+  examples, not current host-level status or permission to deploy.
 
 Build the site with:
 
@@ -14,11 +16,10 @@ Build the site with:
 pnpm --filter @carrick/gamebench-site build
 ```
 
-The example Caddy configuration in `infra/Caddyfile.example` isolates playable
-JavaScript with a separate origin and `connect-src 'none'`. The deploy script
-copies the exact static build into a Git-SHA release directory and atomically
-updates the `current` symlink. The persistent object root is not replaced when
-the site is deployed.
+The example Caddy configuration in `infra/Caddyfile.example` illustrates
+separate-origin isolation and `connect-src 'none'`. Do not run a deployment
+script or add Pages, Zeabur, an image, or another target until the maintainer
+chooses a concrete runtime. Releasing a Git tag is not a deployment request.
 
 Public CI produces an immutable `gamebench-site-<git-sha>` artifact and
 `site-build.json`; it does not hold production SSH credentials. The exact

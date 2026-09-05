@@ -59,6 +59,19 @@ A complete Build result is:
 
 No task has a hidden weight. Time, token usage, cost, human review, and model reputation are not tie-breakers.
 
+## Interpretation and uncertainty
+
+- A series is **one observed delivery per task**, not an estimate of expected model performance. A single development sample cannot estimate run-to-run uncertainty or support significance claims about small score gaps.
+- The four games are deliberately selected capability probes, not independent random samples of all game-development tasks. Their spread is not a confidence interval, and browser cases from one delivery are not independent model trials.
+- One invocation and the same 3600-second deadline equalize the development opportunity, not token count, inference compute, tool use, or cost. The measured unit is the configured Agent/provider/model system.
+- Equal task weights are transparent, not empirically calibrated difficulty weights. Read the per-task vector and hard-gate failures alongside the Build mean; a schema/build failure and many rule failures can produce the same zero.
+- Public fixtures and schema-valid snapshots make outcomes auditable but do not prove that the visible game faithfully implements all rules. Native-input checks cover selected transitions; aesthetics, general gameplay completeness, and arbitrary-seed generalization remain outside the score's demonstrated coverage.
+- Cross-Campaign differences are descriptive and can include provider, execution date, harness, and host-environment effects. Equal scores are ties, not evidence that the systems are equivalent.
+
+A future reliability study should preregister additional independent development series and report every planned observation, including failures, rather than selecting the best run. Re-evaluating the same frozen source checks evaluator repeatability; it does not create another independent Agent sample. Any change to scored cases, gates, or aggregation belongs to a new benchmark release.
+
+See the [0.6 design review](benchmark-design-review.md) for concrete coverage gaps and the optimization boundary.
+
 ## Result integrity
 
 One flat `result.json` binds:

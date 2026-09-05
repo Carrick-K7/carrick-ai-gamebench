@@ -65,7 +65,10 @@ test("Lite check binds result scores to hashed evaluator evidence", async () => 
   const temporary = await mkdtemp(path.join(os.tmpdir(), "cagb-lite-check-"));
   const runDir = path.join(temporary, "run");
   try {
-    const { releaseHash } = await loadLiteRelease(repositoryRoot);
+    // The existing published evidence is authored against the 0.6.0 release
+    // lock; bind this check to it explicitly so it is not re-read against the
+    // currently active benchmark version.
+    const { releaseHash } = await loadLiteRelease(repositoryRoot, "0.6.0");
     const tasks = await listTasks(repositoryRoot);
     const rows: LiteTaskResult[] = [];
     for (const task of tasks) {

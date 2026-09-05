@@ -5,7 +5,31 @@ machine-readable lock under `benchmark/releases/`.
 
 ## Unreleased
 
-## 0.6.0 (Unreleased)
+## 0.6.1
+
+Quality-control and auditability patch to the 0.6.0 development baseline. No
+changes to the four task contracts, seed, time budget, gates, points, or scoring
+interpretation. The new release lock differs from 0.6.0 only in its version.
+
+- Reject duplicate/unsafe case IDs, assertion-free browser cases, duplicated or
+  unscored case coverage, and mismatched build-gate references before execution.
+- Calibrate Texas Hold'em with two identical-source positive controls and four
+  real source mutants covering short all-ins, odd chips, wheel straights, and
+  native Check input. Mutants must fail their target case without failing build.
+- Display tied competition ranks, per-task scores and hard gates, provider and
+  thinking settings, Campaign provenance, and single-sample comparison limits.
+- Preserve historical result and Campaign validation against each record's own
+  immutable release lock while new runs default to 0.6.1. No prior result,
+  Campaign, source hash, or score is relabeled or rewritten.
+- Add `cagb --version` / `-V`, patch-instrument identity tests, and release notes.
+- Install Chromium explicitly in every full-check workflow; retain cold-cache
+  starter coverage and reject changed evidence on a GitHub Release retry.
+- Replace stale automatic SSH deployment with a static-build artifact upload,
+  honoring the repository's no-production-runtime boundary.
+- Document measurement gaps and defer outcome-changing evaluator fixes to a
+  future minor release. No new production runtime or deployment is introduced.
+
+## 0.6.0 (development baseline)
 
 - Replaced the multi-track, three-evaluation workflow with four Build tasks, one
   Agent invocation, one frozen source archive, and one canonical-seed evaluation

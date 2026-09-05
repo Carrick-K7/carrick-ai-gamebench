@@ -24,6 +24,7 @@ jobs:
           node-version: 22.22.0
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @carrick/gamebench exec playwright install --with-deps chromium
       - name: Match tag, package, and release lock
         run: |
           node --input-type=module -e '
@@ -44,26 +45,37 @@ jobs:
           install -d release-artifacts
           cp "benchmark/releases/${version}.json" \
             "release-artifacts/gamebench-${version}-release-lock.json"
+          if [ -f "docs/releases/${version}.md" ]; then
+            cp "docs/releases/${version}.md" release-artifacts/release-summary.md
+          else
+            echo "# GameBench ${GITHUB_REF_NAME}" > release-artifacts/release-summary.md
+          fi
           {
-            echo "# GameBench ${GITHUB_REF_NAME}"
             echo
-            echo "- Git commit: \`${GITHUB_SHA}\`"
+            echo "## Release evidence"
+            echo
+            echo "- Git commit: \`$(git rev-parse HEAD)\`"
             echo "- Benchmark release lock: \`gamebench-${version}-release-lock.json\`"
             echo "- Workflow: one Agent invocation and one canonical evaluation per task"
-          } > release-artifacts/release-summary.md
+          } >> release-artifacts/release-summary.md
           (
             cd release-artifacts
-            sha256sum "gamebench-${version}-release-lock.json" > SHA256SUMS
+            sha256sum "gamebench-${version}-release-lock.json" release-summary.md > SHA256SUMS
           )
-      - name: Create or update GitHub Release
+      - name: Create immutable GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
-            gh release upload "$GITHUB_REF_NAME" release-artifacts/* --clobber
+            # A retry may verify existing evidence, never silently replace it.
+            gh release download "$GITHUB_REF_NAME" --dir release-existing
+            for artifact in release-artifacts/*; do
+              cmp "$artifact" "release-existing/${artifact##*/}"
+            done
           else
             gh release create "$GITHUB_REF_NAME" \
               --verify-tag \
+              --latest \
               --title "GameBench $GITHUB_REF_NAME" \
               --notes-file release-artifacts/release-summary.md \
               release-artifacts/*

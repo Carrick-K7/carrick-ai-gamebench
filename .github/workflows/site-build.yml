@@ -83,41 +83,11 @@ jobs:
               `${JSON.stringify(manifest, null, 2)}\n`,
             );
           '
-      - name: Package immutable production release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          set -euo pipefail
-          mkdir -p release/site
-          cp -R apps/site/dist/. release/site/
-          tar -C release -czf gamebench-production.tar.gz .
-          tar -tzf gamebench-production.tar.gz >/dev/null
-      - name: Deploy through restricted SSH command
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
-          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
-          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          REVISION: ${{ github.sha }}
-        run: |
-          set -euo pipefail
-          test -n "$DEPLOY_HOST"
-          test -n "$DEPLOY_USER"
-          test -n "$DEPLOY_SSH_KEY"
-          test -n "$DEPLOY_KNOWN_HOSTS"
-          install -d -m 0700 ~/.ssh
-          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
-          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
-          chmod 0600 ~/.ssh/deploy_key ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy_key \
-            -o BatchMode=yes \
-            -o IdentitiesOnly=yes \
-            -o StrictHostKeyChecking=yes \
-            "$DEPLOY_USER@$DEPLOY_HOST" \
-            "deploy $REVISION" < gamebench-production.tar.gz
-      - name: Smoke test production
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: curl --fail --silent --show-error https://gamebench.ai.carrick7.com/ --output /tmp/gamebench-index.html
-      - name: Remove deploy key
-        if: always()
-        run: rm -f ~/.ssh/deploy_key
+      # AGENTS.md: no production runtime is selected. A build is not a deploy.
+      - name: Upload immutable static build
+        uses: actions/upload-artifact@v6
+        with:
+          name: gamebench-site-${{ github.sha }}
+          path: apps/site/dist/
+          if-no-files-found: error
+          retention-days: 30

@@ -66,3 +66,28 @@ test("immutable historical result and showcase paths remain keyed by existing id
   assert.match(showcase, /artifactId\.slice\("sha256:"\.length\)/);
   assert.match(showcase, /\/results\/\$\{entry\.publication_id\.slice\(7\)\}/);
 });
+
+test("v0.6 leaderboard uses competition ranking and shows task breakdown, provider params, and campaign provenance", async () => {
+  const leaderboard = await source("../src/components/LeaderboardView.astro");
+  // Competition ranking, tied by score and stable only by id for display order.
+  assert.match(leaderboard, /assignCompetitionRanks\(/);
+  assert.match(leaderboard, /ranks\[index\]/);
+  assert.match(leaderboard, /publication_id\.localeCompare/);
+  // 0.6 inline row: four task scores + hard-gate flag inside a details toggle.
+  assert.match(leaderboard, /<details class="task-toggle">/);
+  assert.match(leaderboard, /hard_gate_failed/);
+  assert.match(leaderboard, /score\(task\.percent\)/);
+  // Provider / thinking surfaced, with an explicit "unknown" fallback.
+  assert.match(leaderboard, /parameterValue\(entry\.agent\.parameters, "provider"\)/);
+  assert.match(leaderboard, /parameterValue\(entry\.agent\.parameters, "thinking"\)/);
+  assert.match(leaderboard, /\? value : "unknown"/);
+  // One-sample note; official cross-Campaign wording uses "may be confounded".
+  assert.match(leaderboard, /one preregistered single-shot run/);
+  assert.match(leaderboard, /may be confounded by time, provider/);
+  assert.match(leaderboard, /one observed delivery per task/);
+  assert.match(leaderboard, /not every run is necessarily preregistered/i);
+  assert.match(leaderboard, /descriptive rather than causal/);
+  // Campaign provenance (display projection; no identity change).
+  assert.match(leaderboard, /entry\.campaign/);
+  assert.match(leaderboard, /campaign \{entry\.campaign\.id\}/);
+});

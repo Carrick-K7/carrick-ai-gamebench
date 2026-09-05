@@ -60,6 +60,52 @@ test("task manifests reject escaping and non-portable paths", () => {
   );
 });
 
+test("public suites reject duplicate case identities across both case kinds", () => {
+  const build = { id: "same", kind: "build", description: "Build gate" };
+  const browser = {
+    id: "same", kind: "browser", description: "Browser check",
+    steps: [{ op: "expect", path: "score", equals: 0 }],
+  };
+  for (const cases of [[build, build], [browser, browser], [build, browser], [browser, build]]) {
+    const result = TestSuiteSchema.safeParse({ schema_version: 1, cases });
+    assert.equal(result.success, false);
+    if (!result.success) {
+      assert.ok(result.error.issues.some((issue) => issue.message === "duplicate case id: same"));
+    }
+  }
+});
+
+test("case identities are safe single artifact-directory segments", () => {
+  for (const id of ["../outside", "/absolute", "nested/case", "nested\\case", ".", "..", "case\u0000"]) {
+    assert.equal(TestSuiteSchema.safeParse({
+      schema_version: 1,
+      cases: [{ id, kind: "build", description: "Build gate" }],
+    }).success, false, id);
+  }
+  assert.equal(TestSuiteSchema.safeParse({
+    schema_version: 1,
+    cases: [{ id: "valid-case.v1", kind: "build", description: "Build gate" }],
+  }).success, true);
+});
+
+test("browser cases require an observation rather than an automatic pass", () => {
+  const suite = (steps: object[]) => ({
+    schema_version: 1,
+    cases: [{ id: "case", kind: "browser", description: "Case", steps }],
+  });
+  for (const steps of [[], [{ op: "reset" }], [{ op: "key", key: "ArrowLeft" }]]) {
+    assert.equal(TestSuiteSchema.safeParse(suite(steps)).success, false);
+  }
+  for (const equals of [null, false, 0]) {
+    assert.equal(TestSuiteSchema.safeParse(suite([
+      { op: "expect", path: "state.value", equals },
+    ])).success, true);
+  }
+  assert.equal(TestSuiteSchema.safeParse(suite([
+    { op: "screenshot", name: "board.png" },
+  ])).success, true);
+});
+
 test("public browser cases reject ambiguous runtime operations", () => {
   const suite = (step: object) => ({
     schema_version: 1,
@@ -67,7 +113,7 @@ test("public browser cases reject ambiguous runtime operations", () => {
       id: "case",
       kind: "browser",
       description: "case",
-      steps: [step],
+      steps: [step, { op: "expect", path: "score", equals: 0 }],
     }],
   });
 

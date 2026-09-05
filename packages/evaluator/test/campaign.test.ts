@@ -26,6 +26,7 @@ test("campaign plan derives one fixed Official Pi invocation", async () => {
   const { plan, planHash } = await loadCampaignPlan(
     repositoryRoot,
     "pi-system-baseline-2026-08-30",
+    "0.6.0",
   );
   assert.equal(
     planHash,
@@ -53,6 +54,7 @@ test("single-cell GLM measurement derives its frozen 302.AI invocation", async (
   const { plan } = await loadCampaignPlan(
     repositoryRoot,
     "glm-5-3-flash-302-2026-08-31",
+    "0.6.0",
   );
   assert.equal(plan.cells.length, 1);
   assert.deepEqual(plan.comparison.vary, []);
@@ -72,6 +74,7 @@ test("campaign execution order is enforced before Agent invocation", async () =>
   const { plan } = await loadCampaignPlan(
     repositoryRoot,
     "pi-system-baseline-2026-08-30",
+    "0.6.0",
   );
   const second = findCampaignCell(plan, "gpt-5.6-luna");
   await assert.rejects(
@@ -85,6 +88,7 @@ test("campaign result binding rejects relabeling", async () => {
   const { plan } = await loadCampaignPlan(
     repositoryRoot,
     "pi-system-baseline-2026-08-30",
+    "0.6.0",
   );
   const cell = findCampaignCell(plan, "gpt-5.6-terra");
   const result = {
@@ -171,7 +175,13 @@ test("preallocated series directories are single-use", async () => {
 
 test("committed campaign plans may remain preregistered before publication", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  const plans = await listCampaignPlans(repositoryRoot);
-  assert.equal(await checkCampaignPublications(repositoryRoot), plans.length);
+  // The committed 0.6.0 campaign plans are historical; enumerate them against
+  // their own release so a later current release cannot turn them into a new
+  // sample or make them look unknown.
+  const plans = await listCampaignPlans(repositoryRoot, "0.6.0");
   assert.equal(plans.length, 4);
+  // The standalone campaign check resolves every published result against its
+  // own release, so it must account for at least the historical plans; it may
+  // legitimately exceed that count once a newer release preregisters plans.
+  assert.ok((await checkCampaignPublications(repositoryRoot)) >= plans.length);
 });

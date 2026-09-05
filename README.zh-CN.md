@@ -1,6 +1,6 @@
 # Carrick AI GameBench
 
-Carrick AI GameBench 0.6 是一套轻量的 Coding Agent 网页游戏机器评测，以公开、可检查的交付契约为核心。
+Carrick AI GameBench 0.6.1 是一套轻量的 Coding Agent 网页游戏机器评测，以公开、可检查的交付契约为核心。本补丁保持 0.6.0 的评分口径不变，参见[发布说明](docs/releases/0.6.1.md)。
 
 正式评测只有四个 Build 任务：
 
@@ -16,7 +16,8 @@ Carrick AI GameBench 0.6 是一套轻量的 Coding Agent 网页游戏机器评�
 需要 Node.js 22.12+、pnpm 10.33.0、Chromium 运行依赖、`tar` 和 `zstd`。
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
+pnpm --filter @carrick/gamebench exec playwright install --with-deps chromium
 pnpm build
 pnpm cagb doctor
 pnpm cagb check
@@ -24,27 +25,29 @@ pnpm cagb check
 
 `doctor` 会在正式调用模型前，真实执行临时目录安装、离线重装、构建、预览服务、Chromium 启动和 Bridge smoke test。
 
-执行一个预注册 Official Campaign cell：
+先在 `benchmark/campaigns/0.6.1/` 提交新的 Campaign Plan，再执行一个预注册 Official cell（把示例 ID 替换为计划中的 ID）：
 
 ```bash
 pnpm cagb bench \
-  --campaign pi-system-baseline-2026-08-30 \
-  --cell gpt-5.6-sol
+  --campaign your-campaign-id \
+  --cell your-cell-id
 ```
+
+0.6.1 不附带新 Campaign 或新模型成绩。原 0.6.0 计划与结果保留历史身份，不改名，也不复用已经执行的 cell。
 
 Official 身份、Pi 调用、模型、provider、输出路径和预分配 series ID 只能来自已提交的 Campaign Plan。Official 运行要求 Git 工作树干净；自由 Agent 命令仅允许配合 `--local` 用于开发 runner 或 adapter。
 
 检查结果：
 
 ```bash
-pnpm cagb check --run runs/0.6.0/<series-id>
+pnpm cagb check --run runs/0.6.1/<series-id>
 ```
 
 所有 Campaign cell 完成后，统一校验并批量发布：
 
 ```bash
 pnpm cagb campaign check
-pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
+pnpm cagb campaign publish --id your-campaign-id
 ```
 
 ## 工作流程为什么必要
@@ -52,7 +55,7 @@ pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
 1. **Release lock**：确保所有模型面对相同 prompt、测试、分值、seed 和任务 hash。
 2. **真实 preflight**：在消耗模型算力前发现宿主机问题。
 3. **全新 workspace**：不同任务和模型之间不会继承隐藏文件或状态。
-4. **一次 Agent 调用**：控制机会和算力，失败后不重复开发。
+4. **一次 Agent 调用**：统一尝试次数和时限，失败后不重复开发；不代表 token、推理算力或费用相等。
 5. **封存源码**：评测对象不能在交付后被静默修复。
 6. **新目录评测**：确认源码可以独立安装、构建和运行。
 7. **公开浏览器 cases**：通过真实输入和 Schema 状态检查客观计分。
@@ -65,9 +68,9 @@ pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
 
 ## 任务包
 
-每个 active task 位于 `benchmark/tasks/build/<game>/vN/`，自带中英文 prompt、严格状态 Schema、公开浏览器 cases 和 100 分 manifest。`benchmark/releases/0.6.0.json` 冻结完整四任务目录。
+每个 active task 位于 `benchmark/tasks/build/<game>/vN/`，自带中英文 prompt、严格状态 Schema、公开浏览器 cases 和 100 分 manifest。`benchmark/releases/0.6.1.json` 冻结完整四任务目录，其任务内容与 0.6.0 完全一致。
 
-详细说明参见[方法学](docs/methodology.md)、[架构](docs/architecture.md)、[Campaign 与运行目录架构](docs/campaign-architecture.md)、[任务编写](docs/task-authoring.md)、[结果发布](docs/results-and-publication.md)和[版本规则](docs/versioning.md)。
+详细说明参见[方法学](docs/methodology.md)、[0.6 设计审查](docs/benchmark-design-review.md)、[架构](docs/architecture.md)、[Campaign 与运行目录架构](docs/campaign-architecture.md)、[任务编写](docs/task-authoring.md)、[结果发布](docs/results-and-publication.md)和[版本规则](docs/versioning.md)。
 
 ## 边界
 

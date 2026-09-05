@@ -38,6 +38,11 @@ import Layout from "../layouts/Layout.astro";
       <p>Infrastructure errors never become model zeroes. The same frozen source may be evaluated again after a host failure, but the Agent does not receive another development attempt.</p>
       <p>GameBench 0.6 deliberately has no Docker requirement, verifier, Reproduce board, Core composite, or three-seed loop.</p>
 
+      <h2>How to interpret score differences</h2>
+      <p>Each result is one observed delivery per task, not an estimate of average model performance. Four selected games and their public cases do not provide a confidence interval or establish that a small score gap is statistically significant. Read the task scores and build-gate failures alongside the average.</p>
+      <p>The measured unit is the configured Agent, provider, and model system. One invocation and the same time limit do not imply equal token use, inference compute, or cost. Cross-Campaign comparisons are descriptive and may include execution-date, provider, harness, and host effects.</p>
+      <p>Passing public state and input checks does not establish visual quality, fun, complete rule coverage, or generalization to arbitrary seeds. Re-testing frozen code checks evaluator repeatability, not independent Agent reliability.</p>
+
       <details class="audit">
         <summary>Deterministic browser contract</summary>
         <div class="audit-body">

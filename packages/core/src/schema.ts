@@ -53,11 +53,13 @@ export const TestCategorySchema = z.enum([
   "visual",
 ]);
 
+const TestCaseIdSchema = z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/);
+
 export const TestDefinitionSchema = z.strictObject({
-  id: z.string().min(1).regex(/^[a-z0-9][a-z0-9._-]*$/),
+  id: TestCaseIdSchema,
   category: TestCategorySchema,
   points: z.number().positive().max(100),
-  case: z.string().min(1),
+  case: TestCaseIdSchema,
 });
 
 export const ReferenceSchema = z.strictObject({
@@ -184,14 +186,14 @@ export const BrowserStepSchema = z.discriminatedUnion("op", [
 ]);
 
 export const BrowserCaseSchema = z.strictObject({
-  id: z.string().min(1),
+  id: TestCaseIdSchema,
   kind: z.literal("browser"),
   description: z.string().min(1),
-  steps: z.array(BrowserStepSchema),
+  steps: z.array(BrowserStepSchema).min(1),
 });
 
 export const BuildCaseSchema = z.strictObject({
-  id: z.string().min(1),
+  id: TestCaseIdSchema,
   kind: z.literal("build"),
   description: z.string().min(1),
 });
@@ -205,9 +207,25 @@ export const TestSuiteSchema = z.strictObject({
   schema_version: z.literal(1),
   cases: z.array(TestCaseSchema).min(1),
 }).superRefine((suite, context) => {
+  const caseIds = new Set<string>();
   suite.cases.forEach((testCase, caseIndex) => {
+    if (caseIds.has(testCase.id)) {
+      context.addIssue({
+        code: "custom",
+        path: ["cases", caseIndex, "id"],
+        message: `duplicate case id: ${testCase.id}`,
+      });
+    }
+    caseIds.add(testCase.id);
     if (testCase.kind !== "browser") {
       return;
+    }
+    if (!testCase.steps.some((step) => step.op === "expect" || step.op === "screenshot")) {
+      context.addIssue({
+        code: "custom",
+        path: ["cases", caseIndex, "steps"],
+        message: "browser case must include an expect or screenshot assertion",
+      });
     }
     testCase.steps.forEach((step, stepIndex) => {
       const path = ["cases", caseIndex, "steps", stepIndex];

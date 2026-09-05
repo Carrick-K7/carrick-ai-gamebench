@@ -8,7 +8,7 @@ import {
   UlidSchema,
 } from "./schema.js";
 
-export const LITE_BENCHMARK_VERSION = "0.6.0";
+export const LITE_BENCHMARK_VERSION = "0.6.1";
 export const LITE_EVALUATION_SEED = 104729;
 
 export const LiteReleaseLockSchema = z.strictObject({

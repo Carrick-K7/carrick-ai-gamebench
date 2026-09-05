@@ -1,6 +1,6 @@
 # Carrick AI GameBench
 
-Carrick AI GameBench 0.6 is a lightweight machine benchmark for coding agents that build playable browser games from public contracts.
+Carrick AI GameBench 0.6.1 is a lightweight machine benchmark for coding agents that build playable browser games from public contracts. This patch preserves the 0.6.0 scoring instrument; see the [release notes](docs/releases/0.6.1.md).
 
 A formal run uses four Build tasks:
 
@@ -16,7 +16,8 @@ Each task gets exactly one Agent development invocation. The delivered source is
 Requirements: Node.js 22.12+, pnpm 10.33.0, Chromium dependencies, `tar`, and `zstd`.
 
 ```bash
-pnpm install
+pnpm install --frozen-lockfile
+pnpm --filter @carrick/gamebench exec playwright install --with-deps chromium
 pnpm build
 pnpm cagb doctor
 pnpm cagb check
@@ -24,27 +25,29 @@ pnpm cagb check
 
 `doctor` performs a real temporary-directory install, offline reinstall, build, preview, Chromium launch, and bridge smoke before a paid Agent is called.
 
-Run one preregistered Official campaign cell:
+After committing a new Campaign Plan under `benchmark/campaigns/0.6.1/`, run one preregistered Official cell (replace the example IDs with that plan's IDs):
 
 ```bash
 pnpm cagb bench \
-  --campaign pi-system-baseline-2026-08-30 \
-  --cell gpt-5.6-sol
+  --campaign your-campaign-id \
+  --cell your-cell-id
 ```
+
+0.6.1 ships no new Campaign or model results. Existing 0.6.0 plans and results remain historical; do not relabel them or reuse their single-use cells.
 
 Official identity, Pi invocation, model, provider, output path, and preallocated series ID come only from the committed campaign plan. Official runs require a clean Git tree. Free-form Agent commands are accepted only with `--local` while developing the runner or an adapter.
 
 Validate the resulting flat record:
 
 ```bash
-pnpm cagb check --run runs/0.6.0/<series-id>
+pnpm cagb check --run runs/0.6.1/<series-id>
 ```
 
 After every campaign cell is complete, validate and publish the campaign as one batch:
 
 ```bash
 pnpm cagb campaign check
-pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
+pnpm cagb campaign publish --id your-campaign-id
 ```
 
 ## Why each step exists
@@ -52,7 +55,7 @@ pnpm cagb campaign publish --id pi-system-baseline-2026-08-30
 1. **Release lock** — every model receives the same prompts, tests, scoring, seed, and task hashes.
 2. **Real preflight** — host failures are found before model compute is spent.
 3. **Fresh workspace** — tasks and models cannot inherit hidden files or state.
-4. **One Agent invocation** — opportunity and compute remain comparable.
+4. **One Agent invocation** — the attempt count and time limit match; tokens, inference compute, and cost need not.
 5. **Frozen source archive** — the evaluated delivery cannot be silently repaired.
 6. **Fresh evaluation directory** — the source must install, build, and run on its own.
 7. **Public browser cases** — native input and schema-validated state produce objective points.
@@ -65,9 +68,9 @@ Official 0.6 means “project-operated canonical run committed by the maintainer
 
 ## Task packages
 
-Each active task lives under `benchmark/tasks/build/<game>/vN/` and owns its bilingual prompt, strict state schema, public browser cases, and 100-point manifest. `benchmark/releases/0.6.0.json` freezes the exact four-task catalog.
+Each active task lives under `benchmark/tasks/build/<game>/vN/` and owns its bilingual prompt, strict state schema, public browser cases, and 100-point manifest. `benchmark/releases/0.6.1.json` freezes the exact four-task catalog, unchanged from 0.6.0.
 
-See [methodology](docs/methodology.md), [architecture](docs/architecture.md), [campaign architecture](docs/campaign-architecture.md), [task authoring](docs/task-authoring.md), [results and publication](docs/results-and-publication.md), [versioning](docs/versioning.md), and the [Chinese README](README.zh-CN.md).
+See [methodology](docs/methodology.md), [0.6 design review](docs/benchmark-design-review.md), [architecture](docs/architecture.md), [campaign architecture](docs/campaign-architecture.md), [task authoring](docs/task-authoring.md), [results and publication](docs/results-and-publication.md), [versioning](docs/versioning.md), and the [Chinese README](README.zh-CN.md).
 
 ## Boundaries
 
