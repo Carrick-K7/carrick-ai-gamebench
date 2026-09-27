@@ -1,0 +1,156 @@
+---
+import engine2048 from "../../../../../benchmark/play/2048/v1/engine.mjs?raw";
+import renderer2048 from "../../../../../benchmark/play/2048/v1/renderer.mjs?raw";
+import engineMs from "../../../../../benchmark/play/minesweeper/v1/engine.mjs?raw";
+import rendererMs from "../../../../../benchmark/play/minesweeper/v1/renderer.mjs?raw";
+import { PLAY_GAMES, type PlayGameId } from "../../lib/play-data.ts";
+
+interface Props {
+  game: PlayGameId;
+}
+
+const { game } = Astro.props;
+if (!PLAY_GAMES.includes(game)) {
+  throw new Error(`unknown practice game: ${game}`);
+}
+const stageId = `play-stage-${game}`;
+const restartId = `play-restart-${game}`;
+const statusId = `play-status-${game}`;
+const engineSrc = game === "2048" ? engine2048 : engineMs;
+const rendererSrc = game === "2048" ? renderer2048 : rendererMs;
+---
+
+<div class="practice" id="play-practice" data-game={game}>
+  <div class="practice-toolbar">
+    <div class="practice-title">
+      <span class="lang-en">Unranked practice</span>
+      <span class="lang-zh">无排名练习</span>
+    </div>
+    <button class="button secondary" id={restartId} type="button">
+      <span class="lang-en">Restart</span>
+      <span class="lang-zh">重新开始</span>
+    </button>
+  </div>
+  <div class="play-scale">
+    <div class="play-metrics">
+      <span class="lang-en">Score / outcome is recorded locally only — no model calls, no submission, no server.</span>
+      <span class="lang-zh">分数只在本地记录——不调用模型、不提交、没有服务器。</span>
+    </div>
+    <div class="play-viewport">
+      <div class="play-frame" id={stageId} tabindex="0" role="application" aria-label={`${game} practice`}>
+        <div class="reference-mount" id={`play-renderer-${game}`}></div>
+        <div class="play-placeholder" id={statusId}>
+          <strong><span class="lang-en">Loading reference engine…</span><span class="lang-zh">正在加载参考引擎…</span></strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script is:inline define:vars={{ engineSrc, rendererSrc }}>
+  (() => {
+    // This practice runs the frozen reference engine + renderer only. It makes
+    // no model calls, opens no submission path and talks to no server.
+    const wrapper = document.getElementById("play-practice");
+    const game = wrapper?.dataset.game ?? "";
+    const stageRoot = document.getElementById(`play-stage-${game}`);
+    const restartEl = document.getElementById(`play-restart-${game}`);
+    const statusEl = document.getElementById(`play-status-${game}`);
+    const rendererRoot = document.getElementById(`play-renderer-${game}`);
+    if (!stageRoot || !restartEl || !statusEl || !rendererRoot) throw new Error("practice shell is incomplete");
+    const stage = stageRoot;
+    const restart = restartEl;
+    const status = statusEl;
+
+    const moduleUrl = (source) =>
+      URL.createObjectURL(new Blob([source], { type: "text/javascript" }));
+    const engineUrl = moduleUrl(engineSrc);
+    const rendererUrl = moduleUrl(rendererSrc);
+
+    let engineMod;
+    let rendererMod;
+    let gameInstance;
+    let view;
+    let running = false;
+
+    const randomSeed = () => Math.floor(Math.random() * 0x1_0000_0000) >>> 0;
+
+    async function load() {
+      if (engineMod && rendererMod) return;
+      const engine = await import(engineUrl);
+      const renderer = await import(rendererUrl);
+      if (typeof engine.createGame !== "function" || typeof renderer.mountGame !== "function") {
+        throw new Error("reference engine/renderer contract is invalid");
+      }
+      engineMod = engine;
+      rendererMod = renderer;
+    }
+
+    function mount() {
+      view?.destroy();
+      view = undefined;
+      gameInstance = engineMod.createGame(randomSeed());
+      // The original renderer owns this inner root's styles and children.
+      // Scaling and loading state belong to the separate site wrapper.
+      view = rendererMod.mountGame(rendererRoot, {
+        onCommand: (command) => {
+          if (!gameInstance || !view) return;
+          gameInstance.dispatch(command);
+          view.render(gameInstance.publicState());
+        },
+      });
+      view.render(gameInstance.publicState());
+      stage.focus();
+      status.hidden = true;
+    }
+
+    async function start() {
+      if (running) return;
+      running = true;
+      try {
+        await load();
+        mount();
+      } catch (error) {
+        status.hidden = false;
+        const message = document.documentElement.dataset.language === "zh"
+          ? "参考引擎无法启动" : "Reference engine could not start";
+        status.textContent = `${message}: ${String(error)}`;
+      } finally {
+        running = false;
+      }
+    }
+
+    restart.addEventListener("click", () => { void start(); });
+
+    const scaleFrame = () => {
+      const container = stage.parentElement;
+      const available = Math.min(container.clientWidth, 1280);
+      const scale = available / 1280;
+      stage.style.transform = `scale(${scale})`;
+      container.style.height = `${720 * scale}px`;
+    };
+    new ResizeObserver(scaleFrame).observe(stage.parentElement);
+
+    void start();
+  })();
+</script>
+
+<style>
+  .practice { display: grid; gap: 14px; }
+  .practice-toolbar { align-items: center; display: flex; flex-wrap: wrap; gap: 10px; justify-content: space-between; }
+  .practice-title { color: var(--muted); font-family: var(--game-ui); font-size: 11px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; }
+  .play-scale { overscroll-behavior: contain; overflow: hidden; }
+  .play-metrics { color: var(--muted); font-family: var(--game-ui); font-size: 12px; margin-bottom: 12px; }
+  .play-viewport { height: 720px; overflow: hidden; width: 100%; }
+  .reference-mount { height: 720px; width: 1280px; }
+  .play-frame {
+    background: #0a0b12; border-radius: var(--radius); box-shadow: var(--shadow);
+    height: 720px; overflow: hidden; position: relative; transform-origin: top left; width: 1280px;
+  }
+  html[data-theme="arcade"] .play-frame { border-radius: 0; box-shadow: 6px 6px 0 var(--hot); }
+  .play-placeholder {
+    align-items: center; color: #cbd2cc; display: flex; font-family: var(--mono); font-size: 12px;
+    background: #0a0b12; inset: 0; justify-content: center; position: absolute; text-align: center;
+  }
+  .play-placeholder[hidden] { display: none; }
+</style>

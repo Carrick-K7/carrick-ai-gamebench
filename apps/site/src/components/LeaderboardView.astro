@@ -1,11 +1,11 @@
 ---
 import { compareSemanticVersions } from "@carrick/gamebench-core";
-import { score, type PublicationRecord } from "../lib/data";
-import { assignCompetitionRanks, rankingMetricForVersion } from "../lib/ranking";
+import { score, type SiteResultRecord } from "../lib/data";
+import { assignCompetitionRanks, rankingMetricForEntry } from "../lib/ranking";
 
 interface Props {
   version: string;
-  records: PublicationRecord[];
+  records: SiteResultRecord[];
   tier: "official" | "experimental";
   board?: "build" | "reproduce";
 }
@@ -27,8 +27,8 @@ const entries = records
   )
   .sort(
     (left, right) =>
-      metricKey(rankingMetricForVersion(right.entry.aggregate)) -
-        metricKey(rankingMetricForVersion(left.entry.aggregate)) ||
+      metricKey(rankingMetricForEntry(right.entry)) -
+        metricKey(rankingMetricForEntry(left.entry)) ||
       left.entry.publication_id.localeCompare(right.entry.publication_id),
   );
 
@@ -37,21 +37,23 @@ const entries = records
 // never tied with a real 0 and never gets a fabricated rank 1. Display order
 // is stable via publication_id and cannot break the ties computed here.
 const ranks = assignCompetitionRanks(
-  entries.map(({ entry }) => rankingMetricForVersion(entry.aggregate)),
+  entries.map(({ entry }) => "rankable" in entry && entry.rankable === false ? undefined : rankingMetricForEntry(entry)),
 );
 
-// One breakdown row per entry, driven by the aggregate task order (already
-// sorted by task id); per-task score and hard-gate come from the published run.
-const taskBreakdown = entries.map(({ entry, publication }) => {
-  const runsByTask = new Map(publication.runs.map((run) => [run.task_id, run]));
-  return entry.aggregate.tasks.map((task) => {
-    const run = runsByTask.get(task.task_id);
-    return {
-      task_id: task.task_id,
-      percent: run?.score?.percent ?? task.mean,
-      hard_gate_failed: run?.score?.hard_gate_failed ?? false,
-    };
-  });
+// Flat task evidence is displayed directly; legacy rows retain their original
+// aggregate/run interpretation. Missing flat evaluations never become zeroes.
+const taskBreakdown = entries.map((record) => {
+  if ("result" in record) return record.result.tasks.map((task) => ({
+    task_id: task.task_id,
+    percent: task.evaluation.score?.percent,
+    hard_gate_failed: task.evaluation.score?.hard_gate_failed ?? false,
+  }));
+  const runsByTask = new Map(record.publication.runs.map((run) => [run.task_id, run]));
+  return record.entry.aggregate.tasks.map((task) => ({
+    task_id: task.task_id,
+    percent: runsByTask.get(task.task_id)?.score?.percent ?? task.mean,
+    hard_gate_failed: runsByTask.get(task.task_id)?.score?.hard_gate_failed ?? false,
+  }));
 });
 
 function taskLabel(taskId: string): string {
@@ -109,6 +111,8 @@ function parameterValue(params: Record<string, unknown> | undefined, key: string
         <tbody>
           {entries.map(({ entry }, index) => {
             const breakdown = taskBreakdown[index] ?? [];
+            const coverage = "build" in entry ? entry.build :
+              buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core;
             return (
             <tr>
               <td class="mono">{ranks[index] ?? "—"}</td>
@@ -117,12 +121,13 @@ function parameterValue(params: Record<string, unknown> | undefined, key: string
                   <strong>{entry.agent.model}</strong>
                 </a>
                 <div class="muted mono">{entry.agent.version}</div>
+                {"rankable" in entry && entry.rankable === false && <div class="muted"><span class="lang-en">Unranked: incomplete series or Campaign publication.</span><span class="lang-zh">不排名：系列或 Campaign 的完整公开尚未完成。</span></div>}
                 {lightweight && (
                   <div class="muted">
                     {parameterValue(entry.agent.parameters, "provider")} · {parameterValue(entry.agent.parameters, "thinking")} thinking
                   </div>
                 )}
-                {entry.campaign && (
+                {"campaign" in entry && entry.campaign && (
                   <div class="muted campaign">campaign {entry.campaign.id} · {entry.campaign.cell_id}</div>
                 )}
               </td>
@@ -130,9 +135,9 @@ function parameterValue(params: Record<string, unknown> | undefined, key: string
                 {entry.agent.id}
                 <div class="muted">{entry.agent.harness}</div>
               </td>
-              {lightweight ? (
+              {"build" in entry ? (
                 <>
-                  <td class="score">{score(entry.aggregate.leaderboards.build)}</td>
+                  <td class="score">{score(entry.build.score)}</td>
                   <td>
                     <details class="task-toggle">
                       <summary>{breakdown.length} tasks</summary>
@@ -170,8 +175,7 @@ function parameterValue(params: Record<string, unknown> | undefined, key: string
                 </>
               )}
               <td class="mono">
-                {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).completed}/
-                {(buildPrimary ? entry.aggregate.coverage[board] : entry.aggregate.coverage.core).required}
+                {coverage.completed}/{coverage.required}
               </td>
               <td><span class={`pill ${tier}`}>{tier}</span> <span class="pill">{entry.status}</span></td>
             </tr>

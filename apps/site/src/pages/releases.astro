@@ -28,6 +28,7 @@ const archived = releases.slice(1);
             <p>
               <span class="lang-en">Four Build tasks, one Agent attempt and one canonical evaluation per task.</span>
               <span class="lang-zh">四个 Build 任务；每个任务一次 Agent 开发、一次固定条件评测。</span>
+              {current.schema_version === 4 && <><span class="lang-en"> The locked Play instrument has two separate per-game rankings. This source lock is not an announcement of a published tag or deployment.</span><span class="lang-zh">Play 评测工具另有两款游戏的独立排行。源码锁不代表已经发布标签或部署。</span></>}
             </p>
           </div>
           <div class="actions">

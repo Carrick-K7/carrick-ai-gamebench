@@ -3,7 +3,20 @@
 All notable benchmark changes are recorded here. Releases also have a
 machine-readable lock under `benchmark/releases/`.
 
-## Unreleased
+## 0.7.0
+
+- Split the brand into independent Build and Play suites, without a composite score.
+- Preserve the complete 0.6 Build instrument, task hashes, historical results and URLs.
+- Add ReleaseLock v4, flat result v3 and single-suite Campaign v2 in the existing canonical directories.
+- Add original deterministic 2048 and Minesweeper references, bounded screenshot/native-input episodes, sealed evidence and model-free engine/browser replay.
+- Commit private paired seed bundles before execution; gate ranking/publication on whole-series and whole-Campaign completeness.
+- Add an external isolated no-tools Pi player adapter, separate Play rankings and unranked responsive practice.
+- Correct homepage counts, competition ties and conditional artifact/playable availability.
+- Enforce one Git commit across every Campaign cell through shared execution, publication and public-reader checks.
+- Use one atomic snapshot publisher for legacy and current results, with immutable indexed records and byte-identical orphan recovery only.
+- Share the Build task batch policy, construct new results directly as v3, and display flat Build results without synthetic legacy entities.
+- Reuse unchanged Play evidence file hashes within one check while retaining nested seal, filesystem, tampering and native replay validation.
+- No paid model measurements or production deployment accompany this release.
 
 ## 0.6.1
 

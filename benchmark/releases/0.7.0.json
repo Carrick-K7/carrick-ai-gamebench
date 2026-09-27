@@ -1,0 +1,83 @@
+{
+  "schema_version": 4,
+  "benchmark": "carrick-ai-gamebench",
+  "benchmark_version": "0.7.0",
+  "protocols": {
+    "task_manifest": 1,
+    "play_task_manifest": 1,
+    "bridge": 1,
+    "runner_protocol": 4
+  },
+  "suites": {
+    "build": {
+      "evaluation_seed": 104729,
+      "agent_invocations_per_task": 1,
+      "scoring": {
+        "primary_board": "build",
+        "task_weighting": "equal"
+      },
+      "tasks": [
+        {
+          "id": "build.2048.v2",
+          "version": "2.0.0",
+          "hash": "sha256:6185ea4e766acde99f4d4df354defc487eebaca7d5149d531799b580ebac7486"
+        },
+        {
+          "id": "build.minesweeper.v2",
+          "version": "2.0.0",
+          "hash": "sha256:f265bad2cbb1f9b1fd4490f9d4537cf83a4005c7dcb9e669464a0fb5ffce7445"
+        },
+        {
+          "id": "build.parking-2d.v2",
+          "version": "2.0.0",
+          "hash": "sha256:67bb304a7e994f8665d9ab3ed7d1df089de99198bdf8daba69b0c6394ba9852c"
+        },
+        {
+          "id": "build.texas-holdem.v1",
+          "version": "1.0.0",
+          "hash": "sha256:ff962bae33b5435d3f935467654d2e1996c47558ca36b8e859808c395c4b1072"
+        }
+      ]
+    },
+    "play": {
+      "config": {
+        "protocol": "play-visual-v1",
+        "observation": "screenshot-png",
+        "action_space": "native-keyboard-mouse",
+        "viewport": [
+          1280,
+          720
+        ],
+        "device_scale_factor": 1,
+        "history_length": 8,
+        "transport_retries": 1,
+        "seed_policy": "committed-distinct-uint32-per-game",
+        "episodes": 10,
+        "slot_seconds": 60,
+        "memo_max_bytes": 1024,
+        "invalid_response_stop": 3
+      },
+      "task_count": 2,
+      "tasks": [
+        {
+          "id": "play.2048.v1",
+          "version": "1.0.0",
+          "game": "2048",
+          "hash": "sha256:2783b7fcd97303b0ad9689934b2ead2c057e1ef3a67e6d343aeaa42afc417ee4",
+          "episodes": 10,
+          "max_decisions": 200,
+          "primary_metric": "mean_score"
+        },
+        {
+          "id": "play.minesweeper.v1",
+          "version": "1.0.0",
+          "game": "minesweeper",
+          "hash": "sha256:75e7a45a828b75a36b80c982bfb07132256ff6caf67e240400210e86dc8b4768",
+          "episodes": 10,
+          "max_decisions": 128,
+          "primary_metric": "win_rate"
+        }
+      ]
+    }
+  }
+}

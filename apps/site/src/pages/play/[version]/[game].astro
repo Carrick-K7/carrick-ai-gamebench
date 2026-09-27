@@ -1,0 +1,85 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import PlayGameRanking from "../../../components/play/PlayGameRanking.astro";
+import {
+  PLAY_GAMES,
+  buildPlayGameRanking,
+  playReleases,
+  playResults,
+  playVersionSelect,
+  type PlayGameId,
+} from "../../../lib/play-data.ts";
+
+export async function getStaticPaths() {
+  const releases = await playReleases();
+  const paths: Array<{ params: { version: string; game: PlayGameId } }> = [];
+  for (const release of releases) {
+    for (const game of PLAY_GAMES) {
+      if (release.tasks.some((task) => task.game === game)) {
+        paths.push({ params: { version: release.benchmark_version, game } });
+      }
+    }
+  }
+  return paths;
+}
+
+const version = Astro.params.version!;
+const game = Astro.params.game as PlayGameId;
+const releases = await playReleases();
+const results = await playResults();
+const release = playVersionSelect(releases, version);
+const rankings = (["official", "experimental"] as const).map((tier) =>
+  buildPlayGameRanking(game, version, results, tier),
+);
+---
+
+<Layout
+  title={`Play ${game === "2048" ? "2048" : "Minesweeper"} · v${version}`}
+  titleZh={`${game === "2048" ? "2048" : "扫雷"} Play 排行 · v${version}`}
+  description={`Version-correct ${game === "2048" ? "2048" : "Minesweeper"} Play ranking for benchmark v${version}.`}
+  descriptionZh={`基准 v${version} 的 ${game === "2048" ? "2048" : "扫雷"} Play 排行。`}
+  canonicalPath={`/play/${version}/${game}`}
+>
+  <div class="container">
+    <span class="eyebrow"><span class="lang-en">Play ranking · {game === "2048" ? "2048" : "Minesweeper"}</span><span class="lang-zh">Play 排行 · {game === "2048" ? "2048" : "扫雷"}</span></span>
+    <h1><span class="lang-en">{game === "2048" ? "2048" : "Minesweeper"} ranking</span><span class="lang-zh">{game === "2048" ? "2048" : "扫雷"} 排行</span></h1>
+    <p class="lead">
+      <span class="lang-en">One version (v{version}), one game, one native metric. This page never mixes benchmark releases and never combines games into a composite score.</span>
+      <span class="lang-zh">一个版本（v{version}）、一个游戏、一个原生指标。本页不会混排不同基准版本，也不会把多个游戏合成综合分。</span>
+    </p>
+
+    <div class="version-context">
+      <span class="pill">v{version} · <span class="lang-en">single game, single metric</span><span class="lang-zh">单游戏单指标</span></span>
+      <a href={`/play/practice/${game}`}><span class="lang-en">Practice this game</span><span class="lang-zh">练习该游戏</span></a>
+      <a class="muted" href="/play"><span class="lang-en">All Play</span><span class="lang-zh">全部 Play</span></a>
+    </div>
+
+    {release && (
+      <div class="callout status-banner">
+        <span class="lang-en"><strong>{game === "2048" ? "2048" : "Minesweeper"}</strong> is measured on its native metric, {release.tasks.find((task) => task.game === game)?.primary_metric === "win_rate" ? "win rate as a percentage" : "mean native score"}. Episode vectors and sample sizes are shown per row; a missing value is recorded as “no rank”, never as a zero.</span>
+        <span class="lang-zh"><strong>{game === "2048" ? "2048" : "扫雷"}</strong> 使用其原生指标评测（{release.tasks.find((task) => task.game === game)?.primary_metric === "win_rate" ? "胜率（百分比）" : "平均原生得分"}）。每行展示回合向量与样本量；缺失值按“无排名”处理，绝不会当作 0。</span>
+      </div>
+    )}
+
+    <div class="callout">
+      <p><span class="lang-en">Both games must each complete all 10 episodes, and every preregistered Campaign cell must be indexed and complete before any game receives a rank. No survivors-only averages or rankings. Shared Core validation determines Official / Experimental qualification; a self-declared profile is not sufficient.</span><span class="lang-zh">两款游戏都必须各完成 10 个回合，且预注册 Campaign 的所有单元均已完整完成并进入公开索引，任何游戏才可排名。不使用仅幸存回合或单元的均值与排行。正式 / 实验资格由共享 Core 校验决定；自报配置不足以取得正式资格。</span></p>
+      <p><span class="lang-en">Ten episodes are a small descriptive sample. Cross-Campaign comparisons are not paired or causal. Exact ties share competition ranks; displayed rounding, cost and latency never break ties. Usage, latency and cost are unknown when absent from public data.</span><span class="lang-zh">10 个回合只是描述性小样本；跨 Campaign 比较并非配对或因果结论。精确同分使用竞赛式并列排名；显示舍入、成本与延迟都不破同分。公开记录未提供用量、延迟或成本时，它们均为未知。</span></p>
+    </div>
+    {rankings.map((ranking) => (
+      <section class="section" id={ranking.tier}>
+        <div class="section-head">
+          <div><span class={`pill ${ranking.tier}`}>{ranking.tier === "official" ? "Official" : "Experimental"}</span><h2><span class="lang-en">{ranking.tier === "official" ? "Official results" : "Experimental observations"}</span><span class="lang-zh">{ranking.tier === "official" ? "正式成绩" : "实验观测"}</span></h2></div>
+          <p><span class="lang-en">Separate qualification tiers, one exact version and game. Incomplete series or Campaigns remain explicitly unranked.</span><span class="lang-zh">资格分区独立，每区仅对应一个版本和游戏。不完整的系列或 Campaign 会明确标为不排名。</span></p>
+        </div>
+        <PlayGameRanking ranking={ranking} />
+      </section>
+    ))}
+  </div>
+</Layout>
+
+<style>
+  .version-context { align-items: center; display: flex; flex-wrap: wrap; gap: 12px 18px; margin-top: 30px; }
+  .version-context a { font-size: 13px; font-weight: 800; }
+  .version-context a.muted { font-weight: 620; }
+  .section-head p { margin: 0; max-width: 580px; }
+</style>

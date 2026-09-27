@@ -20,6 +20,8 @@ import {
   publishCampaigns,
 } from "./campaign.js";
 import { commandExists } from "./process.js";
+import { BUILD_PLAY_BENCHMARK_VERSION } from "./suite-release.js";
+import { trySuiteCommand } from "./suite-cli.js";
 import {
   checkLiteBenchmark,
   checkLitePublishedResults,
@@ -31,11 +33,15 @@ import {
 } from "./lite-runner.js";
 
 const USAGE = `
-Carrick AI GameBench ${LITE_BENCHMARK_VERSION} Lite
+Carrick AI GameBench — Build / Play (legacy ${LITE_BENCHMARK_VERSION} retained)
 
 Usage:
   cagb --version
-  cagb doctor
+  cagb doctor [--suite build|play]
+  cagb bench --suite build --campaign <id> --cell <id>
+  cagb bench --suite play --campaign <id> --cell <id> --seed-bundle <private-file>
+  cagb play seeds --output <private-file-outside-repository>
+  cagb replay --run <play-run-directory> [--engine-only]
   cagb bench --campaign <id> --cell <id>
   cagb bench --local --agent-command <command> --agent-id <id> [options]
   cagb campaign check
@@ -283,7 +289,7 @@ async function commandCampaign(repositoryRoot: string, args: string[]): Promise<
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (command === "--version" || command === "-V") {
-    console.log(LITE_BENCHMARK_VERSION);
+    console.log(BUILD_PLAY_BENCHMARK_VERSION);
     return;
   }
   if (!command || command === "help" || command === "--help" || command === "-h") {
@@ -291,6 +297,7 @@ async function main(): Promise<void> {
     return;
   }
   const repositoryRoot = await findRepositoryRoot();
+  if (await trySuiteCommand(repositoryRoot, command, args)) return;
   if (command === "doctor") {
     await commandDoctor(repositoryRoot);
   } else if (command === "bench") {

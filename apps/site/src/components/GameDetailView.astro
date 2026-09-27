@@ -1,6 +1,10 @@
 ---
 import {
   playableCandidatesForTask,
+  isPublicationRecord,
+  isFlatBuildRecord,
+  score,
+  type SiteResultRecord,
   type PublicationRecord,
   type ReleaseCatalog,
 } from "../lib/data";
@@ -13,7 +17,7 @@ import {
 interface Props {
   catalog: ReleaseCatalog;
   taskId: string;
-  records: PublicationRecord[];
+  records: SiteResultRecord[];
 }
 
 const { catalog, taskId, records } = Astro.props;
@@ -27,7 +31,13 @@ const candidates = playableCandidatesForTask(taskId, version, records);
 const candidateByRun = new Map(
   candidates.map((candidate) => [candidate.run.run_id, candidate]),
 );
-const outputRuns = records
+const flatOutputs = records.filter(isFlatBuildRecord)
+  .filter(({ entry }) => entry.benchmark_version === version)
+  .flatMap((record) => record.result.tasks.filter((task) => task.task_id === taskId)
+    .map((task) => ({ record, task })))
+  .sort((left, right) => Number(right.record.entry.tier === "official") - Number(left.record.entry.tier === "official") ||
+    right.record.entry.created_at.localeCompare(left.record.entry.created_at));
+const outputRuns = records.filter(isPublicationRecord)
   .filter((record) => record.publication.benchmark.version === version)
   .flatMap((record) =>
     record.publication.submissions
@@ -108,7 +118,7 @@ const scoreForSubmission = (record: PublicationRecord, submissionId: string) =>
     <span>time allowed</span>
   </div>
   <div class="card metric">
-    <strong>{outputRuns.length}</strong><span>development submissions published</span>
+    <strong>{outputRuns.length + flatOutputs.length}</strong><span>development observations published</span>
   </div>
 </div>
 
@@ -123,13 +133,23 @@ const scoreForSubmission = (record: PublicationRecord, submissionId: string) =>
       first, and failed attempts stay visible.
     </p>
   </div>
-  {outputRuns.length === 0 ? (
+  {outputRuns.length + flatOutputs.length === 0 ? (
     <div class="card empty">
       <strong>No published output for this release.</strong>
       <span class="muted">The frozen task contract remains available for audit.</span>
     </div>
   ) : (
     <div class="grid cols-3">
+      {flatOutputs.map(({ record, task }) => (
+        <article class="card output-card">
+          <div class="cover placeholder"><span class="lang-en">No playable artifact published</span><span class="lang-zh">未公开试玩附件</span></div>
+          <div class="output-meta"><span class={`pill ${record.entry.tier}`}>{record.entry.tier}</span><span class="pill">{task.evaluation.status}</span></div>
+          <h3>{record.entry.agent.model}</h3>
+          <p>{record.entry.agent.id} · {record.entry.agent.harness}<br />Score {score(task.evaluation.score?.percent)} · {humanize(task.agent.exit_reason)}</p>
+          <p><span class="lang-en">One frozen delivery. A source hash is not a public download or playable.</span><span class="lang-zh">一次冻结交付。源码哈希不代表已公开下载或试玩。</span></p>
+          <a class="button secondary" href={`/results/${record.entry.publication_id.slice(7)}`}>Result</a>
+        </article>
+      ))}
       {outputRuns.map(({ record, submission, evaluations, run, candidate }) => (
         <article class="card output-card">
           {candidate?.showcase ? (

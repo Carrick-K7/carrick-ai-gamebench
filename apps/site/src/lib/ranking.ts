@@ -47,6 +47,34 @@ export function rankingMetricForVersion(
       : aggregate.leaderboards.core;
 }
 
+type RankingEntry =
+  | { build: { score?: number | undefined } }
+  | { aggregate: Parameters<typeof rankingMetricForVersion>[0] };
+
+/** Flat Build observations expose their native summary, not a legacy aggregate. */
+export function rankingMetricForEntry(entry: RankingEntry): number | undefined {
+  return "build" in entry ? entry.build.score : rankingMetricForVersion(entry.aggregate);
+}
+
+export function rankingBoardForEntry(entry: RankingEntry): "build" | "reproduce" | "core" {
+  return "build" in entry ? "build" : entry.aggregate.primary_board;
+}
+
+/** Select every public observation for a version, not just Experimental rows. */
+export function publicOverviewRecords<T extends VersionedResult & {
+  entry: { tier: RankingTier } & RankingEntry;
+}>(records: T[], version: string | undefined): T[] {
+  const metric = (record: T): number => {
+    const value = rankingMetricForEntry(record.entry);
+    return value !== undefined && Number.isFinite(value) ? value : -1;
+  };
+  return records.filter(({ entry }) => entry.status === "active" && entry.benchmark_version === version)
+    .sort((left, right) =>
+      Number(right.entry.tier === "official") - Number(left.entry.tier === "official") ||
+      metric(right) - metric(left),
+    );
+}
+
 /**
  * Competition ("1,2,2,4") ranking for a set of metrics. Returns one rank per
  * input metric, in the same order as `metrics`; a `number | undefined` where

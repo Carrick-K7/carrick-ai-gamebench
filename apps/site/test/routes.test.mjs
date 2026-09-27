@@ -45,7 +45,7 @@ test("v0.5 board and shared-submission routes stay unambiguous", async () => {
   const [rankings, data, result, showcase] = await Promise.all([
     source("../src/components/RankingsPage.astro"),
     source("../src/lib/data.ts"),
-    source("../src/pages/results/[id].astro"),
+    source("../src/components/LegacyResultDetail.astro"),
     source("../src/pages/showcase/[id].astro"),
   ]);
   assert.match(rankings, /activeForVersion\.filter\(\(\{ entry \}\) => entry\.tier === "official"\)/);
@@ -62,9 +62,24 @@ test("immutable historical result and showcase paths remain keyed by existing id
     source("../src/pages/results/[id].astro"),
     source("../src/pages/showcase/[id].astro"),
   ]);
-  assert.match(result, /record\.publication\.publication_id\.slice\("sha256:"\.length\)/);
+  assert.match(result, /record\.entry\.publication_id\.slice\("sha256:"\.length\)/);
+  assert.match(result, /isFlatBuildRecord\(record\)/);
+  assert.match(result, /<FlatBuildResultDetail record=\{record\}/);
+  assert.match(result, /<LegacyResultDetail record=\{record\}/);
   assert.match(showcase, /artifactId\.slice\("sha256:"\.length\)/);
   assert.match(showcase, /\/results\/\$\{entry\.publication_id\.slice\(7\)\}/);
+});
+
+test("flat details consume original task fields without legacy entities or fictional uncertainty", async () => {
+  const detail = await source("../src/components/FlatBuildResultDetail.astro");
+  assert.match(detail, /result\.tasks\.map/);
+  assert.match(detail, /task\.source_hash/);
+  assert.match(detail, /task\.evaluation\.status/);
+  assert.match(detail, /score\(task\.evaluation\.score\?\.percent\)/);
+  assert.match(detail, /Agent wall time/);
+  assert.doesNotMatch(detail, /\bpublication\.[A-Za-z_$]|submission_id|run_id|aggregate\.|standard_deviation|runner_protocol|evaluator_image/);
+  // Old flat fragments remain navigable anchors, not artificial evidence objects.
+  assert.match(detail, /id=\{`evaluation-\$\{result\.series_id\}-evaluation-\$\{index \+ 1\}`\}/);
 });
 
 test("v0.6 leaderboard uses competition ranking and shows task breakdown, provider params, and campaign provenance", async () => {

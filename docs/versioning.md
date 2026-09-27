@@ -1,6 +1,6 @@
 # Versioning
 
-GameBench 0.6 is the new lightweight baseline.
+GameBench 0.7 adds independent Build and Play instruments to the lightweight 0.6 baseline. The four Build contracts remain unchanged; Play is a new visual-player measurement, not a reinterpretation of old results.
 
 ## Benchmark releases
 
@@ -9,7 +9,8 @@ GameBench 0.6 is the new lightweight baseline.
 - the four task IDs, semantic versions, and content hashes;
 - canonical evaluation seed `104729`;
 - one Agent invocation per task;
-- equal-weight Build scoring.
+- equal-weight Build scoring;
+- for 0.7, immutable Play game/resource hashes, visual protocol, per-game budgets, ten-episode coverage, seed-commitment policy and separate native metrics.
 
 Any change to a prompt, state schema, public case, point allocation, task set, canonical seed, time budget, hard gate, or scoring interpretation requires a new Benchmark minor release such as `0.7.0`.
 
@@ -22,8 +23,11 @@ Before publishing a release:
 1. choose the semantic version;
 2. write and review its immutable release lock;
 3. run `pnpm check` and `pnpm cagb doctor`;
-4. commit the complete source;
-5. create the matching immutable Git tag `v<version>`.
+4. commit and push the complete source, then follow that exact commit's `ci.yml` run to success;
+5. create and push the matching immutable Git tag `v<version>`;
+6. follow `benchmark-release.yml` through verification and GitHub Release evidence publication; never move a published tag or replace release assets.
+
+For 0.7, run both `doctor --suite build` and `doctor --suite play` using the pinned runtime and separately installed audited Pi. Doctors do not run model inference. Software publication does not authorize paid Campaigns or production deployment.
 
 ## Task versions
 
@@ -33,7 +37,7 @@ Retired task packages are excluded from active discovery. Historical release loc
 
 ## Result schema
 
-Benchmark version and result schema version are independent. GameBench 0.6 uses flat `result.json` schema version 2, which adds an optional preregistered Campaign binding. A future benchmark release may reuse schema 2 if its result structure is unchanged; historical result files are never rewritten.
+Benchmark version and result schema version are independent. GameBench 0.6 uses flat `result.json` schema version 2. GameBench 0.7 uses ReleaseLock v4, Campaign v2 and flat result v3 with `suite: build | play`. Historical readers dispatch by the record's version; historical result files are never rewritten, relabeled or silently merged into a newer leaderboard.
 
 ## Long-term path
 

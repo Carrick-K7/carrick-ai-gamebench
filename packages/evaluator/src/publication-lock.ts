@@ -32,8 +32,8 @@ export async function acquirePublicationIndexLock(
   const attempt = async (): Promise<boolean> => {
     try {
       const handle = await open(lockPath, "wx");
-      await handle.writeFile(`${process.pid}\n`);
-      await handle.close();
+      try { await handle.writeFile(`${process.pid}\n`); }
+      finally { await handle.close(); }
       return true;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") {
@@ -44,21 +44,24 @@ export async function acquirePublicationIndexLock(
   };
   if (!(await attempt())) {
     const owner = Number((await readFile(lockPath, "utf8").catch(() => "")).trim());
-    let alive = Number.isInteger(owner) && owner > 0;
-    if (alive) {
-      try {
-        process.kill(owner, 0);
-      } catch {
-        alive = false;
-      }
+    // A writer may have created the file but not written its PID yet. Unknown
+    // ownership is not a stale lock: fail closed and let an operator inspect it.
+    if (!Number.isSafeInteger(owner) || owner <= 0) {
+      throw new Error("publication index is locked with an unconfirmed owner; inspect the lock before removing it");
+    }
+    let alive = true;
+    try {
+      process.kill(owner, 0);
+    } catch (error) {
+      // EPERM (or any unrecognized failure) does not prove the owner is dead.
+      alive = (error as NodeJS.ErrnoException).code !== "ESRCH";
     }
     if (alive) {
       throw new Error(`publication index is locked by process ${owner}`);
     }
-    await rm(lockPath, { force: true });
-    if (!(await attempt())) {
-      throw new Error("publication index lock could not be acquired");
-    }
+    // Even an ESRCH owner is not safe to reclaim automatically: two contenders
+    // could both observe the old PID and one unlink the other's fresh lock.
+    throw new Error(`publication index is locked by stale process ${owner}; confirm no publisher is running before removing the lock`);
   }
   return async () => rm(lockPath, { force: true });
 }

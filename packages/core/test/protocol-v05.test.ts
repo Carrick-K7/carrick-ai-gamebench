@@ -6,6 +6,7 @@ import {
   AnyPublicationManifestSchema,
   AnyReleaseLockSchema,
   LiteReleaseLockSchema,
+  ReleaseLockV4Schema,
   PublicationManifestV1Schema,
   ResultIndexV1Schema,
   ResultIndexV2Schema,
@@ -28,6 +29,8 @@ test("historical release locks remain readable under their original versions", a
       assert.equal(`${lite.data.benchmark_version}.json`, file);
       continue;
     }
+    const dual = ReleaseLockV4Schema.safeParse(input);
+    if (dual.success) { assert.equal(`${dual.data.benchmark_version}.json`, file); continue; }
     const lock = AnyReleaseLockSchema.parse(input);
     assert.equal(`${lock.benchmark_version}.json`, file);
     if (lock.benchmark_version !== "0.5.0") {

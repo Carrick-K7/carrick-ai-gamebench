@@ -1,7 +1,7 @@
 ---
 import { translateToZh } from "../lib/translations";
 import UiIcon from "../components/UiIcon.astro";
-import { brandName, brandTagline, brandTaglineZh, githubUrl } from "../lib/brand";
+import { brandName, githubUrl } from "../lib/brand";
 
 interface Props {
   title: string;
@@ -14,8 +14,10 @@ interface Props {
 const {
   title,
   titleZh = translateToZh(title),
-  description = "GameBench is a game-driven benchmark for coding agents.",
-  descriptionZh = translateToZh(description),
+  description = "GameBench evaluates coding-agent deliveries in Build and visual player systems in Play, with separate rankings.",
+  descriptionZh = Astro.props.description === undefined
+    ? "GameBench 通过 Build 评测编程智能体交付，通过 Play 评测视觉玩家系统，分别排行。"
+    : translateToZh(description),
   canonicalPath,
 } = Astro.props;
 const isHome = title === "GameBench" || title === brandName;
@@ -82,12 +84,14 @@ const socialImage = new URL("/og.png", canonical);
         <span class="brand-mark" aria-hidden="true"><img src="/carrick-logo.svg" alt="" /></span>
         <span class="brand-copy">
           <strong><span class="brand-prefix">Carrick AI </span>GameBench</strong>
-          <small><span class="lang-en">{brandTagline}</span><span class="lang-zh">{brandTaglineZh}</span></small>
+          <small><span class="lang-en">Build and Play · separate benchmarks</span><span class="lang-zh">Build 与 Play · 独立评测</span></small>
         </span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="/games"><span class="lang-en">Play games</span><span class="lang-zh">玩游戏</span></a>
-        <a href="/leaderboard"><span class="lang-en">Rankings</span><span class="lang-zh">评测排行</span></a>
+        <a href="/leaderboard"><span class="lang-en">Build · coding agents</span><span class="lang-zh">Build · 编程智能体</span></a>
+        <a href="/play"><span class="lang-en">Play · visual players</span><span class="lang-zh">Play · 视觉玩家</span></a>
+        <a href="/play#practice"><span class="lang-en">Practice · unranked</span><span class="lang-zh">参考练习 · 不计排名</span></a>
+        <a href="/games"><span class="lang-en">Build games</span><span class="lang-zh">Build 游戏</span></a>
         <a href="/methodology"><span class="lang-en">Evaluation rules</span><span class="lang-zh">评测规则</span></a>
         <a href="/releases"><span class="lang-en">Benchmark releases</span><span class="lang-zh">测试集版本</span></a>
         <a class="nav-external" href={githubUrl} target="_blank" rel="noreferrer">
@@ -111,11 +115,13 @@ const socialImage = new URL("/og.png", canonical);
     <footer>
       <div>
         <strong>{brandName}</strong>
-        <span>Agents submit the game. Deterministic browser contracts keep the score auditable.</span>
+        <span class="lang-en">Build evaluates coding-agent deliveries. Play evaluates visual player systems. Scores stay separate.</span><span class="lang-zh">Build 评测编程智能体交付，Play 评测视觉玩家系统；两者分别计分。</span>
       </div>
       <div class="footer-links">
         <a href={githubUrl} target="_blank" rel="noreferrer">GitHub</a>
-        <a href="/methodology">How scoring works</a>
+        <a href="/methodology"><span class="lang-en">Build scoring rules</span><span class="lang-zh">Build 计分规则</span></a>
+        <a href="/play"><span class="lang-en">Play · per-game rankings</span><span class="lang-zh">Play · 各游戏排行</span></a>
+        <a href="https://llm-showcase.carrick7.com/" target="_blank" rel="noreferrer"><span class="lang-en">LLM Showcase · demos, not benchmark rankings</span><span class="lang-zh">LLM Showcase · 作品展示，非评测排行</span></a>
         <span>Apache-2.0</span>
       </div>
     </footer>
@@ -245,11 +251,23 @@ const socialImage = new URL("/og.png", canonical);
         });
       });
 
-      const path = window.location.pathname;
-      document.querySelectorAll<HTMLAnchorElement>(".topbar nav a").forEach((link) => {
-        const href = link.getAttribute("href") ?? "";
-        if (href !== "/" && path.startsWith(href)) link.dataset.active = "true";
-      });
+      function updateActiveNavigation(): void {
+        const path = window.location.pathname.replace(/\/$/, "") || "/";
+        const practice = path.startsWith("/play/practice/") ||
+          (path === "/play" && window.location.hash === "#practice");
+        document.querySelectorAll<HTMLAnchorElement>(".topbar nav a").forEach((link) => {
+          const href = link.getAttribute("href") ?? "";
+          const active = href === "/play#practice"
+            ? practice
+            : href === "/play"
+              ? !practice && (path === "/play" || path.startsWith("/play/"))
+              : href.startsWith("/") && href !== "/" &&
+                (path === href || path.startsWith(`${href}/`));
+          link.dataset.active = String(active);
+        });
+      }
+      updateActiveNavigation();
+      window.addEventListener("hashchange", updateActiveNavigation);
 
       const reticle = document.querySelector<HTMLElement>(".cursor-reticle");
       if (reticle && window.matchMedia("(pointer: fine)").matches) {
@@ -387,7 +405,7 @@ const socialImage = new URL("/og.png", canonical);
     border-bottom: 1px solid var(--line);
     display: grid;
     gap: 28px;
-    grid-template-columns: auto 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     padding: 14px clamp(18px, 4vw, 64px);
     position: sticky;
     top: 0;
@@ -401,7 +419,7 @@ const socialImage = new URL("/og.png", canonical);
   .brand-copy { display: grid; gap: 1px; }
   .brand-copy strong { font-family: var(--game-ui); font-size: 17px; font-weight: 750; letter-spacing: -.025em; }
   .brand-copy small { color: var(--muted); font-family: var(--game-ui); font-size: 10px; font-weight: 620; letter-spacing: .01em; }
-  nav { display: flex; gap: clamp(13px, 1.8vw, 26px); justify-content: center; }
+  nav { display: flex; flex-wrap: wrap; gap: 16px clamp(13px, 1.8vw, 26px); justify-content: center; }
   nav a { align-items: center; color: var(--muted); display: inline-flex; font-family: var(--game-ui); font-size: 13px; font-weight: 700; gap: 5px; letter-spacing: .01em; position: relative; text-decoration: none; }
   nav a::after { background: var(--hot); bottom: -8px; content: ""; height: 3px; left: 0; position: absolute; transform: scaleX(0); transform-origin: left; transition: transform .18s ease; width: 100%; }
   nav a:hover, nav a[data-active="true"] { color: var(--ink); }
@@ -455,6 +473,7 @@ const socialImage = new URL("/og.png", canonical);
   html[data-theme="arcade"] .button { border-radius: 0; box-shadow: 5px 5px 0 var(--hot); text-transform: uppercase; }
   html[data-theme="arcade"] .button:hover { box-shadow: 2px 2px 0 var(--lime); transform: translate(3px, 3px); }
   .grid { display: grid; gap: 18px; }
+  .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .card {
@@ -495,7 +514,7 @@ const socialImage = new URL("/og.png", canonical);
   .empty strong { display: block; font-size: 20px; }
   .mono { font-family: var(--mono); }
   .muted { color: var(--muted); }
-  .lang-zh { display: none; }
+  .lang-zh, html[data-language="en"] .lang-zh { display: none; }
   html[data-language="zh"] .lang-en { display: none; }
   html[data-language="zh"] .lang-zh { display: initial; }
   .game-card { min-height: 248px; overflow: hidden; position: relative; }
@@ -618,7 +637,7 @@ const socialImage = new URL("/og.png", canonical);
     justify-content: space-between; padding: 34px clamp(20px, 5vw, 72px); gap: 24px;
   }
   footer strong { color: var(--paper); margin-right: 12px; }
-  .footer-links { display: flex; gap: 20px; }
+  .footer-links { display: flex; flex-wrap: wrap; gap: 20px; }
   footer a:hover { color: var(--lime); }
   @media (max-width: 900px) {
     .topbar { gap: 16px; grid-template-columns: auto 1fr; }
@@ -637,7 +656,7 @@ const socialImage = new URL("/og.png", canonical);
     .brand-mark { height: 36px; width: 48px; }
     .brand-copy small { display: none; }
     .mode-switch button { padding-inline: 7px; }
-    .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
+    .grid.cols-2, .grid.cols-3, .grid.cols-4 { grid-template-columns: 1fr; }
     .section-head, footer { align-items: flex-start; flex-direction: column; }
     h1 { font-size: clamp(42px, 13vw, 62px); }
     html[data-language="en"][data-theme="arcade"] h1 { font-size: clamp(36px, 10vw, 50px); }

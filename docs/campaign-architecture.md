@@ -2,7 +2,7 @@
 
 Status: **Accepted and enforced.**
 
-Applies to GameBench 0.6 and later releases.
+Applies to GameBench 0.6 and later releases. The schema-v1 JSON example below describes historical Build Campaigns; 0.7 adds single-suite Campaign v2, Play seed commitments and flat result v3 without changing the canonical namespaces. See [ADR 0003](adr/0003-build-and-play-suites.md).
 
 This document freezes the filesystem vocabulary and the experiment boundary. Changing a canonical path, identity rule, or campaign lifecycle requires a new ADR, a migration plan, and explicit maintainer approval. Display wording and non-authoritative local diagnostics do not.
 
@@ -43,7 +43,7 @@ runs/
   <benchmark-version>/
     <series-id>/
       .series.json
-      result.json                 # only after a complete series
+      result.json                 # final record; incomplete Play is unranked
       benchmark-error.json        # only after an aborted series
       tasks/
         <task-id>/
@@ -195,7 +195,7 @@ Rules:
 3. Agent development is never retried.
 4. Typed infrastructure retries occur only inside the same task against identical frozen source and remain visible in evidence.
 5. A process crash leaves a non-complete directory. It is inspectable but never resumable or publishable.
-6. `result.json` is written only after the complete series has been assembled and validated.
+6. Build writes `result.json` only after a complete scored series has been assembled and validated. Play may also seal an unscored terminal record for an infrastructure-failed series; its marker is `aborted`, and full-suite qualification excludes it from ranking and publication.
 7. Cleanup treats a valid complete `result.json` as authoritative over a stale phase marker and never scans outside `runs/`.
 
 No per-cell lock is required: exclusive creation of the preallocated series directory is the concurrency primitive.
@@ -211,9 +211,11 @@ The Official sequence is:
 5. Publish the campaign as a **batch operation** while preserving individual flat result files.
 6. Commit the result files and one updated flat index.
 
-Batch publication acquires one exclusive index lock, re-reads the index after lock acquisition, validates every cell, copies all missing result files, and atomically renames one fully updated index. Multiple completed Campaigns may be supplied as repeated `--id` arguments and are validated and published in the same lock transaction; this prevents one Campaign's publication files from making the tree dirty before the next is validated. An unindexed result file left by an interrupted prior attempt is an orphan and may be removed only after its bytes are compared with the planned source result. An indexed missing result is a hard integrity failure, never auto-repaired.
+Batch publication validates every cell before touching public paths, then acquires one exclusive index lock, re-reads the index, writes the checked snapshots, and atomically renames one fully updated index. Multiple completed Campaigns may be supplied as repeated `--id` arguments: all are validated before one shared write transaction, preventing one Campaign's publication files from making the tree dirty before the next is validated. All versions use one writer that publishes already-validated snapshots, rather than rereading mutable run files after validation. An unindexed result file left by an interrupted prior attempt is an orphan and may be reused only when it is a singly-linked regular file whose bytes exactly match the planned snapshot; conflicting bytes are a hard failure, never overwritten. An indexed missing result is a hard integrity failure, never auto-repaired.
 
 Direct single-series publication rejects campaign-affiliated results; even a one-cell measurement passes through Campaign batch publication so the same completeness and atomic-index path applies uniformly.
+
+An existing index lock is never reclaimed automatically, even when its recorded PID is gone: competing stale-lock removers could otherwise delete a new owner's lock. After verifying that no publisher is running, an operator may remove `results/lite/index.json.lock` and retry. Never remove a live or unconfirmed lock.
 
 ## 7. Machine-enforceable invariants
 

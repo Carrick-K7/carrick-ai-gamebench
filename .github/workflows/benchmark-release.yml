@@ -56,7 +56,9 @@ jobs:
             echo
             echo "- Git commit: \`$(git rev-parse HEAD)\`"
             echo "- Benchmark release lock: \`gamebench-${version}-release-lock.json\`"
-            echo "- Workflow: one Agent invocation and one canonical evaluation per task"
+            echo "- Build: one Agent invocation and one canonical evaluation per task"
+            echo "- Play: ten bounded visual episodes per game; independent native metrics"
+            echo "- Release scope: software and frozen instruments, not new model measurements or deployment"
           } >> release-artifacts/release-summary.md
           (
             cd release-artifacts

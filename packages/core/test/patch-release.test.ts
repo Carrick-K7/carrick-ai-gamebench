@@ -3,9 +3,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import test from "node:test";
 import {
-  LITE_BENCHMARK_VERSION,
   LiteReleaseLockSchema,
-  createLiteReleaseLock,
+  ReleaseLockV4Schema,
+  createReleaseLockV4,
+  loadPlayTasks,
   findRepositoryRoot,
   listTasks,
 } from "../src/index.js";
@@ -33,10 +34,11 @@ test("workspace packages and the active release have one version and exact catal
     "apps/reviewer/package.json",
   ]) {
     const manifest = await readJson(root, relative) as { version: string };
-    assert.equal(manifest.version, LITE_BENCHMARK_VERSION, relative);
+    assert.equal(manifest.version, "0.7.0", relative);
   }
-  const release = LiteReleaseLockSchema.parse(await readJson(
-    root, `benchmark/releases/${LITE_BENCHMARK_VERSION}.json`,
-  ));
-  assert.deepEqual(release, createLiteReleaseLock(LITE_BENCHMARK_VERSION, await listTasks(root)));
+  const release = ReleaseLockV4Schema.parse(await readJson(root, "benchmark/releases/0.7.0.json"));
+  assert.deepEqual(release, createReleaseLockV4("0.7.0", await listTasks(root), await loadPlayTasks(root)));
+  const previous = LiteReleaseLockSchema.parse(await readJson(root, "benchmark/releases/0.6.1.json"));
+  assert.deepEqual(release.suites.build.tasks, previous.tasks);
+  assert.equal(release.suites.build.evaluation_seed, previous.evaluation_seed);
 });

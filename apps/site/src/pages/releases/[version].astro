@@ -62,14 +62,19 @@ const taskTitles = (task: (typeof catalog.tasks)[number]) =>
       >
         Play the games
       </a>
-      <a
+      {release.schema_version !== 4 && <a
         class="button secondary"
         href={`https://github.com/Carrick-K7/carrick-ai-gamebench/tree/v${release.benchmark_version}`}
       >
         Frozen source tag
-      </a>
+      </a>}
+      {release.schema_version === 4 && <a class="button secondary" href="/play"><span class="lang-en">Separate Play rankings &amp; practice</span><span class="lang-zh">独立 Play 排行与练习</span></a>}
     </div>
 
+    {release.schema_version === 4 && <div class="callout">
+      <span class="lang-en">This is the Build-only display of a dual-suite instrument lock: the exact four v0.6 tasks, one Agent invocation and seed 104729 per task. Play is separate, with no combined score. A source lock does not establish a published tag or deployment.</span>
+      <span class="lang-zh">这里仅展示双套件评测锁中的 Build：沿用 v0.6 的四个任务，每项一次 Agent 开发和 seed 104729 评测。Play 独立，不存在综合分。源码中的锁不代表已经发布标签或部署。</span>
+    </div>}
     <section class="section">
       <div class="section-head">
         <div><span class="eyebrow">Games in this season</span><h2>The complete challenge list.</h2></div>

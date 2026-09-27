@@ -1,0 +1,15 @@
+schema_version: 1
+id: play.minesweeper.v1
+version: 1.0.0
+title: { en: "Minesweeper", zh: "扫雷" }
+suite: play
+game: "minesweeper"
+engine: engine.mjs
+renderer: renderer.mjs
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+episodes: 10
+max_decisions: 128
+viewport: [1280, 720]
+device_scale_factor: 1
+primary_metric: win_rate
+license: Apache-2.0

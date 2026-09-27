@@ -1,13 +1,13 @@
 ---
 import {
   playableCandidatesForTask,
-  type PublicationRecord,
+  type SiteResultRecord,
   type ReleaseCatalog,
 } from "../lib/data";
 
 interface Props {
   catalog: ReleaseCatalog;
-  records: PublicationRecord[];
+  records: SiteResultRecord[];
 }
 
 const { catalog, records } = Astro.props;

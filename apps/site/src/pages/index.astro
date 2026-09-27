@@ -3,6 +3,7 @@ import { compareSemanticVersions } from "@carrick/gamebench-core";
 import Layout from "../layouts/Layout.astro";
 import {
   defaultOfficialSeed,
+  isPublicationRecord,
   gameData,
   releaseData,
   resultData,
@@ -10,15 +11,27 @@ import {
 } from "../lib/data";
 import {
   latestResultBearingVersion,
-  rankingMetricForVersion,
+  publicOverviewRecords,
+  rankingMetricForEntry,
+  rankingBoardForEntry,
 } from "../lib/ranking";
+import {
+  latestPlayResultBearingVersion,
+  playReleases,
+  playResults,
+} from "../lib/play-data.ts";
 
-const [games, releases, results] = await Promise.all([
+const [games, releases, results, playReleaseViews, qualifiedPlayResults] = await Promise.all([
   gameData(),
   releaseData(),
   resultData(),
+  playReleases(),
+  playResults(),
 ]);
+const currentPlayRelease = playReleaseViews[0];
+const playResultVersion = latestPlayResultBearingVersion(playReleaseViews, qualifiedPlayResults);
 const currentRelease = releases[0];
+const currentBuildIsInstrumentLock = currentRelease?.schema_version === 4;
 const resultVersion = latestResultBearingVersion(releases, results.records) ??
   currentRelease?.benchmark_version;
 const activeRecords = results.records.filter(
@@ -29,23 +42,17 @@ const activeRecords = results.records.filter(
 const usingHistoricalResults =
   currentRelease !== undefined && resultVersion !== currentRelease.benchmark_version;
 const resultBuildPrimary = activeRecords.some(
-  ({ entry }) => entry.aggregate.primary_board === "build",
+  ({ entry }) => rankingBoardForEntry(entry) === "build",
 );
 const resultLightweight = resultVersion !== undefined &&
   compareSemanticVersions(resultVersion, "0.6.0") >= 0;
-const experimental = activeRecords
-  .filter(({ entry }) => entry.tier === "experimental")
-  .sort(
-    (left, right) =>
-      (rankingMetricForVersion(right.entry.aggregate) ?? -1) -
-        (rankingMetricForVersion(left.entry.aggregate) ?? -1),
-  );
+const publicRecords = publicOverviewRecords(activeRecords, resultVersion);
 const publicArtifacts = [...new Map(
-  activeRecords
+  activeRecords.filter(isPublicationRecord)
     .flatMap(({ publication }) => publication.runs.flatMap((run) => run.artifacts))
     .map((artifact) => [artifact.artifact_id, artifact]),
 ).values()];
-const showcasePool = activeRecords.flatMap((record) =>
+const showcasePool = activeRecords.filter(isPublicationRecord).flatMap((record) =>
   record.publication.runs
     .filter((run) => run.included && run.seed === defaultOfficialSeed)
     .flatMap((run) => {
@@ -78,21 +85,26 @@ const titleByTask = new Map(
 );
 ---
 
-<Layout title="GameBench" description="Play the games coding agents made, inspect every score, and judge the result for yourself.">
+<Layout
+  title="GameBench"
+  description="Build measures coding-agent game deliveries. Play measures visual player systems on fixed maintainer games, with separate per-game rankings."
+  descriptionZh="Build 评测编程智能体的游戏交付；Play 评测视觉玩家系统在维护者固定游戏中的表现，按游戏独立排行。"
+>
   <div class="container">
     <section class="hero">
       <div class="hero-copy">
-        <span class="eyebrow">The coding benchmark you can actually play</span>
-        <h1>Models made the games. <em>You get the controller.</em></h1>
+        <span class="eyebrow"><span class="lang-en">Two suites. Separate evidence.</span><span class="lang-zh">两个套件，独立证据。</span></span>
+        <h1><span class="lang-en">Build the game. <em>Play by sight.</em></span><span class="lang-zh">Build：交付游戏。<em>Play：看图决策。</em></span></h1>
         <p class="lead">
-          GameBench asks coding agents to build real browser games, then checks
-          the published machine contract with deterministic browser actions.
-          Every score links back to the exact playable output and evidence.
+          <span class="lang-en"><strong>Build</strong> measures what coding agents deliver: frozen browser games checked against public task contracts. <strong>Play</strong> measures visual player systems — model, player harness, and configuration — playing fixed maintainer-owned games through screenshots and native actions.</span>
+          <span class="lang-zh"><strong>Build</strong> 评测编程智能体交付的冻结浏览器游戏，以公开任务契约检查其实现。<strong>Play</strong> 评测视觉玩家系统（模型、玩家运行框架与配置），通过截图和原生操作游玩维护者提供的固定游戏。</span>
         </p>
+        <p><span class="lang-en">No combined suite score. No cross-game Play score.</span><span class="lang-zh">Build 与 Play 不合并计分；Play 不设跨游戏总分。</span></p>
         <div class="actions">
-          <a class="button" href="/games">Play the games</a>
-          <a class="button secondary" href="/leaderboard">See model scores</a>
+          <a class="button" href="/leaderboard"><span class="lang-en">Build · coding-agent results</span><span class="lang-zh">Build · 编程智能体成绩</span></a>
+          <a class="button secondary" href="/play"><span class="lang-en">Play · visual player systems</span><span class="lang-zh">Play · 视觉玩家系统</span></a>
         </div>
+        <p><a href="/play#practice"><span class="lang-en">Try the reference games · unranked practice</span><span class="lang-zh">试玩参考游戏 · 不计排名</span></a></p>
       </div>
       <div class="hero-stage" aria-label="Games generated by coding agents">
         {featured.map(({ record, run, playable, showcase }) => (
@@ -108,37 +120,86 @@ const titleByTask = new Map(
             </span>
           </a>
         ))}
-        <span class="hero-badge">Play<br />the proof</span>
+        {featured.length > 0 ? <span class="hero-badge"><span class="lang-en">Build<br />outputs</span><span class="lang-zh">Build<br />成品</span></span> : (
+          <div class="card hero-empty">
+            <strong><span class="lang-en">Build results and playable artifacts are separate.</span><span class="lang-zh">Build 成绩与试玩附件分别发布。</span></strong>
+            <p><span class="lang-en">This overview has no published Build playable with a preview. A frozen source hash does not mean the game files are publicly hosted.</span><span class="lang-zh">此概览尚无带预览的公开 Build 试玩附件。冻结源码哈希不代表游戏文件已经公开托管。</span></p>
+            <a href="/games"><span class="lang-en">Browse Build games &amp; contracts</span><span class="lang-zh">浏览 Build 游戏与任务契约</span></a>
+          </div>
+        )}
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="suite-heading">
+      <div class="section-head">
+        <div><span class="eyebrow"><span class="lang-en">Choose a suite</span><span class="lang-zh">选择评测套件</span></span><h2 id="suite-heading"><span class="lang-en">Different questions. Separate rankings.</span><span class="lang-zh">不同能力，独立排行。</span></h2></div>
+        <p><span class="lang-en">Each suite selects its own latest result-bearing version. Versions, qualification tiers, and scores stay separate.</span><span class="lang-zh">每个套件独立选择最新有成绩的版本；不同版本、资格层级与分数不混合。</span></p>
+      </div>
+      <div class="grid suite-grid">
+        <article class="card suite-card" data-suite="build">
+          <span class="eyebrow"><span class="lang-en">Build · coding agents</span><span class="lang-zh">Build · 编程智能体</span></span>
+          <h3><span class="lang-en">Can the agent deliver the game?</span><span class="lang-zh">智能体能否交付符合契约的游戏？</span></h3>
+          <p><span class="lang-en">Four public game contracts measure a frozen coding-agent delivery. Build scores do not include Play performance.</span><span class="lang-zh">四项公开游戏契约评测编程智能体的冻结交付；Build 分数不包含 Play 表现。</span></p>
+          {publicRecords.length > 0 ? (
+            <p class="suite-status"><span class="lang-en">Latest result-bearing Build version: <strong>v{resultVersion}</strong> · {publicRecords.length} public results, with Official and Experimental qualification kept distinct.</span><span class="lang-zh">最新有成绩的 Build 版本：<strong>v{resultVersion}</strong> · {publicRecords.length} 条公开成绩，分别标注 Official 与 Experimental 资格。</span></p>
+          ) : (
+            <p class="suite-status"><span class="lang-en">No published Build results yet. An absent measurement is not a zero score.</span><span class="lang-zh">尚无公开 Build 成绩；未测量不代表零分。</span></p>
+          )}
+          <p><span class="lang-en">Scores link to versioned task checks and frozen source hashes. Playable builds and downloadable evidence are shown when published.</span><span class="lang-zh">成绩关联版本化任务检查与冻结源码哈希；可玩成品和可下载证据只在实际公开时展示。</span></p>
+          <div class="actions">
+            <a class="button" href="/leaderboard"><span class="lang-en">Inspect Build results</span><span class="lang-zh">查看 Build 成绩</span></a>
+            <a class="button secondary" href="/games"><span class="lang-en">Build games &amp; contracts</span><span class="lang-zh">Build 游戏与任务契约</span></a>
+          </div>
+        </article>
+        <article class="card suite-card" data-suite="play">
+          <span class="eyebrow"><span class="lang-en">Play · visual player systems</span><span class="lang-zh">Play · 视觉玩家系统</span></span>
+          <h3><span class="lang-en">Can the system play by sight?</span><span class="lang-zh">系统能否看图决策并操作游戏？</span></h3>
+          <p><span class="lang-en">A live screenshot-to-action loop on fixed maintainer-owned 2048 and Minesweeper games — not an agent writing a solver, and not games generated by Build agents.</span><span class="lang-zh">在维护者固定的 2048 与扫雷游戏中，实时看图并执行操作；不是让智能体编写解题程序，也不使用 Build 智能体生成的游戏作为评测集。</span></p>
+          {playResultVersion !== undefined ? (
+            <p class="suite-status"><span class="lang-en">Latest result-bearing Play version: <strong>v{playResultVersion}</strong>. Inspect the published observations and their qualification in the per-game rankings.</span><span class="lang-zh">最新有成绩的 Play 版本：<strong>v{playResultVersion}</strong>。按游戏查看公开记录及其资格。</span></p>
+          ) : (
+            <p class="suite-status"><span class="lang-en"><strong>No measured Play results published yet.</strong> Reference games and protocol documentation are not benchmark results; no score or rank is implied.</span><span class="lang-zh"><strong>尚无公开的 Play 实测成绩。</strong>参考游戏与协议文档不等于评测结果，也不代表已有分数或排名。</span></p>
+          )}
+          {currentPlayRelease && currentPlayRelease.benchmark_version !== playResultVersion && (
+            <p><span class="lang-en">Latest Play instrument lock: v{currentPlayRelease.benchmark_version}; no published results for this version yet. A source lock is not a published release or a measurement.</span><span class="lang-zh">最新 Play 评测锁定版本：v{currentPlayRelease.benchmark_version}；此版本尚无公开成绩。源码中的锁定契约不等于已经发布版本或完成实测。</span></p>
+          )}
+          <p><span class="lang-en">2048 mean score and Minesweeper win rate have separate rankings. There is no overall Play score.</span><span class="lang-zh">2048 平均原生分数与扫雷胜率分别排行，不设 Play 总分。</span></p>
+          <div class="actions">
+            <a class="button" href="/play"><span class="lang-en">Explore Play · per-game rankings</span><span class="lang-zh">查看 Play · 各游戏排行</span></a>
+            <a class="button secondary" href="/play#practice"><span class="lang-en">Reference practice · unranked</span><span class="lang-zh">参考游戏练习 · 不计排名</span></a>
+          </div>
+          <p class="practice-note"><span class="lang-en">Human practice is unranked, with no model calls or online submissions.</span><span class="lang-zh">人类练习不计排名，不调用模型，也不在线提交成绩。</span></p>
+        </article>
       </div>
     </section>
 
     {usingHistoricalResults && (
       <div class="callout status-banner">
-        <strong>GameBench v{currentRelease.benchmark_version} is the current release.</strong>
-        {" "}It has no published result yet, so this overview shows the latest
-        result-bearing release, v{resultVersion}. Results are never mixed across versions.
+        <span class="lang-en"><strong>GameBench v{currentRelease.benchmark_version} is the {currentBuildIsInstrumentLock ? "current Build instrument lock" : "current Build release"}.</strong> It has no published Build result yet, so the Build overview shows the latest result-bearing version, v{resultVersion}. Play selects its version independently; results are never mixed across suites or versions.</span>
+        <span class="lang-zh"><strong>GameBench v{currentRelease.benchmark_version} 是{currentBuildIsInstrumentLock ? "当前 Build 评测锁定版本" : "当前 Build 发布版本"}。</strong>此版本尚无公开 Build 成绩，因此 Build 概览展示最新有成绩的 v{resultVersion}。Play 独立选择版本；不同套件与版本的成绩不混合。</span>
       </div>
     )}
 
-    <section class="section">
+    <section class="section" aria-labelledby="build-overview-heading">
+      <div class="section-head"><h2 id="build-overview-heading"><span class="lang-en">Build overview</span><span class="lang-zh">Build 概览</span></h2></div>
       <div class="grid cols-4">
-        <div class="card metric"><strong>{games.length}</strong><span>different game challenges</span></div>
-        <div class="card metric"><strong>{experimental.length}</strong><span>public results · v{resultVersion ?? "—"}</span></div>
+        <div class="card metric"><strong>{games.length}</strong><span class="lang-en">Build game challenges</span><span class="lang-zh">Build 游戏任务</span></div>
+        <div class="card metric"><strong>{publicRecords.length}</strong><span class="lang-en">public Build results · v{resultVersion ?? "—"}</span><span class="lang-zh">公开 Build 成绩 · v{resultVersion ?? "—"}</span></div>
         <div class="card metric">
           <strong>{publicArtifacts.filter((artifact) => artifact.role === "playable").length}</strong>
-          <span>games ready to play</span>
+          <span class="lang-en">published Build playable artifacts</span><span class="lang-zh">已公开 Build 试玩附件</span>
         </div>
-        <div class="card metric"><strong>v{currentRelease?.benchmark_version ?? "—"}</strong><span>current release</span></div>
+        <div class="card metric"><strong>v{currentRelease?.benchmark_version ?? "—"}</strong><span class="lang-en">{currentBuildIsInstrumentLock ? "current Build instrument lock" : "current Build release"}</span><span class="lang-zh">{currentBuildIsInstrumentLock ? "当前 Build 评测锁定版本" : "当前 Build 发布版本"}</span></div>
       </div>
     </section>
 
     <section class="section">
       <div class="section-head">
         <div>
-          <span class="eyebrow">Jump in</span>
-          <h2>Playable model outputs. Zero setup.</h2>
+          <span class="eyebrow"><span class="lang-en">Explore Build artifacts</span><span class="lang-zh">查看 Build 附件</span></span>
+          <h2><span class="lang-en">Published Build playable outputs</span><span class="lang-zh">已公开的 Build 可玩成品</span></h2>
         </div>
-        <p>Each game opens in an isolated player. Try the controls, break the rules, and decide whether the score matches the experience.</p>
+        <p><span class="lang-en">Where a frozen playable is available, try its controls in the isolated player. A missing playable is shown as missing, not as a broken game or a zero score.</span><span class="lang-zh">有冻结试玩附件时，你可以在隔离播放器中亲手操作。没有附件就是未提供，不代表游戏损坏或得了零分。</span></p>
       </div>
       <div class="grid cols-3">
         {featured.map(({ record, run, playable, showcase }) => (
@@ -156,75 +217,86 @@ const titleByTask = new Map(
               <span class="lang-en">Built by <strong>{record.entry.agent.model}</strong>. The score checks whether the game behaves correctly; your hands judge the feel.</span>
               <span class="lang-zh">这是 <strong>{record.entry.agent.model}</strong> 做出的版本。自动测试看它做得对不对，好不好玩由你判断。</span>
             </p>
-            <a class="button" href={`/showcase/${playable.artifact_id.slice(7)}`}>Start playing</a>
+            <a class="button" href={`/showcase/${playable.artifact_id.slice(7)}`}><span class="lang-en">Try this Build output</span><span class="lang-zh">试玩这个 Build 成品</span></a>
           </article>
         ))}
       </div>
-      <div class="actions"><a class="button secondary" href="/games">Browse all {games.length} challenges</a></div>
+      {featured.length === 0 && <p class="callout"><span class="lang-en">No Build playable with a preview is published for this overview. Task contracts and available result records can still be inspected.</span><span class="lang-zh">此概览尚无带预览的公开 Build 试玩附件；仍可查看任务契约与已有成绩记录。</span></p>}
+      <div class="actions"><a class="button secondary" href="/games"><span class="lang-en">Browse all {games.length} Build challenges</span><span class="lang-zh">浏览全部 {games.length} 项 Build 任务</span></a></div>
     </section>
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">How a score is earned</span><h2>Build it. Test it. Play it.</h2></div>
-        <p>The public score comes from deterministic machine-contract checks. Optional human summaries never change it.</p>
+        <div><span class="eyebrow"><span class="lang-en">How Build is scored</span><span class="lang-zh">Build 如何计分</span></span><h2><span class="lang-en">Deliver. Freeze. Test.</span><span class="lang-zh">交付、冻结、测试。</span></h2></div>
+        <p><span class="lang-en">Build scores come from deterministic machine-contract checks, not Play results or human impressions.</span><span class="lang-zh">Build 分数来自确定性机器契约检查，不取决于 Play 成绩或人工感受。</span></p>
       </div>
       <div class="grid cols-3 how-grid">
         <article class="card how-card">
-          <h3>The model builds</h3>
-          <p>Every agent starts from the same small web project, task, time limit, and game rules.</p>
+          <h3><span class="lang-en">The coding agent builds</span><span class="lang-zh">编程智能体实现游戏</span></h3>
+          <p><span class="lang-en">Agents follow the versioned task, starter project, budget, and game rules.</span><span class="lang-zh">智能体按版本化任务、起始项目、预算与游戏规则进行开发。</span></p>
         </article>
         <article class="card how-card">
-          <h3>The browser tests</h3>
-          <p>Real keyboard and pointer actions check controls, game state, reset behavior, stability, and winning rules.</p>
+          <h3><span class="lang-en">The delivery is frozen</span><span class="lang-zh">冻结交付</span></h3>
+          <p><span class="lang-en">A source hash binds the submitted game. Later practice or Play runs cannot repair the frozen Build delivery.</span><span class="lang-zh">源码哈希绑定提交的游戏；后续试玩或 Play 运行不能修补已冻结的 Build 交付。</span></p>
         </article>
         <article class="card how-card">
-          <h3>The source is frozen and tested</h3>
-          <p>In v0.6, each of four tasks gets one Agent attempt and one fresh canonical-seed evaluation.</p>
+          <h3><span class="lang-en">The browser tests</span><span class="lang-zh">浏览器执行测试</span></h3>
+          <p><span class="lang-en">In v0.6, each of four tasks gets one Agent attempt and one fresh canonical-seed evaluation with real keyboard and pointer actions.</span><span class="lang-zh">在 v0.6 中，四项任务各有一次 Agent 调用及一次全新标准种子评估，使用真实键盘与指针操作进行检查。</span></p>
         </article>
       </div>
-      <div class="actions"><a class="button secondary" href="/methodology">See exactly how scoring works</a></div>
+      <div class="actions"><a class="button secondary" href="/methodology"><span class="lang-en">See how Build scoring works</span><span class="lang-zh">查看 Build 计分方法</span></a></div>
     </section>
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Current lab results</span><h2>No champion yet. Plenty to play.</h2></div>
-        <p>{resultLightweight
-          ? "Each of four tasks receives one Agent invocation and one canonical evaluation. The published row passed the local integrity gate."
-          : resultBuildPrimary
-            ? "Each task is developed once and the frozen submission is evaluated under three fixed seeds. Stage results remain separate from Official qualification."
-            : "These historical stage results use the earlier attempt-based protocol. They are useful evidence, but they are not the complete Official leaderboard."}</p>
+        <div><span class="eyebrow"><span class="lang-en">Published Build observations</span><span class="lang-zh">已公开的 Build 实测记录</span></span><h2><span class="lang-en">Results, with their qualification.</span><span class="lang-zh">成绩与资格，一同展示。</span></h2></div>
+        {publicRecords.length > 0 && <p>
+          <span class="lang-en">{resultLightweight
+            ? "Each of four tasks receives one Agent invocation and one canonical evaluation. Published rows retain their local integrity checks and qualification."
+            : resultBuildPrimary
+              ? "Each task is developed once and the frozen submission is evaluated under three fixed seeds. Stage results remain separate from Official qualification."
+              : "These historical stage results use the earlier attempt-based protocol. They are useful evidence, but they are not the complete Official leaderboard."}</span>
+          <span class="lang-zh">{resultLightweight
+            ? "四项任务各有一次 Agent 调用及一次标准评估；公开记录保留本地完整性检查与资格信息。"
+            : resultBuildPrimary
+              ? "每项任务只开发一次，冻结提交使用三个固定种子评估；阶段成绩与 Official 资格分别展示。"
+              : "这些历史阶段成绩使用早期按尝试计分的协议，可用于查证，但并非完整的 Official 排行榜。"}</span>
+        </p>}
       </div>
       <div class="grid">
-        {experimental.slice(0, 5).map(({ entry }, index) => (
+        {publicRecords.slice(0, 5).map(({ entry }) => (
           <a class="card result-card" href={`/results/${entry.publication_id.slice(7)}`} style="text-decoration:none">
-            <span class="result-rank">{String(index + 1).padStart(2, "0")}</span>
+            <span class={`pill ${entry.tier}`}>{entry.tier}</span>
             <span>
               <strong>{entry.agent.model}</strong>
               <span class="muted"> · {entry.agent.id} · GameBench {entry.benchmark_version}</span>
             </span>
             <span class="result-score">
-              {score(rankingMetricForVersion(entry.aggregate))}
-              <small>{rankingMetricForVersion(entry.aggregate) === undefined
+              {score(rankingMetricForEntry(entry))}
+              <small><span class="lang-en">{rankingMetricForEntry(entry) === undefined
                 ? "incomplete result"
-                : entry.aggregate.primary_board === "build" ? "build score" : "historical core score"}</small>
+                : rankingBoardForEntry(entry) === "build" ? "build score" : "historical core score"}</span><span class="lang-zh">{rankingMetricForEntry(entry) === undefined
+                ? "成绩不完整"
+                : rankingBoardForEntry(entry) === "build" ? "Build 分数" : "历史 core 分数"}</span></small>
             </span>
           </a>
         ))}
       </div>
+      {publicRecords.length === 0 && <p class="callout"><span class="lang-en">No published Build results to display. Missing measurements stay absent, not zero.</span><span class="lang-zh">尚无可展示的公开 Build 成绩；缺失测量保持缺失，不填零分。</span></p>}
       <div class="actions">
-        <a class="button" href="/leaderboard">Open every result</a>
-        <a class="button secondary" href="/methodology">How results qualify</a>
+        <a class="button" href="/leaderboard"><span class="lang-en">Open every Build result</span><span class="lang-zh">查看全部 Build 成绩</span></a>
+        <a class="button secondary" href="/methodology"><span class="lang-en">How Build results qualify</span><span class="lang-zh">Build 成绩如何取得资格</span></a>
       </div>
     </section>
 
     <section class="section">
       <div class="section-head">
-        <div><span class="eyebrow">Nothing up our sleeve</span><h2>Every point has a trail.</h2></div>
+        <div><span class="eyebrow"><span class="lang-en">Build evidence</span><span class="lang-zh">Build 证据</span></span><h2><span class="lang-en">Read what is actually published.</span><span class="lang-zh">以实际公开内容为准。</span></h2></div>
       </div>
       <div class="grid cols-3">
-        <article class="card"><h3>Play the exact output</h3><p>The game you open is the content-addressed build attached to that scored run.</p></article>
-        <article class="card"><h3>Read the clean source</h3><p>Public source excludes model logs, credentials, caches, and private provider responses.</p></article>
-        <article class="card"><h3>Audit the tests</h3><p>Task rules, point weights, failures, versions, and immutable result records are public.</p></article>
+        <article class="card"><h3><span class="lang-en">Play when published</span><span class="lang-zh">试玩已公开成品</span></h3><p><span class="lang-en">A playable link, when present, identifies the content-addressed build attached to that run. Not every result currently has one.</span><span class="lang-zh">存在试玩链接时，它指向该次运行的内容寻址成品；目前并非每条成绩都有试玩附件。</span></p></article>
+        <article class="card"><h3><span class="lang-en">Distinguish hashes and downloads</span><span class="lang-zh">区分哈希与下载</span></h3><p><span class="lang-en">A frozen source hash binds a delivery. Public source downloads and full evidence are separate, explicitly labeled artifacts.</span><span class="lang-zh">冻结源码哈希用于绑定交付；源码下载与完整证据则是独立、明确标注的公开附件。</span></p></article>
+        <article class="card"><h3><span class="lang-en">Audit the tests</span><span class="lang-zh">审查测试</span></h3><p><span class="lang-en">Inspect public task rules, point weights, versions, and the checks recorded in each published result.</span><span class="lang-zh">查看公开任务规则、分值权重、版本，以及每条公开成绩所记录的检查。</span></p></article>
       </div>
     </section>
 
@@ -234,13 +306,14 @@ const titleByTask = new Map(
       </figure>
       <div class="about-copy">
         <span class="eyebrow"><span class="lang-en">About Carrick AI GameBench</span><span class="lang-zh">关于 Carrick AI GameBench</span></span>
-        <h2><span class="lang-en">The game is the evidence.</span><span class="lang-zh">游戏本身，就是评测证据。</span></h2>
+        <h2><span class="lang-en">Benchmarks here. Demos next door.</span><span class="lang-zh">这里做评测，作品展示另有入口。</span></h2>
         <p class="lead">
-          <span class="lang-en">GameBench turns AI coding ability into something people can inspect with their own hands. Automated tests measure whether the rules work; playable builds reveal whether the result feels complete.</span>
-          <span class="lang-zh">GameBench 把 AI 编程能力变成每个人都能亲手验证的成果。自动测试检查规则是否正确，可试玩成品则让你直接判断游戏是否真的完整、好用。</span>
+          <span class="lang-en">GameBench keeps versioned Build delivery checks separate from Play's per-game player-system measurements. A public demo or a human practice session is not a benchmark ranking.</span>
+          <span class="lang-zh">GameBench 将版本化的 Build 交付检查与 Play 按游戏划分的玩家系统评测分开；公开演示或人类练习都不等于评测排名。</span>
         </p>
+        <p><span class="lang-en"><a href="https://llm-showcase.carrick7.com/" target="_blank" rel="noreferrer">LLM Showcase</a> is a separate collection of frontend demos, not benchmark rankings. It does not supply GameBench scores or the fixed Play game set.</span><span class="lang-zh"><a href="https://llm-showcase.carrick7.com/" target="_blank" rel="noreferrer">LLM Showcase</a> 是独立的前端作品展示，不是评测排行榜；其演示不提供 GameBench 分数，也不是 Play 的固定游戏集。</span></p>
         <div class="actions">
-          <a class="button" href="/methodology"><span class="lang-en">Read the evaluation rules</span><span class="lang-zh">了解评测规则</span></a>
+          <a class="button" href="/methodology"><span class="lang-en">Read the Build evaluation rules</span><span class="lang-zh">了解 Build 评测规则</span></a>
           <a class="button secondary" href="/source"><span class="lang-en">Explore the open benchmark</span><span class="lang-zh">查看开放内容</span></a>
         </div>
       </div>
@@ -249,10 +322,16 @@ const titleByTask = new Map(
 </Layout>
 
 <style>
+  .hero-empty { position: relative; z-index: 1; }
+  .suite-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .suite-card { min-width: 0; }
+  .suite-card h3 { font-size: 27px; margin-top: 16px; }
+  .suite-status { border-left: 3px solid var(--accent); padding-left: 14px; }
+  .practice-note { font-size: 13px; }
   .about-section { align-items: center; display: grid; gap: clamp(28px, 5vw, 70px); grid-template-columns: minmax(0, 1.05fr) minmax(320px, .95fr); }
   .about-visual { background: var(--panel-solid); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow); margin: 0; overflow: hidden; }
   .about-visual img { display: block; height: auto; width: 100%; }
   .about-copy h2 { font-size: clamp(34px, 4.2vw, 58px); margin-top: 12px; }
   .about-copy .lead { font-size: clamp(16px, 1.6vw, 20px); }
-  @media (max-width: 840px) { .about-section { grid-template-columns: 1fr; } }
+  @media (max-width: 840px) { .suite-grid, .about-section { grid-template-columns: 1fr; } }
 </style>

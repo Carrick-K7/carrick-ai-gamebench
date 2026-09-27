@@ -1,0 +1,108 @@
+---
+import Layout from "../layouts/Layout.astro";
+import { releaseCatalogFor, score } from "../lib/data";
+import type { FlatBuildRecord } from "../lib/build-data.ts";
+
+const { record } = Astro.props as { record: FlatBuildRecord };
+const { entry, result } = record;
+const catalog = await releaseCatalogFor(result.benchmark_version);
+const titleFor = (id: string) => catalog?.tasks.find((task) => task.id === id)?.source?.manifest.title ?? { en: id, zh: id };
+const failedTests = result.tasks.flatMap((task) => (task.evaluation.score?.tests ?? [])
+  .filter((test) => !test.passed).map((test) => ({ task, test })));
+const unscored = result.tasks.filter((task) => task.evaluation.status !== "scored");
+---
+
+<Layout title={`${entry.agent.model} result`}>
+  <div class="container" data-result-format="flat-build">
+    <div class="output-meta"><span class={`pill ${entry.tier}`}>{entry.tier}</span><span class="pill">Build · v{result.benchmark_version}</span></div>
+    <h1>{entry.agent.model}</h1>
+    <p class="lead"><span class="lang-en">One Agent invocation and one canonical machine evaluation per Build task. These are frozen delivery observations, not independent repeated estimates of model ability.</span><span class="lang-zh">每项 Build 任务调用一次 Agent，并执行一次固定条件机器评测。这些是冻结交付的观测，不是模型能力的独立重复估计。</span></p>
+    {entry.campaign && <p class="mono">Campaign {entry.campaign.id} · {entry.campaign.cell_id}</p>}
+    {entry.rankable === false && <div class="callout"><span class="lang-en">Unranked: incomplete series or Campaign publication.</span><span class="lang-zh">不排名：系列或 Campaign 的完整公开尚未完成。</span></div>}
+    {entry.qualification_reasons && entry.qualification_reasons.length > 0 && <ul class="muted">{entry.qualification_reasons.map((reason) => <li>{reason}</li>)}</ul>}
+
+    <div class="grid cols-4 section">
+      <div class="card metric"><strong>{score(result.build.score)}</strong><span>Build · primary machine-contract score</span></div>
+      <div class="card metric"><strong>{result.build.completed}/{result.build.required}</strong><span>Build canonical evaluations</span></div>
+      <div class="card metric"><strong>1</strong><span>Agent development invocation per task</span></div>
+      <div class="card metric"><strong>{result.tasks.length}</strong><span>Build tasks</span></div>
+    </div>
+
+    <section class="section">
+      <div class="section-head"><div><span class="eyebrow">Game-by-game</span><h2>Every delivery and missing evaluation.</h2></div><p>Source hashes identify frozen deliveries; they do not imply public downloads or playable artifacts.</p></div>
+      <div class="grid cols-3">
+        {result.tasks.map((task) => (
+          <article class="card" data-task-id={task.task_id}>
+            <h3><a href={`/benchmarks/${result.benchmark_version}/games/${task.task_id}`}><span class="lang-en">{titleFor(task.task_id).en}</span><span class="lang-zh">{titleFor(task.task_id).zh}</span></a></h3>
+            <p class="score">{score(task.evaluation.score?.percent)}</p>
+            <p><span class="pill">{task.evaluation.status}</span>{task.evaluation.score?.hard_gate_failed && <span class="pill">hard-gate</span>}</p>
+            {task.evaluation.message && <p>{task.evaluation.message}</p>}
+            <p><span class="lang-en">No playable artifact published with this flat record.</span><span class="lang-zh">此平面成绩记录未附公开试玩文件。</span></p>
+            <a href={`#task-${task.task_id}`}>Task evidence</a>
+          </article>
+        ))}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><div><span class="eyebrow">What went wrong</span><h2>Every failed check stays visible.</h2></div><p>{failedTests.length} failed checks · {unscored.length} unscored evaluations</p></div>
+      {unscored.length > 0 && <p class="callout">Missing evaluations are unscored, not zeroes or successful checks. The incomplete Build mean is withheld.</p>}
+      {failedTests.length > 0 ? (
+        <div class="table-wrap"><table>
+          <thead><tr><th>Game</th><th>Check</th><th>Capability</th><th>Points lost</th><th>What happened</th></tr></thead>
+          <tbody>{failedTests.map(({ task, test }) => (
+            <tr><td>{titleFor(task.task_id).en}</td><td>{test.id}</td><td>{test.category}</td><td>{test.points}</td><td>{test.message ?? "The expected behavior was not observed."}</td></tr>
+          ))}</tbody>
+        </table></div>
+      ) : <p class="callout">No failed checks are recorded in the scored evaluations.</p>}
+    </section>
+
+    <section class="section prose identity">
+      <div class="section-head"><div><span class="eyebrow">For auditors</span><h2>Original task evidence and identities.</h2></div><p>Agent wall time is development time. Evaluation duration and usage are not reported by this flat record.</p></div>
+      {result.tasks.map((task, index) => (
+        <details class="audit" id={`task-${task.task_id}`}>
+          <summary>{titleFor(task.task_id).en} · {task.evaluation.status} · {score(task.evaluation.score?.percent)}</summary>
+          <div class="audit-body">
+            {/* Keep old flat-detail fragment URLs as anchors only, never as invented run identities. */}
+            <span id={`evaluation-${result.series_id}-evaluation-${index + 1}`}></span>
+            <p><strong>Task</strong><br /><code>{task.task_id} · {task.task_version}</code></p>
+            <p><strong>Task hash</strong><br /><code>{task.task_hash}</code></p>
+            <p><strong>Frozen source hash</strong><br /><code>{task.source_hash}</code></p>
+            <p><strong>Artifact manifest hash · not a download</strong><br /><code>{task.artifact_manifest_hash}</code></p>
+            <p>Agent invocation {task.agent.invocation} · {task.agent.exit_reason} · Agent wall time {(task.agent.wall_time_ms / 1000).toFixed(1)}s</p>
+            <p class="mono">{task.agent.started_at} → {task.agent.finished_at}</p>
+            <p>Evaluation seed {task.evaluation.seed} · {task.evaluation.status}</p>
+            {task.evaluation.score && <>
+              <p>Hard gate failed: {String(task.evaluation.score.hard_gate_failed)}</p>
+              <div class="table-wrap"><table>
+                <thead><tr><th>Capability</th><th>Earned / available</th></tr></thead>
+                <tbody>{Object.entries(task.evaluation.score.categories).map(([name, category]) => (
+                  <tr><td>{name}</td><td>{category.earned} / {category.available}</td></tr>
+                ))}</tbody>
+              </table></div>
+              <div class="table-wrap"><table>
+                <thead><tr><th>Check</th><th>Category</th><th>Passed</th><th>Points</th><th>Message</th></tr></thead>
+                <tbody>{task.evaluation.score.tests.map((test) => (
+                  <tr><td>{test.id}</td><td>{test.category}</td><td>{String(test.passed)}</td><td>{test.points}</td><td>{test.message ?? "—"}</td></tr>
+                ))}</tbody>
+              </table></div>
+            </>}
+          </div>
+        </details>
+      ))}
+      <details class="audit"><summary>Immutable result identity and configured system</summary><div class="audit-body">
+        <p><strong>Result content / retained URL identity</strong><br /><code>{entry.publication_id}</code></p>
+        <p><strong>Configuration</strong><br /><code>{entry.configuration_id}</code></p>
+        <p><strong>Agent / harness</strong><br /><code>{entry.agent.id} · {entry.agent.version} · {entry.agent.harness}</code></p>
+        <p><strong>Model parameters</strong><br /><code>{JSON.stringify(entry.agent.parameters)}</code></p>
+        <p><strong>Prompt language</strong><br /><code>{result.configuration.prompt_language}</code></p>
+        <p><strong>Series</strong><br /><code>{result.series_id}</code></p>
+        <p><strong>Release lock</strong><br /><code>{result.release_hash}</code></p>
+        <p><strong>Source commit</strong><br /><code>{result.git_commit}</code></p>
+        <p>Clean source tree: {String(result.source_tree_clean)} · recorded profile: {result.profile}</p>
+        <p class="mono">{result.started_at} → {result.finished_at}</p>
+        {result.campaign && <><p><strong>Campaign plan hash</strong><br /><code>{result.campaign.plan_hash}</code></p><p><strong>Execution hash</strong><br /><code>{result.campaign.execution_hash}</code></p></>}
+      </div></details>
+    </section>
+  </div>
+</Layout>

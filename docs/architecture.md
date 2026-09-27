@@ -1,78 +1,115 @@
-# GameBench 0.6 architecture
+# GameBench 0.7 architecture
 
 ## Components
 
 ```text
-apps/site           static task, methodology, and result pages
-apps/reviewer       optional local human annotation UI
-packages/core       task loading, strict schemas, hashing, and scoring
-packages/evaluator  cagb doctor/bench/check/publish and Playwright evaluator
-benchmark/starters  fresh Agent workspace
+apps/site           static Build/Play, task, methodology and result pages
+apps/reviewer       optional historical local human annotation UI
+packages/core       strict contracts, hashes, scoring and qualification
+packages/evaluator  cagb CLI, Build/Play runners, evidence checks and publication
+benchmark/starters  fresh Build Agent workspace
 benchmark/tasks     four active Build contracts
+benchmark/play      two immutable reference games and separate calibration
 benchmark/retired   inactive historical task packages
-benchmark/releases  immutable release lock
-results/lite        optional Git-reviewed flat result index
+benchmark/releases  immutable release locks
+benchmark/campaigns committed single-suite experiment plans
+results/lite        one Git-reviewed flat result index for both suites
 ```
 
-The runtime is Node.js 22, pnpm 10, TypeScript, and Playwright Chromium. It has no model-provider SDK, Docker daemon, verifier service, database, or application server.
+The pinned verification runtime is Node.js 22.22.0, pnpm 10.33.0 and Playwright
+Chromium. Core/Evaluator have no model-provider SDK. There is no Docker daemon,
+verifier service, database, scheduler or production application server. Pi is an
+external adapter dependency, not part of the benchmark's provider-neutral core.
 
-## Data flow
+## Two explicit execution paths
 
 ```text
-release lock + four task packages
-             │
-             ▼
-real host preflight (install/build/preview/Chromium/bridge)
-             │
-             ▼
-fresh task workspace → one Agent invocation
-             │
-             ▼
-stop process tree → deterministic source archive + source hash
-             │
-             ▼
-fresh materialization → one install/build/serve/browser evaluation
-             │
-             ▼
-100-point task score
-             │
-             ├── repeat once for each of four tasks
-             ▼
-equal-weight Build mean → flat result.json → cagb check → optional Git publish
+frozen release + task packages + preregistered Campaign
+                            |
+                   model-free preflight
+                            |
+             +--------------+--------------+
+             |                             |
+           Build                          Play
+  fresh workspace per task      frozen maintainer-owned games
+  one development invocation    ten fresh episodes per game
+  stop process tree             bounded screenshot -> native action loop
+  freeze source archive         authoritative private engine outcome
+  fresh install/build/browser   sealed frames, decisions and state evidence
+             |                             |
+  four-task equal-weight mean   per-game metrics; no Play total
+             +--------------+--------------+
+                            |
+               flat result + private evidence
+                            |
+           shared qualification + Campaign checks
+                            |
+                one atomic publication writer
+                            |
+                 static per-suite projections
 ```
 
-## Identity and layout
+Build reuses the unchanged task evaluator and one shared task-batch policy.
+Failures are retained; development is never retried. The v3 runner constructs its
+own result envelope directly, rather than manufacturing an intermediate v2
+record. Play is not forced into Build's source-delivery model.
 
-A run has one `series_id` used only as a directory and result identity. Each task row records:
+## Three identities, one ledger
 
-- task id, version, and content hash;
-- exactly one Agent invocation and its exit state;
-- deterministic source archive hash;
-- seed `104729` and evaluation status;
-- complete ScoreResult test vector;
-- artifact manifest hash.
+- **Release** defines the frozen instrument: task/protocol hashes and budgets.
+- **Campaign** defines the experiment before execution: configuration, order,
+  endpoints, preallocated single-use series IDs and Play seed commitment.
+- **Series result** is one flat observation, selecting exactly one suite.
 
-The public contract is one `result.json`. Per-task directories hold source, logs, score, and failure evidence; they do not introduce Submission, Evaluation, Reproduction, Verification, or Publication protocol layers.
+Canonical paths remain `runs/<version>/<series-id>/` for private evidence and
+`results/lite/<version>/<series-id>.json` for public records. A series directory
+is created exclusively and is never reused. The index is the sole publication
+ledger; neither Campaign nor Play introduces another one.
 
-## Failure boundary
+ReleaseLock v4, Campaign v2 and flat result v3 are new protocol generations.
+Historical decoders, hashes, results and URLs keep their meaning. Dispatch occurs
+at the record boundary. Current Build pages project actual flat task results,
+not synthetic Submission/Evaluation/Publication entities or empty Core/Reproduce
+fields. Historical pages retain their own adapters.
 
-The preflight must succeed before any Agent call. During evaluation:
+## Failure and trust boundary
 
-- contract and build-gate failures are model-delivery outcomes and are scored;
-- unexpected host/runner exceptions are infrastructure errors and produce no score;
-- an infrastructure evaluation may be attempted again with the identical archive;
-- development is never retried automatically.
+Preflight succeeds before measured calls. Contract failures and bounded player
+outcomes can score zero; host, browser, reference-engine and unrecovered provider
+service defects produce unscored/incomplete measurements, not model zeroes.
+Build infrastructure retries reuse the identical source archive. Play permits
+only one identical-request transport retry before model content and within the
+original decision deadline; episodes are never silently resampled.
 
-This separation prevents a missing package tarball or browser failure from becoming a model zero while preserving the one-attempt rule.
+The runner owns the Play engine. The browser gets a positively constructed public
+projection; the player gets only screenshot, rules and bounded action/memo memory.
+The private seed and hidden state are not player tools. Engine replay recomputes
+state/score; native-browser replay additionally verifies real input mapping and
+rendered frames. These are distinct checks, not two competing score authorities.
 
-## Process and network boundary
+Agent, install, build, preview and browser lifecycles are bounded and closed.
+Evaluator-owned commands use a credential-free allowlisted environment. The
+trusted external player adapter alone accesses provider credentials. Fresh
+contexts and hashes are not OS isolation or proof of proprietary model weights:
+Official remains maintainer-operated and auditable, not trustless.
 
-Agent, install, build, preview, and browser processes run in detached process groups and are terminated as trees. Evaluator-owned commands receive an allowlisted environment without provider credentials. Browser contexts allow the assigned loopback origin and data URLs, and block WebSockets and service workers.
+## Validation and publication
 
-The generic Agent shell runs on the operator host and does not prove egress isolation. GameBench 0.6 records the harness configuration but does not make network-attestation claims.
+Core owns per-result qualification and a shared Campaign commit-consistency rule.
+Every Campaign cell must use the same clean recorded Git commit, release and
+plan; individual clean commits do not satisfy the cross-cell requirement.
 
-## Integrity and publication
+Raw Build checks verify frozen archives, evidence manifests and score arithmetic
+without re-evaluating source. Play checks also perform deterministic replay.
+Within one Play check, a filesystem-stamped hash cache avoids rereading unchanged
+frame bytes at every nested seal. Each seal still checks directory membership,
+file types, manifest bytes and identity; changed files are rehashed. Independent
+checks start with an empty cache and cannot request a trust-bypassing shortcut.
 
-After all child processes and log streams close, the runner writes a per-task SHA-256 manifest. `cagb check` verifies those manifests, source archives, release identity, score arithmetic, exact four-task coverage, and the Build mean.
-
-`cagb campaign publish` validates every preregistered cell, takes one exclusive index lock, copies the individual flat results, and atomically appends all index rows. Direct single-result publication rejects Campaign-affiliated results. Publication does not rebuild, re-evaluate, call a verifier, or invoke Docker. Git review and immutable commits remain the Official audit boundary.
+All result generations publish through one checked-snapshot writer: acquire the
+index lock, reread the index, reject indexed identities, write exclusive files,
+then atomically rename the updated index. Interrupted unindexed files may be
+reused only when their bytes exactly equal the checked snapshot; conflicting
+files are never silently overwritten. Campaign publication checks every cell
+before touching public paths or disclosing seeds. No publication step calls a
+model, regrades Build source, or deploys a service.

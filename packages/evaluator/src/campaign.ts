@@ -1,22 +1,15 @@
 import { spawnSync } from "node:child_process";
-import {
-  copyFile,
-  lstat,
-  readFile,
-  readdir,
-  rename,
-  rm,
-} from "node:fs/promises";
+import { lstat, readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import {
   CampaignPlanSchema,
   LiteResultIndexSchema,
+  assertCampaignCommitConsistency,
   canonicalJson,
-  LiteSeriesResultSchema,
   hashCampaignCellExecution,
   hashCampaignPlan,
+  readFlatSeriesResult,
   sha256File,
-  writeJson,
   type CampaignCell,
   type CampaignPlan,
   type JsonObject,
@@ -28,10 +21,8 @@ import {
   loadLiteRelease,
   type LiteBenchOptions,
 } from "./lite-runner.js";
-import {
-  acquirePublicationIndexLock,
-  ensurePublicationDirectory,
-} from "./publication-lock.js";
+import { loadVersionedRelease } from "./suite-release.js";
+import { publishCheckedResults } from "./publication.js";
 
 function shellQuote(value: string): string {
   return `'${value.replaceAll("'", `'\\''`)}'`;
@@ -243,9 +234,7 @@ export async function assertCampaignCellMayStart(
       );
     }
     assertResultMatchesCampaignCell(result, plan, previous);
-    if (result.git_commit !== currentCommit) {
-      throw new Error(`${cell.cell_id}: prior campaign cell used a different Git commit`);
-    }
+    assertCampaignCommitConsistency([result], currentCommit);
   }
 }
 
@@ -255,7 +244,6 @@ export async function checkLocalCampaign(
 ): Promise<Array<{ cell: CampaignCell; runDir: string; result: LiteSeriesResult }>> {
   const { plan } = await loadCampaignPlan(repositoryRoot, campaignId);
   const rows: Array<{ cell: CampaignCell; runDir: string; result: LiteSeriesResult }> = [];
-  let commit: string | undefined;
   for (const cell of plan.cells) {
     const runDir = path.join(
       repositoryRoot,
@@ -265,13 +253,9 @@ export async function checkLocalCampaign(
     );
     const result = await checkLiteBenchmark(repositoryRoot, runDir, true);
     assertResultMatchesCampaignCell(result, plan, cell);
-    if (commit === undefined) {
-      commit = result.git_commit;
-    } else if (result.git_commit !== commit) {
-      throw new Error("campaign cells were not executed from the same Git commit");
-    }
     rows.push({ cell, runDir, result });
   }
+  assertCampaignCommitConsistency(rows.map(({ result }) => result));
   return rows;
 }
 
@@ -289,82 +273,15 @@ export async function publishCampaigns(
   if (campaignIds.length === 0 || new Set(campaignIds).size !== campaignIds.length) {
     throw new Error("campaign publication requires unique campaign IDs");
   }
-  const plans = await Promise.all(
-    campaignIds.map((campaignId) => loadCampaignPlan(repositoryRoot, campaignId)),
-  );
-  for (const benchmarkVersion of new Set(plans.map(({ plan }) => plan.benchmark_version))) {
-    await ensurePublicationDirectory(repositoryRoot, benchmarkVersion);
-  }
-  const resultsRoot = path.join(repositoryRoot, "results", "lite");
-  const indexPath = path.join(resultsRoot, "index.json");
-  const releaseLock = await acquirePublicationIndexLock(`${indexPath}.lock`);
-  const copied: string[] = [];
-  try {
-    const rows = (await Promise.all(
-      campaignIds.map((campaignId) => checkLocalCampaign(repositoryRoot, campaignId)),
-    )).flat();
-    for (const { result } of rows) {
-      assertSecretFreePublication(result);
-    }
-    const index = LiteResultIndexSchema.parse(JSON.parse(await readFile(indexPath, "utf8")));
-    const identities = new Set(
-      index.results.map((entry) => `${entry.benchmark_version}/${entry.series_id}`),
-    );
-    for (const { result } of rows) {
-      const identity = `${result.benchmark_version}/${result.series_id}`;
-      if (identities.has(identity)) {
-        throw new Error(`campaign result is already published: ${result.series_id}`);
-      }
-      identities.add(identity);
-    }
-    const entries = [...index.results];
-    for (const { runDir, result } of rows) {
-      const directory = path.join(resultsRoot, result.benchmark_version);
-      const destination = path.join(directory, `${result.series_id}.json`);
-      const source = path.join(runDir, "result.json");
-      try {
-        const [existingHash, sourceHash] = await Promise.all([
-          sha256File(destination),
-          sha256File(source),
-        ]);
-        if (existingHash !== sourceHash) {
-          await rm(destination, { force: true });
-          await copyFile(source, destination);
-          copied.push(destination);
-        }
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code === "ENOENT") {
-          await copyFile(source, destination);
-          copied.push(destination);
-        } else {
-          throw error;
-        }
-      }
-      entries.push({
-        benchmark_version: result.benchmark_version,
-        series_id: result.series_id,
-        path: `results/lite/${result.benchmark_version}/${result.series_id}.json`,
-      });
-    }
-    const updated = LiteResultIndexSchema.parse({ schema_version: 1, results: entries });
-    const temporary = `${indexPath}.tmp-${process.pid}`;
-    await writeJson(temporary, updated);
-    await rename(temporary, indexPath);
-    return rows.map(({ result }) =>
-      path.join(resultsRoot, result.benchmark_version, `${result.series_id}.json`)
-    );
-  } catch (error) {
-    for (const destination of copied) {
-      await rm(destination, { force: true });
-    }
-    throw error;
-  } finally {
-    await releaseLock();
-  }
+  const rows = (await Promise.all(
+    campaignIds.map((campaignId) => checkLocalCampaign(repositoryRoot, campaignId)),
+  )).flat();
+  for (const { result } of rows) assertSecretFreePublication(result);
+  return publishCheckedResults(repositoryRoot, rows.map(({ result }) => result));
 }
 
-export async function doctorCampaignAgents(repositoryRoot: string): Promise<number> {
-  const plans = await listCampaignPlans(repositoryRoot);
+export async function doctorCampaignAgents(repositoryRoot: string, suppliedPlans?: Array<{ cells: CampaignCell[] }>): Promise<number> {
+  const plans = suppliedPlans ?? await listCampaignPlans(repositoryRoot);
   const checked = new Set<string>();
   for (const plan of plans) {
     for (const cell of plan.cells) {
@@ -426,7 +343,7 @@ export async function checkCampaignPublications(repositoryRoot: string): Promise
   const byBinding = new Map<string, LiteSeriesResult[]>();
   const indexedVersions = new Set<string>();
   for (const entry of index.results) {
-    const result = LiteSeriesResultSchema.parse(
+    const result = readFlatSeriesResult(
       JSON.parse(await readFile(path.join(repositoryRoot, entry.path), "utf8")),
     );
     // A standalone campaign check must not ignore the index binding: the
@@ -439,6 +356,7 @@ export async function checkCampaignPublications(repositoryRoot: string): Promise
     ) {
       throw new Error(`published result identity does not match the index entry: ${entry.series_id}`);
     }
+    if (result.schema_version === 3) continue; // separately checked by Campaign v2
     indexedVersions.add(result.benchmark_version);
     if (result.campaign) {
       const key = `${result.benchmark_version}/${result.campaign.id}`;
@@ -451,10 +369,10 @@ export async function checkCampaignPublications(repositoryRoot: string): Promise
   // results, plus the currently active release. A campaign that was published
   // under a historical benchmark version (for example 0.6.0) remains known
   // even when the current release (0.6.1) declares no new campaign plans.
-  const currentRelease = await loadLiteRelease(repositoryRoot);
+  const currentRelease = await loadVersionedRelease(repositoryRoot);
   const versionsToScan = new Set<string>([
     ...indexedVersions,
-    currentRelease.release.benchmark_version,
+    ...("evaluation_seed" in currentRelease.release ? [currentRelease.release.benchmark_version] : []),
   ]);
   const plans = new Map<string, CampaignPlan>();
   for (const version of versionsToScan) {
@@ -482,6 +400,7 @@ export async function checkCampaignPublications(repositoryRoot: string): Promise
       seen.add(cell.cell_id);
       assertResultMatchesCampaignCell(result, plan, cell);
     }
+    assertCampaignCommitConsistency(values);
   }
   return plans.size;
 }

@@ -1,0 +1,15 @@
+schema_version: 1
+id: play.2048.v1
+version: 1.0.0
+title: { en: "2048", zh: "2048" }
+suite: play
+game: "2048"
+engine: engine.mjs
+renderer: renderer.mjs
+prompt: { en: prompt.en.md, zh: prompt.zh.md }
+episodes: 10
+max_decisions: 200
+viewport: [1280, 720]
+device_scale_factor: 1
+primary_metric: mean_score
+license: Apache-2.0

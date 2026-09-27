@@ -1,0 +1,92 @@
+---
+import { agentLabel, formatPlayMetric, type PlayGameRanking } from "../../lib/play-data.ts";
+
+interface Props { ranking: PlayGameRanking }
+const { ranking } = Astro.props;
+const reasonZh: Record<string, string> = {
+  "incomplete full-suite coverage": "整套游戏覆盖不完整",
+  "local experimental profile": "本地实验配置",
+  "no clean recorded Git commit": "没有干净且已记录的 Git 提交",
+  "no preregistered campaign binding": "没有预注册 Campaign 绑定",
+  "incomplete campaign publication": "Campaign 尚未全部公开且完整完成",
+};
+---
+
+<div class="play-ranking">
+  {ranking.rows.length > 0 ? (
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th><span class="lang-en">Rank</span><span class="lang-zh">排名</span></th>
+            <th><span class="lang-en">Player system / Campaign</span><span class="lang-zh">玩家系统 / Campaign</span></th>
+            <th><span class="lang-en">{ranking.game === "2048" ? "Mean native score" : "Win rate"}</span><span class="lang-zh">{ranking.game === "2048" ? "平均原生得分" : "胜率"}</span></th>
+            <th><span class="lang-en">Episodes / metrics</span><span class="lang-zh">回合 / 指标</span></th>
+            <th><span class="lang-en">Evidence identity</span><span class="lang-zh">证据标识</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          {ranking.rows.map((row, index) => (
+            <tr>
+              <td class="rank">
+                {ranking.ranks[index] ?? "—"}
+                {!row.rankable && <small><span class="lang-en">Unranked</span><span class="lang-zh">不排名</span></small>}
+              </td>
+              <td>
+                <strong>{agentLabel(row)}</strong>
+                <div class="mono muted">{row.series_id}</div>
+                {row.campaign && <div>{row.campaign.id} · {row.campaign.cell_id}</div>}
+                {row.reasons.length > 0 && <ul class="reasons">{row.reasons.map((reason) => <li><span class="lang-en">{reason}</span><span class="lang-zh">{reasonZh[reason] ?? reason}</span></li>)}</ul>}
+              </td>
+              <td class="score" title={row.metric?.toString()}>{formatPlayMetric(ranking.game, row.metric)}</td>
+              <td>
+                {row.episode_count} / {row.required_episodes}
+                {row.metrics && (
+                  <details>
+                    <summary><span class="lang-en">Raw metrics</span><span class="lang-zh">原始指标</span></summary>
+                    {row.metrics.primary_metric === "mean_score" ? (
+                      <div>
+                        <p><span class="lang-en">Episode scores</span><span class="lang-zh">各回合得分</span>: {row.metrics.episode_scores.join(", ")}</p>
+                        <p><span class="lang-en">Sample SD</span><span class="lang-zh">样本标准差</span>: {row.metrics.score_standard_deviation}</p>
+                        <p><span class="lang-en">Max tile / mean effective moves</span><span class="lang-zh">最大数字 / 平均有效移动</span>: {row.metrics.max_tile} / {row.metrics.effective_moves}</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <p><span class="lang-en">Wins (1) / losses (0)</span><span class="lang-zh">各回合胜 (1) / 负 (0)</span>: {row.metrics.episode_wins.map(Number).join(", ")}</p>
+                        <p><span class="lang-en">Mean safe-cell coverage / actions</span><span class="lang-zh">平均安全格覆盖率 / 动作数</span>: {row.metrics.safe_cell_coverage}% / {row.metrics.action_count}</p>
+                      </div>
+                    )}
+                  </details>
+                )}
+              </td>
+              <td class="evidence">
+                <details>
+                  <summary class="mono">{row.artifact_manifest_hash.slice(0, 16)}…</summary>
+                  <p><span class="lang-en">Hashes identify evidence; they are not downloads.</span><span class="lang-zh">哈希用于标识证据，不是下载链接。</span></p>
+                  <p>game: <code>{row.game_hash}</code></p>
+                  <p><span class="lang-en">Replay digest</span><span class="lang-zh">回放摘要哈希</span>: <code>{row.trajectory_hash}</code></p>
+                  <p>manifest: <code>{row.artifact_manifest_hash}</code></p>
+                </details>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  ) : (
+    <div class="empty">
+      <strong><span class="lang-en">No {ranking.tier === "official" ? "Official" : "Experimental"} measured {ranking.game} results for v{ranking.version}.</span><span class="lang-zh">v{ranking.version} 暂无 {ranking.game} {ranking.tier === "official" ? "正式" : "实验"}实测结果。</span></strong>
+      <span class="lang-en">Human practice is separate and never supplies a ranked result.</span>
+      <span class="lang-zh">人工练习独立于实测，绝不会用作排行成绩。</span>
+    </div>
+  )}
+</div>
+
+<style>
+  .rank { color: var(--hot); font-family: var(--display); font-size: 22px; font-weight: 760; font-variant-numeric: tabular-nums; }
+  .rank small { display: block; font-size: 10px; }
+  .reasons { color: var(--muted); font-size: 11px; padding-left: 16px; }
+  .evidence { font-size: 11px; max-width: 240px; }
+  .evidence code { overflow-wrap: anywhere; }
+  summary { cursor: pointer; }
+</style>

@@ -5,13 +5,14 @@ import {
   defaultOfficialSeed,
   releaseCatalogFor,
   resultData,
+  isPublicationRecord,
   type PlayableCandidate,
 } from "../../lib/data";
 import { sampleIndexForRun, sampleLetter } from "../../lib/presentation";
 
 export async function getStaticPaths() {
   const { records } = await resultData();
-  const candidates: PlayableCandidate[] = records.flatMap((record) =>
+  const candidates: PlayableCandidate[] = records.filter(isPublicationRecord).flatMap((record) =>
     record.publication.runs.flatMap((run) => {
       const playable = run.artifacts.find(
         (artifact) => artifact.role === "playable",

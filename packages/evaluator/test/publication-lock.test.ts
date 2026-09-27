@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -25,7 +25,19 @@ test("publication directories reject symlink escape", async () => {
   }
 });
 
-test("publication index lock serializes writers and recovers stale owners", async () => {
+test("an empty or malformed lock never steals an initializing writer's ownership", async () => {
+  const temporary = await mkdtemp(path.join(os.tmpdir(), "cagb-index-lock-owner-"));
+  const lockPath = path.join(temporary, "index.lock");
+  try {
+    for (const content of ["", "not-a-pid\n", "0\n"]) {
+      await writeFile(lockPath, content);
+      await assert.rejects(acquirePublicationIndexLock(lockPath), /unconfirmed owner; inspect/);
+      assert.equal(await readFile(lockPath, "utf8"), content);
+    }
+  } finally { await rm(temporary, { recursive: true, force: true }); }
+});
+
+test("publication index lock serializes writers and never automatically reclaims stale owners", async () => {
   const temporary = await mkdtemp(path.join(os.tmpdir(), "cagb-index-lock-"));
   const lockPath = path.join(temporary, "index.lock");
   try {
@@ -38,8 +50,14 @@ test("publication index lock serializes writers and recovers stale owners", asyn
     const releaseAgain = await acquirePublicationIndexLock(lockPath);
     await releaseAgain();
     await writeFile(lockPath, "999999999\n");
-    const releaseRecovered = await acquirePublicationIndexLock(lockPath);
-    await releaseRecovered();
+    await Promise.all([0, 1].map(() => assert.rejects(
+      acquirePublicationIndexLock(lockPath), /stale process.*confirm no publisher/,
+    )));
+    assert.equal(await readFile(lockPath, "utf8"), "999999999\n");
+    // Explicit operator cleanup after inspection, never an automatic takeover.
+    await rm(lockPath);
+    const releaseAfterCleanup = await acquirePublicationIndexLock(lockPath);
+    await releaseAfterCleanup();
   } finally {
     await rm(temporary, { recursive: true, force: true });
   }

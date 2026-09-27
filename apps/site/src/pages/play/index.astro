@@ -1,0 +1,116 @@
+---
+import Layout from "../../layouts/Layout.astro";
+import { PLAY_GAMES, playReleases, playResults, latestPlayResultBearingVersion, type PlayGameId } from "../../lib/play-data.ts";
+
+const [releases, results] = await Promise.all([playReleases(), playResults()]);
+const versionCount = releases.length;
+const measuredVersion = latestPlayResultBearingVersion(releases, results);
+const gameMeta: Record<PlayGameId, { en: string; zh: string; metric: string; metricZh: string; max: number }> = {
+  "2048": {
+    en: "Maximize the native score over 200 decisions; reaching 2048 is not a win — the episode scores whatever you achieve.",
+    zh: "在 200 步内尽量提高原生得分；出现 2048 并不算获胜——按最终得分计。",
+    metric: "Mean native score",
+    metricZh: "平均原生得分",
+    max: 200,
+  },
+  minesweeper: {
+    en: "128 decisions, 60-second slots, and boards are not guaranteed guess-free. Three consecutive invalid responses stop the episode; full safe-cell coverage wins.",
+    zh: "共 128 次决策、每次 60 秒，且不保证无猜开局。连续 3 次无效响应即中止该回合；揭开全部安全格即获胜。",
+    metric: "Win rate",
+    metricZh: "胜率",
+    max: 128,
+  },
+};
+---
+
+<Layout
+  title="Play"
+  titleZh="Play 评测与练习"
+  description="Play the reference games and see version-correct Play rankings."
+  descriptionZh="体验参考游戏，并查看对应版本的 Play 排行。"
+  canonicalPath="/play"
+>
+  <div class="container">
+    <span class="eyebrow"><span class="lang-en">Play suite</span><span class="lang-zh">Play 套件</span></span>
+    <h1><span class="lang-en">Play the frozen games.</span><span class="lang-zh">体验冻结的游戏。</span></h1>
+    <p class="lead">
+      <span class="lang-en">Play measures a visual player system against immutable maintainer-owned games. Each game has one native metric and its own ranking — there is no cross-game composite score. Human practice below is unranked, runs the original reference engine and renderer, and makes no model or submission calls.</span>
+      <span class="lang-zh">Play 评测视觉玩家系统与不可变的维护者游戏。每个游戏只有一个原生指标和独立排行——不存在跨游戏综合分。下方人工练习不排名、运行原始参考引擎与渲染器，且不调用模型、不提交成绩。</span>
+    </p>
+
+    <div class="game-grid grid cols-2" id="practice">
+      {PLAY_GAMES.map((game) => (
+        <article class="card game-card" data-ghost={game === "2048" ? "2K" : "M"}>
+          <span class="number"><span class="lang-en">Reference game · native {gameMeta[game]!.metric}</span><span class="lang-zh">参考游戏 · 原生{gameMeta[game]!.metricZh}</span></span>
+          <h3>{game === "2048" ? "2048" : "Minesweeper"}</h3>
+          <p>
+            <span class="lang-en">{gameMeta[game]!.en}</span>
+            <span class="lang-zh">{gameMeta[game]!.zh}</span>
+          </p>
+          <div class="game-meta">
+            <a class="button" href={`/play/practice/${game}`}><span class="lang-en">Practice</span><span class="lang-zh">练习</span></a>
+          </div>
+        </article>
+      ))}
+    </div>
+
+    <section class="section">
+      <div class="section-head">
+        <div><span class="pill">Rankings</span><h2><span class="lang-en">Version-correct rankings</span><span class="lang-zh">对应版本的排行</span></h2></div>
+        <p>
+          {versionCount === 0 ? (
+            <>
+              <span class="lang-en">No V4 Play release is locked yet, so there are no measured rankings to compare. Rankings appear here per game and per benchmark version only.</span>
+              <span class="lang-zh">目前还没有锁定 V4 Play 发布，因此没有可比较的实测排行。排行只会按游戏和基准版本逐一出现。</span>
+            </>
+          ) : (
+            <>
+              <span class="lang-en">Each ranking is scoped to exactly one benchmark version and one game. Different releases and different games are never compared.</span>
+              <span class="lang-zh">每个排行只对应一个基准版本和一个游戏，不同版本、不同游戏不会混排。</span>
+            </>
+          )}
+        </p>
+      </div>
+
+      {measuredVersion === undefined ? (
+        <div class="callout status-banner">
+          <span class="lang-en"><strong>No measured results yet.</strong> A locked instrument is not a measurement or a published release tag. Human practice never supplies benchmark scores.</span>
+          <span class="lang-zh"><strong>暂无实测结果。</strong>锁定评测工具不等于已经实测或发布版本标签；人工练习绝不会用作基准成绩。</span>
+        </div>
+      ) : (
+        <div class="callout status-banner">
+          <span class="lang-en">Latest Play version with published observations: v{measuredVersion}. Selected independently of Build; incomplete observations are not ranked.</span>
+          <span class="lang-zh">最近已有公开 Play 观测的版本：v{measuredVersion}。此选择独立于 Build；不完整的观测不排名。</span>
+        </div>
+      )}
+      {versionCount > 0 && (
+        <div class="grid cols-3">
+          {releases.map((release) => (
+            <article class="card">
+              <span class="pill">v{release.benchmark_version}</span>
+              <h3><span class="lang-en">Play instrument {release.benchmark_version}</span><span class="lang-zh">Play 评测工具 {release.benchmark_version}</span></h3>
+              <ul class="rank-list">
+                {PLAY_GAMES.filter((game) => release.tasks.some((task) => task.game === game)).map((game) => (
+                  <li>
+                    <a href={`/play/${release.benchmark_version}/${game}`}>
+                      <span class="lang-en">{game === "2048" ? "2048" : "Minesweeper"} · {gameMeta[game]!.metric}</span>
+                      <span class="lang-zh">{game === "2048" ? "2048" : "扫雷"} · {gameMeta[game]!.metricZh}</span>
+                      <span class="muted">v{release.benchmark_version}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      )}
+    </section>
+  </div>
+</Layout>
+
+<style>
+  .game-grid { margin-top: 44px; }
+  .rank-list { display: grid; gap: 8px; list-style: none; margin: 14px 0 0; padding: 0; }
+  .rank-list a { align-items: center; display: flex; font-size: 13px; font-weight: 750; gap: 8px; justify-content: space-between; text-decoration: none; }
+  .rank-list .muted { font-size: 11px; font-weight: 620; }
+</style>

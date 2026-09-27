@@ -1,13 +1,11 @@
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import {
-  access,
   copyFile,
   cp,
   lstat,
   mkdir,
   mkdtemp,
   readFile,
-  rename,
   rm,
   writeFile,
 } from "node:fs/promises";
@@ -24,9 +22,9 @@ import {
   TestOutcomeSchema,
   createUlid,
   loadTask,
+  readFlatSeriesResult,
   scoreTask,
   sha256File,
-  summarizeLiteBuild,
   verifyEvidenceManifest,
   writeEvidenceManifest,
   writeJson,
@@ -37,6 +35,7 @@ import {
   type LoadedTask,
 } from "@carrick/gamebench-core";
 import { sealSubmissionWorkspace } from "./archive.js";
+import { runBuildTaskBatch } from "./build-tasks.js";
 import { InfrastructureError, evaluateSubmissionArchive } from "./evaluate.js";
 import {
   evaluatorEnvironment,
@@ -45,10 +44,7 @@ import {
   waitForUrl,
   type CommandResult,
 } from "./process.js";
-import {
-  acquirePublicationIndexLock,
-  ensurePublicationDirectory,
-} from "./publication-lock.js";
+import { publishCheckedResults } from "./publication.js";
 import { prepareSubmissionWorkspace } from "./runner.js";
 
 export interface LiteBenchOptions {
@@ -78,15 +74,6 @@ function gitOutput(repositoryRoot: string, args: string[]): string | undefined {
     stdio: ["ignore", "pipe", "ignore"],
   });
   return result.status === 0 ? result.stdout.trim() : undefined;
-}
-
-async function pathExists(filePath: string): Promise<boolean> {
-  try {
-    await access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 export function assertSecretFreePublication(value: unknown): void {
@@ -363,7 +350,7 @@ async function runAgent(
   return { result, startedAt, finishedAt: new Date() };
 }
 
-async function runLiteTask(
+export async function runLiteTask(
   options: LiteBenchOptions,
   task: LoadedTask,
   runDir: string,
@@ -545,49 +532,10 @@ export async function runLiteBenchmark(
       status: "running",
       started_at: startedAt.toISOString(),
     });
-    const taskResults: LiteTaskResult[] = [];
-    const taskErrors: Array<{ task_id: string; message: string }> = [];
-    for (const task of selected) {
-      try {
-        taskResults.push(
-          await runLiteTask(options, task, runDir, release.evaluation_seed),
-        );
-      } catch (error) {
-        const failure = {
-          task_id: task.manifest.id,
-          message: error instanceof Error ? error.message : String(error),
-        };
-        taskErrors.push(failure);
-        const taskDir = path.join(
-          runDir,
-          "tasks",
-          task.manifest.id.replaceAll("/", "-"),
-        );
-        await mkdir(taskDir, { recursive: true });
-        await writeJson(path.join(taskDir, "task-error.json"), failure);
-      }
-    }
-    if (taskErrors.length > 0) {
-      await writeJson(path.join(runDir, "benchmark-error.json"), {
-        schema_version: 1,
-        series_id: seriesId,
-        completed_tasks: taskResults,
-        errors: taskErrors,
-      });
-      throw new Error(
-        `benchmark could not produce a complete result: ${taskErrors.map((error) => error.task_id).join(", ")}`,
-      );
-    }
-    const buildSummary = summarizeLiteBuild(taskResults);
-    if (buildSummary.score === undefined) {
-      await writeJson(path.join(runDir, "benchmark-error.json"), {
-        schema_version: 1,
-        series_id: seriesId,
-        completed_tasks: taskResults,
-        errors: [{ message: "one or more evaluations exhausted infrastructure retries" }],
-      });
-      throw new Error("benchmark could not produce a complete scored series");
-    }
+    const { tasks: taskResults, build: buildSummary } = await runBuildTaskBatch(
+      selected, runDir,
+      (task) => runLiteTask(options, task, runDir, release.evaluation_seed),
+    );
     const finishedAt = new Date();
     const finalStatus = gitOutput(options.repositoryRoot, ["status", "--porcelain"]);
     const finalCommit = gitOutput(options.repositoryRoot, ["rev-parse", "HEAD"]);
@@ -643,24 +591,12 @@ export async function runLiteBenchmark(
   }
 }
 
-export async function checkLiteBenchmark(
+export async function checkLiteTaskEvidence(
   repositoryRoot: string,
   runDir: string,
-  requireOfficial = false,
-): Promise<LiteSeriesResult> {
-  const result = LiteSeriesResultSchema.parse(
-    JSON.parse(await readFile(path.join(runDir, "result.json"), "utf8")),
-  );
-  // A result is bound to the exact release lock it declares, so an old run
-  // recorded under a previous benchmark version is still verified against its
-  // own immutable lock rather than the currently active release.
-  const { release, releaseHash } = await loadLiteRelease(
-    repositoryRoot,
-    result.benchmark_version,
-  );
-  if (result.benchmark_version !== release.benchmark_version || result.release_hash !== releaseHash) {
-    throw new Error("result does not match its release lock");
-  }
+  result: Pick<LiteSeriesResult, "tasks">,
+  release: Pick<LiteReleaseLock, "tasks" | "evaluation_seed">,
+): Promise<void> {
   if (result.tasks.length !== release.tasks.length) {
     throw new Error("result task count does not match the release");
   }
@@ -709,6 +645,27 @@ export async function checkLiteBenchmark(
       throw new Error(`${reference.id}: artifact manifest hash mismatch`);
     }
   }
+}
+
+export async function checkLiteBenchmark(
+  repositoryRoot: string,
+  runDir: string,
+  requireOfficial = false,
+): Promise<LiteSeriesResult> {
+  const result = LiteSeriesResultSchema.parse(
+    JSON.parse(await readFile(path.join(runDir, "result.json"), "utf8")),
+  );
+  // A result is bound to the exact release lock it declares, so an old run
+  // recorded under a previous benchmark version is still verified against its
+  // own immutable lock rather than the currently active release.
+  const { release, releaseHash } = await loadLiteRelease(
+    repositoryRoot,
+    result.benchmark_version,
+  );
+  if (result.benchmark_version !== release.benchmark_version || result.release_hash !== releaseHash) {
+    throw new Error("result does not match its release lock");
+  }
+  await checkLiteTaskEvidence(repositoryRoot, runDir, result, release);
   if (requireOfficial) {
     if (
       result.profile !== "official" ||
@@ -739,10 +696,13 @@ export async function checkLitePublishedResults(
   const index = LiteResultIndexSchema.parse(
     JSON.parse(await readFile(indexPath, "utf8")),
   );
+  let count = 0;
   for (const entry of index.results) {
-    const result = LiteSeriesResultSchema.parse(
+    const result = readFlatSeriesResult(
       JSON.parse(await readFile(path.join(repositoryRoot, entry.path), "utf8")),
     );
+    if (result.schema_version === 3) continue; // checked by the suite-aware reader
+    count++;
     // Each published result is validated against the release lock of the
     // benchmark version it records. Historical results published under an
     // earlier version are never re-validated against the current release and
@@ -791,7 +751,7 @@ export async function checkLitePublishedResults(
       }
     }
   }
-  return index.results.length;
+  return count;
 }
 
 export async function publishLiteBenchmark(
@@ -803,45 +763,5 @@ export async function publishLiteBenchmark(
     throw new Error("campaign-affiliated results must be published as one campaign batch");
   }
   assertSecretFreePublication(result);
-  const resultDir = await ensurePublicationDirectory(
-    repositoryRoot,
-    result.benchmark_version,
-  );
-  const destination = path.join(resultDir, `${result.series_id}.json`);
-  const indexPath = path.join(repositoryRoot, "results", "lite", "index.json");
-  const releaseLock = await acquirePublicationIndexLock(`${indexPath}.lock`);
-  const temporaryIndexPath = `${indexPath}.tmp-${process.pid}`;
-  let copied = false;
-  try {
-    if (await pathExists(destination)) {
-      throw new Error(`published result already exists: ${destination}`);
-    }
-    const index = LiteResultIndexSchema.parse(
-      JSON.parse(await readFile(indexPath, "utf8")),
-    );
-    const updatedIndex = LiteResultIndexSchema.parse({
-      ...index,
-      results: [
-        ...index.results,
-        {
-          benchmark_version: result.benchmark_version,
-          series_id: result.series_id,
-          path: path.relative(repositoryRoot, destination).split(path.sep).join("/"),
-        },
-      ],
-    });
-    await writeJson(temporaryIndexPath, updatedIndex);
-    await copyFile(path.join(runDir, "result.json"), destination);
-    copied = true;
-    await rename(temporaryIndexPath, indexPath);
-    return destination;
-  } catch (error) {
-    await Promise.all([
-      ...(copied ? [rm(destination, { force: true })] : []),
-      rm(temporaryIndexPath, { force: true }),
-    ]);
-    throw error;
-  } finally {
-    await releaseLock();
-  }
+  return (await publishCheckedResults(repositoryRoot, [result]))[0]!;
 }

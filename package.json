@@ -1,8 +1,8 @@
 {
   "name": "carrick-ai-gamebench",
-  "version": "0.6.1",
+  "version": "0.7.0",
   "private": true,
-  "description": "A benchmark for coding agents building playable web games.",
+  "description": "Separate benchmarks for AI systems building and playing web games.",
   "license": "Apache-2.0",
   "packageManager": "pnpm@10.33.0",
   "engines": {
@@ -16,7 +16,9 @@
     "check:static-security": "node tools/check-static-security.mjs",
     "smoke:templates": "node tools/smoke-templates.mjs",
     "calibrate:poker": "node tools/calibrate-poker.mjs",
-    "check": "pnpm check:boundaries && pnpm check:static-security && pnpm typecheck && pnpm test && pnpm build && pnpm cagb check && pnpm smoke:templates && pnpm calibrate:poker",
+    "test:play": "node --test benchmark/play/tests/*.test.mjs benchmark/play/calibration/*.test.mjs tools/agents/pi-play.test.mjs",
+    "calibrate:play": "node tools/calibrate-play.mjs",
+    "check": "pnpm check:boundaries && pnpm check:static-security && pnpm typecheck && pnpm test && pnpm build && pnpm cagb check && pnpm smoke:templates && pnpm calibrate:poker && pnpm test:play && pnpm calibrate:play",
     "cagb": "node packages/evaluator/dist/cli.js",
     "clean": "pnpm -r clean"
   }

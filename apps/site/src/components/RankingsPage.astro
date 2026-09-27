@@ -1,7 +1,7 @@
 ---
 import { compareSemanticVersions } from "@carrick/gamebench-core";
 import LeaderboardView from "./LeaderboardView.astro";
-import type { PublicationRecord } from "../lib/data";
+import type { SiteResultRecord } from "../lib/data";
 import { rankingTierOrder } from "../lib/ranking";
 
 interface ReleaseSummary {
@@ -12,7 +12,7 @@ interface ReleaseSummary {
 interface Props {
   version: string;
   releases: ReleaseSummary[];
-  records: PublicationRecord[];
+  records: SiteResultRecord[];
   isShortcut?: boolean;
 }
 
@@ -36,8 +36,8 @@ const isLatestResultFallback =
   <span class="eyebrow"><span class="lang-en">Evaluation rankings</span><span class="lang-zh">评测排行</span></span>
   <h1><span class="lang-en">Scores you can play.</span><span class="lang-zh">分数之外，游戏也能亲手验证。</span></h1>
   <p class="lead">
-    <span class="lang-en">Every row links to the machine-contract checks, clean source, playable output, and exact evaluation record. Results from different benchmark releases are never mixed.</span>
-    <span class="lang-zh">每条成绩都能追溯到机器契约检查、整理后的源码、可玩成品和完整评测记录。不同测试集版本不会混排。</span>
+    <span class="lang-en">Every row identifies its versioned checks, frozen delivery and evaluation record. Source downloads, playables and full evidence are linked only when published. Different benchmark releases are never mixed.</span>
+    <span class="lang-zh">每条成绩关联版本化检查、冻结交付和评测记录。源码下载、可玩成品与完整证据只在实际公开时提供链接。不同测试集版本不会混排。</span>
   </p>
 
   <div class="version-context">

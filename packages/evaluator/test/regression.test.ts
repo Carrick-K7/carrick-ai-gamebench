@@ -24,6 +24,7 @@ import {
   loadLiteRelease,
 } from "../src/lite-runner.js";
 import { checkCampaignPublications, listCampaignPlans } from "../src/campaign.js";
+import { loadSuiteRelease } from "../src/suite-release.js";
 
 const timestamp = "2026-08-30T00:00:00.000Z";
 const seed = 104729;
@@ -104,17 +105,18 @@ async function buildRun(
   return { runDir, result };
 }
 
-test("loadLiteRelease default resolves the active benchmark version", async () => {
+test("the versioned reader resolves active V4 without reinterpreting it as a Lite lock", async () => {
   const repositoryRoot = await findRepositoryRoot();
-  const loaded = await loadLiteRelease(repositoryRoot);
-  assert.equal(loaded.release.benchmark_version, LITE_BENCHMARK_VERSION);
+  const loaded = await loadSuiteRelease(repositoryRoot);
+  assert.equal(loaded.release.benchmark_version, "0.7.0");
   assert.match(loaded.releaseHash, /^sha256:[a-f0-9]{64}$/);
+  await assert.rejects(loadLiteRelease(repositoryRoot));
 });
 
 test("loadLiteRelease loads an explicit version's own lock", async () => {
   const repositoryRoot = await findRepositoryRoot();
   const old = await loadLiteRelease(repositoryRoot, "0.6.0");
-  const current = await loadLiteRelease(repositoryRoot);
+  const current = await loadLiteRelease(repositoryRoot, LITE_BENCHMARK_VERSION);
   assert.equal(old.release.benchmark_version, "0.6.0");
   assert.notEqual(old.releaseHash, current.releaseHash);
 });

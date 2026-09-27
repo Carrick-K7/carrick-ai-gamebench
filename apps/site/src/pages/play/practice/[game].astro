@@ -1,0 +1,40 @@
+---
+import Layout from "../../../layouts/Layout.astro";
+import PlayPractice from "../../../components/play/PlayPractice.astro";
+import { PLAY_GAMES, type PlayGameId } from "../../../lib/play-data.ts";
+
+export function getStaticPaths() {
+  return PLAY_GAMES.map((game) => ({ params: { game } }));
+}
+
+const game = Astro.params.game as PlayGameId;
+---
+
+<Layout
+  title={`Play ${game === "2048" ? "2048" : "Minesweeper"}`}
+  titleZh={`试玩 ${game === "2048" ? "2048" : "扫雷"}`}
+  description="Unranked human practice of the frozen reference game."
+  descriptionZh="冻结参考游戏的无排名人工练习。"
+  canonicalPath={`/play/practice/${game}`}
+>
+  <div class="container practice-page">
+    <span class="eyebrow"><span class="lang-en">Unranked practice · {game === "2048" ? "2048" : "Minesweeper"}</span><span class="lang-zh">无排名练习 · {game === "2048" ? "2048" : "扫雷"}</span></span>
+    <h1>{game === "2048" ? "2048" : "Minesweeper"}</h1>
+    <p class="lead">
+      <span class="lang-en">This runs the exact frozen reference engine and renderer that the Play benchmark measures — nothing else. It does not call a model, does not submit anything, and does not start a server. Restart is allowed only here, in unranked human practice.</span>
+      <span class="lang-zh">这里运行的就是 Play 基准所评测的那个冻结参考引擎和渲染器，别无其他。它不调用模型、不提交任何成绩、也不启动服务器。只有在这个无排名的人工练习中允许重新开始。</span>
+    </p>
+    <PlayPractice game={game} />
+    <p class="practice-note">
+      <span class="lang-en">Measured Play rankings are published separately per game and version. This practice page is never ranked.</span>
+      <span class="lang-zh">Play 实测排行会按游戏和版本单独公开；这个练习页面永不参与排名。</span>
+    </p>
+  </div>
+</Layout>
+
+<style>
+  .practice-page .lead { max-width: 860px; }
+  .practice-page { padding-top: 44px; }
+  .practice-page > PlayPractice { margin-top: 14px; }
+  .practice-note { color: var(--muted); font-family: var(--game-ui); font-size: 12px; margin-top: 26px; }
+</style>
