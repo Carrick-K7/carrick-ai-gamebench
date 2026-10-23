@@ -1,5 +1,7 @@
 # Carrick AI GameBench
 
+> **2026-10-23 起归档，停止维护。** instrument 冻结在 0.7.0。代码、历史结果、release lock 和两个只读站点全部原样保留，不再运行新的付费 campaign。停的理由：业界已有规模更大的同类公开基准（GameCraft-Bench、GameXpert-Bench、VideoGameBench、CUA-bench），且四任务 Build 已撞到天花板（前沿 agent 96–99 分）。完整存量清单与结论见 [docs/ARCHIVED-REPORT.md](docs/ARCHIVED-REPORT.md)。
+
 GameBench 分成两套独立评测：**Build 测 AI 做游戏，Play 测 AI 玩游戏**。**0.7.0** 新增 Play 评测，并收敛执行、校验和发布流程（[发布说明](docs/releases/0.7.0.md)）；没有新增实测模型成绩或部署。历史 0.6 评分、hash、结果和网址保持不变（[0.6.1 发布说明](docs/releases/0.6.1.md)）。
 
 | 套件 | 评测对象 | 排名指标 |

@@ -1,5 +1,7 @@
 # Carrick AI GameBench
 
+> **Archived 2026-10-23 — maintained no longer.** The instrument is frozen at 0.7.0. Code, historical results, release locks and both read-only sites are kept as-is; no new paid Campaigns will be run. Reason: equivalent public benchmarks already exist at larger scale (GameCraft-Bench, GameXpert-Bench, VideoGameBench, CUA-bench), and the four-task Build instrument had reached its ceiling (96–99 for frontier agents). Full inventory and rationale: [docs/ARCHIVED-REPORT.md](docs/ARCHIVED-REPORT.md) (Chinese).
+
 Carrick AI GameBench has two independent suites: **Build — AI builds games**, and **Play — AI plays fixed games**. Version **0.7.0** adds the Play instrument and streamlines shared execution, validation and publication ([release notes](docs/releases/0.7.0.md)). It includes no new measured model results or deployment. Historical 0.6 results, scoring, hashes and URLs are unchanged ([0.6.1 notes](docs/releases/0.6.1.md)).
 
 | Suite | Measured object | Ranking |
