@@ -37,6 +37,10 @@ pnpm cagb check
 
 `doctor --suite build` exercises the real install/offline/build/browser path. `doctor --suite play` checks both reference games and the external no-tools Pi adapter without inference. Play needs separately installed Pi 0.84.3 and a configured vision-capable model; Core/Evaluator contain no provider SDK. See [Play operations](docs/play-operations.md) before starting a paid run.
 
+What you should see: `pnpm cagb doctor` prints host/browser/task readiness;
+`pnpm cagb check` prints task and campaign validation; the read-only results
+sites are https://gamebench.ai.carrick7.com/ and https://play.gamebench.ai.carrick7.com/.
+
 After review, calibration and committing a new Campaign v2 under `benchmark/campaigns/0.7.0/`, run one preregistered Official Build cell (these commands are instructions, not permission to spend):
 
 ```bash
